@@ -29,11 +29,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Admin can add, edit, and activate/deactivate news sources (RSS, Beehiiv, manual)
   4. Admin can view and edit prompt templates from the admin panel
   5. Application is live on Railway with API, database, and frontend all accessible
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 01-01: Database schema, Fastify API skeleton, monorepo structure
-- [ ] 01-02: Admin auth, Next.js frontend, client/source/template CRUD, Railway deployment
+- [ ] 01-01-PLAN.md — Monorepo structure, database schema (all 7 tables), Fastify API with auth and CRUD routes, shared Zod schemas
+- [ ] 01-02-PLAN.md — Next.js 16 admin panel with shadcn/ui, login, sidebar, client/source/template CRUD pages, seed data, Railway deployment
 
 ### Phase 2: Content Pipeline
 **Goal**: System collects AI news daily and generates industry-tailored, fact-validated Finnish digests with images per client
