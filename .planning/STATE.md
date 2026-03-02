@@ -89,7 +89,7 @@ Recent decisions affecting current work:
 
 ### Blockers/Concerns
 
-- Gemini Nano Banana 2 exact API capabilities: RESOLVED -- using gemini-2.5-flash-preview-05-20 with @google/genai SDK
+- Gemini Nano Banana 2 exact API capabilities: RESOLVED -- using gemini-2.5-flash-image with @google/genai SDK
 - Zod 4 vs Zod 3 compatibility with fastify-type-provider-zod: RESOLVED -- use zod v3 API (standard `import { z } from 'zod'`)
 - Resend free tier (100 emails/day) may require Pro plan once clients onboard
 - SPF/DKIM/DMARC DNS records for mail.aisanomat.fi need 2-4 weeks of monitoring before client sends
