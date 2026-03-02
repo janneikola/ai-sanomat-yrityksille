@@ -11,9 +11,11 @@
   },
   "dependencies": {
     "@ai-sanomat/shared": "*",
+    "@anthropic-ai/sdk": "^0.78.0",
     "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^10.0.2",
     "@fastify/jwt": "^9.0.3",
+    "@google/genai": "^1.43.0",
     "bcrypt": "^5.1.1",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.45.0",
