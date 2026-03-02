@@ -10,16 +10,16 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 ## Current Position
 
 Phase: 1 of 4 (Foundation and Admin Setup)
-Plan: 1 of 2 in current phase (01-01 complete, starting 01-02)
-Status: In progress
-Last activity: 2026-03-02 -- Completed 01-01 (Backend API foundation)
+Plan: 2 of 2 in current phase (01-01 complete, 01-02 auto tasks complete, checkpoint pending)
+Status: In progress — awaiting human verification (Task 3 checkpoint)
+Last activity: 2026-03-02 -- Completed 01-02 auto tasks (Next.js admin panel)
 
-Progress: [##########] 13% (1/8 plans estimated)
+Progress: [##########] 13% (1/8 plans fully verified)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
+- Total plans completed: 1 (01-01 fully verified)
 - Average duration: 11 min
 - Total execution time: 0.18 hours
 
@@ -49,10 +49,15 @@ Recent decisions affecting current work:
 - 01-01: Removed rootDir from api/tsconfig.json to allow cross-package @ai-sanomat/shared imports without TS6059
 - 01-01: Admin password hashed once at startup (bcrypt 10 rounds) stored as fastify decorator
 - 01-01: drizzle-kit push for MVP dev, :: host binding for Railway
+- 01-02: Removed default root page.tsx -- (admin)/page.tsx serves / via Next.js route group
+- 01-02: Dev fallback JWT secret in middleware for local dev without env vars
+- 01-02: Optimistic toggle in SourceTable -- Switch updates local state on PATCH success
+- 01-02: shadcn toast deprecated, using sonner component instead
 
 ### Pending Todos
 
-None yet.
+- Set up DATABASE_URL, JWT_SECRET, ADMIN_PASSWORD in api/.env before running db:push/db:seed
+- Set NEXT_PUBLIC_API_URL=http://localhost:3000 in web/.env.local for local dev
 
 ### Blockers/Concerns
 
@@ -64,5 +69,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Completed 01-01-PLAN.md (Backend API foundation)
+Stopped at: Checkpoint Task 3 — human-verify full admin flow for 01-02 (Next.js admin panel)
 Resume file: None
