@@ -61,11 +61,11 @@ Plans:
   3. Sent emails include List-Unsubscribe header and tracking pixel for open detection
   4. System processes Resend webhooks and dashboard shows open rates per client
   5. Hard-bounced email addresses are automatically suppressed from future sends
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: React Email templates, Resend integration, DNS/SPF/DKIM/DMARC setup
-- [ ] 03-02: Admin send workflow (trigger, preview, approve/send), webhooks, bounce handling, dashboard
+- [ ] 03-01-PLAN.md — React Email template, Resend integration, email service, webhook processing, bounce handling, dashboard API, digest workflow endpoints
+- [ ] 03-02-PLAN.md — Admin client detail page with digest generate/preview/approve/send workflow, dashboard delivery stats table
 
 ### Phase 4: Company Portal
 **Goal**: Enterprise contacts can self-manage their team members via a passwordless login
