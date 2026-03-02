@@ -1,0 +1,8 @@
+node_modules/
+.env
+dist/
+.next/
+drizzle/
+*.js.map
+*.d.ts
+*.tsbuildinfo

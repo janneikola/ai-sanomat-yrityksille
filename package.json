@@ -1,0 +1,14 @@
+{
+  "name": "ai-sanomat-yrityksille",
+  "private": true,
+  "workspaces": ["api", "web", "packages/*"],
+  "scripts": {
+    "dev:api": "npm run dev -w api",
+    "dev:web": "npm run dev -w web",
+    "dev": "npm run dev:api & npm run dev:web",
+    "build:api": "npm run build -w api",
+    "build:web": "npm run build -w web",
+    "db:push": "npm run db:push -w api",
+    "db:seed": "npm run db:seed -w api"
+  }
+}
