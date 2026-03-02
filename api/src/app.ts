@@ -6,6 +6,7 @@ import authRoutes from './routes/auth.js';
 import clientRoutes from './routes/clients.js';
 import sourceRoutes from './routes/sources.js';
 import templateRoutes from './routes/templates.js';
+import newsRoutes from './routes/news.js';
 
 export async function buildApp() {
   const app = Fastify({ logger: true });
@@ -34,6 +35,7 @@ export async function buildApp() {
   await app.register(clientRoutes, { prefix: '/api/admin' });
   await app.register(sourceRoutes, { prefix: '/api/admin' });
   await app.register(templateRoutes, { prefix: '/api/admin' });
+  await app.register(newsRoutes, { prefix: '/api/admin' });
 
   return app;
 }
