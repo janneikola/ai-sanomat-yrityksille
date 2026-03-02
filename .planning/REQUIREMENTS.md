@@ -30,13 +30,13 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Email Delivery
 
-- [ ] **EMAIL-01**: System renders responsive HTML email using React Email with AI-Sanomat branding
-- [ ] **EMAIL-02**: System sends emails via Resend using own domain (mail.aisanomat.fi)
-- [ ] **EMAIL-03**: SPF, DKIM, and DMARC DNS records configured for mail.aisanomat.fi
-- [ ] **EMAIL-04**: System processes Resend webhooks for delivery, open, and bounce events
-- [ ] **EMAIL-05**: Hard-bounced member emails are automatically suppressed from future sends
-- [ ] **EMAIL-06**: Every email includes List-Unsubscribe header (RFC 8058)
-- [ ] **EMAIL-07**: Both HTML and plain text versions included in every email
+- [x] **EMAIL-01**: System renders responsive HTML email using React Email with AI-Sanomat branding
+- [x] **EMAIL-02**: System sends emails via Resend using own domain (mail.aisanomat.fi)
+- [ ] **EMAIL-03**: SPF, DKIM, and DMARC DNS records configured for mail.aisanomat.fi (requires manual DNS setup)
+- [x] **EMAIL-04**: System processes Resend webhooks for delivery, open, and bounce events
+- [x] **EMAIL-05**: Hard-bounced member emails are automatically suppressed from future sends
+- [x] **EMAIL-06**: Every email includes List-Unsubscribe header (RFC 8058)
+- [x] **EMAIL-07**: Both HTML and plain text versions included in every email
 
 ### Admin Panel
 
@@ -120,13 +120,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CONT-08 | Phase 2 | Complete |
 | CONT-09 | Phase 2 | Complete |
 | CONT-10 | Phase 2 | Complete |
-| EMAIL-01 | Phase 3 | Pending |
-| EMAIL-02 | Phase 3 | Pending |
-| EMAIL-03 | Phase 3 | Pending |
-| EMAIL-04 | Phase 3 | Pending |
-| EMAIL-05 | Phase 3 | Pending |
-| EMAIL-06 | Phase 3 | Pending |
-| EMAIL-07 | Phase 3 | Pending |
+| EMAIL-01 | Phase 3 | Complete |
+| EMAIL-02 | Phase 3 | Complete |
+| EMAIL-03 | Phase 3 | Pending (manual DNS setup) |
+| EMAIL-04 | Phase 3 | Complete |
+| EMAIL-05 | Phase 3 | Complete |
+| EMAIL-06 | Phase 3 | Complete |
+| EMAIL-07 | Phase 3 | Complete |
 | ADMIN-01 | Phase 1 | Complete |
 | ADMIN-02 | Phase 1 | Complete |
 | ADMIN-03 | Phase 3 | Pending |
@@ -143,4 +143,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-03-02*
-*Last updated: 2026-03-02 after roadmap creation*
+*Last updated: 2026-03-02 after 03-01 plan completion*

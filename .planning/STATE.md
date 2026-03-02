@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 
 ## Current Position
 
-Phase: 3 of 4 (Email Delivery and Send Workflow) — NOT STARTED
-Plan: 0 of 2 in current phase
-Status: Phase 2 complete -- ready for Phase 3 (email delivery)
-Last activity: 2026-03-02 -- Completed 02-02 (digest generation pipeline)
+Phase: 3 of 4 (Email Delivery and Send Workflow) — IN PROGRESS
+Plan: 1 of 2 in current phase
+Status: Plan 03-01 complete (email delivery backend) -- ready for Plan 03-02
+Last activity: 2026-03-02 -- Completed 03-01 (email delivery and send workflow)
 
-Progress: [########################################] 57% (4/7 plans fully verified)
+Progress: [##############################################] 71% (5/7 plans fully verified)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: ~16 min
-- Total execution time: ~1.1 hours
+- Total plans completed: 5
+- Average duration: ~14 min
+- Total execution time: ~1.2 hours
 
 **By Phase:**
 
@@ -29,10 +29,11 @@ Progress: [########################################] 57% (4/7 plans fully verifi
 |-------|-------|-------|----------|
 | 01-foundation-admin-setup | 2 | ~56min | ~28min |
 | 02-content-pipeline | 2 | 9min | ~5min |
+| 03-email-delivery-send-workflow | 1 | 5min | 5min |
 
 **Recent Trend:**
-- Last 5 plans: 11min, ~45min, 5min, 4min
-- Trend: improving
+- Last 5 plans: ~45min, 5min, 4min, 5min
+- Trend: consistent fast execution
 
 *Updated after each plan completion*
 
@@ -64,6 +65,11 @@ Recent decisions affecting current work:
 - 02-02: Model ID stored as CLAUDE_MODEL env var (default: claude-sonnet-4-5-20250929) for easy updates
 - 02-02: Images generated sequentially (not Promise.all) to avoid Gemini rate limits
 - 02-02: Validation prompt includes all 26 humanizer AI-pattern rules inline
+- 03-01: DigestEmailStory extends DigestStory with optional imageUrl -- avoids intersection type issues with TypeScript strict mode
+- 03-01: Webhook processes events idempotently -- silently returns 200 if no matching deliveryStats record
+- 03-01: Raw body registered global: false to avoid performance overhead on non-webhook routes
+- 03-01: Dashboard stats use per-client sequential queries with SQL aggregates for clarity
+- 03-01: Pino logger calls use object-first syntax ({ err }, message) per Fastify strict typing
 
 ### Pending Todos
 
@@ -73,6 +79,9 @@ Recent decisions affecting current work:
 - Set ANTHROPIC_API_KEY in api/.env for Claude digest generation
 - Set GEMINI_API_KEY in api/.env for Gemini image generation
 - Optional: Set IMAGE_STORAGE_PATH (default: ./uploads) and CLAUDE_MODEL (default: claude-sonnet-4-5-20250929)
+- Set RESEND_API_KEY in api/.env for Resend email sending
+- Set RESEND_WEBHOOK_SECRET in api/.env for webhook signature verification
+- Configure mail.aisanomat.fi domain in Resend Dashboard with SPF/DKIM/DMARC DNS records
 
 ### Blockers/Concerns
 
@@ -84,5 +93,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Completed 02-02-PLAN.md -- Digest generation pipeline complete, Phase 2 done, ready for Phase 3
+Stopped at: Completed 03-01-PLAN.md -- Email delivery backend complete, ready for Plan 03-02
 Resume file: None
