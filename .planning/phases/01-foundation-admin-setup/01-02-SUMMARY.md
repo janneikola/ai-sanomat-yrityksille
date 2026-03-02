@@ -47,7 +47,7 @@ key-files:
   created:
     - web/package.json (Next.js 16 + shadcn deps + jose + @tanstack/react-table)
     - web/tsconfig.json (path alias for @ai-sanomat/shared to packages/shared/src)
-    - web/next.config.ts (transpilePackages for @ai-sanomat/shared)
+    - web/next.config.ts (transpilePackages for @ai-sanomat/shared, API proxy rewrites)
     - web/middleware.ts (jose JWT verification, redirect to /login for unauth)
     - web/src/app/layout.tsx (root layout html lang="fi", metadata in Finnish)
     - web/src/app/globals.css (shadcn OKLCH CSS variables, tw-animate-css)
@@ -74,6 +74,7 @@ key-decisions:
   - "Used optimistic toggle in SourceTable -- Switch updates local state immediately on PATCH success"
   - "Template variable sidebar uses selectionStart/selectionEnd for cursor-position insertion"
   - "Removed Google Fonts (Geist) from root layout -- simpler, no external font dependency"
+  - "API proxied through Next.js rewrites instead of cross-origin fetch -- CORS prevented httpOnly cookie forwarding; rewrites make requests same-origin so cookies are included automatically"
 
 patterns-established:
   - "apiFetch pattern: always credentials: include, 401 triggers window.location redirect"
@@ -84,7 +85,7 @@ patterns-established:
 requirements-completed: [FOUND-03, FOUND-04, ADMIN-01, ADMIN-02, CONT-05]
 
 # Metrics
-duration: 8min
+duration: ~45min
 completed: 2026-03-02
 ---
 
@@ -94,10 +95,10 @@ completed: 2026-03-02
 
 ## Performance
 
-- **Duration:** 8 min
+- **Duration:** ~45 min
 - **Started:** 2026-03-02T06:59:31Z
-- **Completed:** 2026-03-02T07:07:49Z (auto tasks — checkpoint pending human verification)
-- **Tasks:** 2 auto (Task 3 checkpoint pending)
+- **Completed:** 2026-03-02 (checkpoint approved, CORS fix applied)
+- **Tasks:** 3 (2 auto + 1 human-verify checkpoint, approved)
 - **Files modified:** 52
 
 ## Accomplishments
@@ -113,7 +114,7 @@ Each task was committed atomically:
 
 1. **Task 1: Next.js 16 app with shadcn/ui, login, middleware, sidebar layout, and API client** - `8e3a851` (feat)
 2. **Task 2: Admin CRUD pages for clients, sources, and templates** - `cdf9a95` (feat)
-3. **Task 3: Verify full admin flow locally** - PENDING (checkpoint awaiting human verification)
+3. **Task 3: Verify full admin flow locally** - APPROVED (checkpoint passed; CORS fix applied in `61a0496`)
 
 ## Files Created/Modified
 - `web/middleware.ts` - jose JWT verification, /login redirect for unauthenticated requests
@@ -141,7 +142,18 @@ Each task was committed atomically:
 
 ## Deviations from Plan
 
-None — plan executed exactly as written. All components created as specified with Finnish UI text, correct API endpoints, and proper shadcn/ui patterns.
+### Auto-fixed Issues
+
+**1. [Rule 3 - Blocking] CORS prevented httpOnly cookie forwarding — fixed with Next.js API proxy**
+- **Found during:** Task 3 checkpoint verification
+- **Issue:** Browser fetch to cross-origin Fastify (localhost:3000) could not forward the httpOnly JWT cookie. Login succeeded but subsequent admin API calls received 401 because the cookie was absent from cross-origin requests.
+- **Fix:** Added `rewrites` to `web/next.config.ts` mapping `/api/:path*` → `http://localhost:3000/api/:path*`. Updated `web/src/lib/api.ts` to use relative `/api/...` paths (removing `NEXT_PUBLIC_API_URL` prefix for browser calls). API calls are now same-origin from the browser's perspective — Next.js forwards them server-side, including cookies.
+- **Files modified:** `web/next.config.ts`, `web/src/lib/api.ts`
+- **Commit:** `61a0496`
+
+### Deferred Items
+
+- **Railway deployment** — plan included Railway as a step but no Railway project was set up. Admin panel verified locally only. Deployment will be done as a separate step.
 
 ## Issues Encountered
 - `create-next-app@latest` prompts React Compiler question interactively — worked around with `--yes` flag.
@@ -161,9 +173,10 @@ The following must be configured before local verification:
 9. Start web: `npm run dev:web` (port 3001)
 
 ## Next Phase Readiness
-- Admin panel ready for verification: all 6 routes built, middleware protecting admin routes
-- After checkpoint approval: Railway deployment (per plan frontmatter user_setup tasks)
-- Phase 2 (content pipeline) can start after Railway deployment is verified
+- Admin panel fully verified: login, client/source/template CRUD all working locally
+- Railway deployment deferred — can proceed to Phase 2 with local stack or deploy to Railway separately
+- Phase 2 (content pipeline) can start: API and admin panel foundation complete
+- Before Phase 2: confirm `npm run db:seed` has run (RSS sources + prompt templates needed)
 
 ## Self-Check: PASSED
 
@@ -178,7 +191,7 @@ All 9 required artifact files exist on disk:
 - web/src/components/templates/template-editor.tsx: 153 lines (min: 40) PASS
 - web/src/lib/api.ts: 29 lines (min: N/A) PASS
 
-Both task commits (8e3a851, cdf9a95) confirmed in git log.
+All task commits (8e3a851, cdf9a95) and fix commit (61a0496) confirmed in git log. Checkpoint approved and plan complete.
 
 ---
 *Phase: 01-foundation-admin-setup*

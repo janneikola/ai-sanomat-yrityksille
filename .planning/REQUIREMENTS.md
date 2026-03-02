@@ -11,7 +11,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **FOUND-01**: PostgreSQL database schema with all tables (clients, members, news_items, issues, delivery_stats, news_sources, prompt_templates)
 - [x] **FOUND-02**: Fastify API server with typed routes and JSON Schema validation
-- [ ] **FOUND-03**: Admin can log in with hardcoded email/password and receive JWT token
+- [x] **FOUND-03**: Admin can log in with hardcoded email/password and receive JWT token
 - [ ] **FOUND-04**: Application deploys to Railway (API + DB + frontend)
 - [x] **FOUND-05**: Monorepo structure with npm workspaces (api/, web/, packages/shared/)
 
@@ -21,7 +21,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **CONT-02**: System fetches latest articles from Beehiiv API (aisanomat.fi)
 - [ ] **CONT-03**: Admin can manually add news items via the admin panel
 - [ ] **CONT-04**: Collected news items are deduplicated by URL
-- [ ] **CONT-05**: Admin can manage prompt templates (view, edit) from the admin panel
+- [x] **CONT-05**: Admin can manage prompt templates (view, edit) from the admin panel
 - [ ] **CONT-06**: System generates industry-tailored Finnish digest using Claude Sonnet per client
 - [ ] **CONT-07**: System validates generated content against source articles in a second Claude call
 - [ ] **CONT-08**: Validation flags uncertain claims and stores a quality report per digest
@@ -40,8 +40,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Admin Panel
 
-- [ ] **ADMIN-01**: Admin can add, edit, and list enterprise clients with name, industry, contact info, and plan
-- [ ] **ADMIN-02**: Admin can add, edit, activate/deactivate news sources (RSS, Beehiiv, manual)
+- [x] **ADMIN-01**: Admin can add, edit, and list enterprise clients with name, industry, contact info, and plan
+- [x] **ADMIN-02**: Admin can add, edit, activate/deactivate news sources (RSS, Beehiiv, manual)
 - [ ] **ADMIN-03**: Admin can trigger digest generation for a specific client
 - [ ] **ADMIN-04**: Admin can preview generated digest (with images) before sending
 - [ ] **ADMIN-05**: Admin can approve and send, or regenerate a digest
@@ -105,16 +105,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOUND-01 | Phase 1 | Pending |
-| FOUND-02 | Phase 1 | Pending |
-| FOUND-03 | Phase 1 | Pending |
+| FOUND-01 | Phase 1 | Complete |
+| FOUND-02 | Phase 1 | Complete |
+| FOUND-03 | Phase 1 | Complete |
 | FOUND-04 | Phase 1 | Pending |
-| FOUND-05 | Phase 1 | Pending |
+| FOUND-05 | Phase 1 | Complete |
 | CONT-01 | Phase 2 | Pending |
 | CONT-02 | Phase 2 | Pending |
 | CONT-03 | Phase 2 | Pending |
 | CONT-04 | Phase 2 | Pending |
-| CONT-05 | Phase 1 | Pending |
+| CONT-05 | Phase 1 | Complete |
 | CONT-06 | Phase 2 | Pending |
 | CONT-07 | Phase 2 | Pending |
 | CONT-08 | Phase 2 | Pending |
@@ -127,8 +127,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EMAIL-05 | Phase 3 | Pending |
 | EMAIL-06 | Phase 3 | Pending |
 | EMAIL-07 | Phase 3 | Pending |
-| ADMIN-01 | Phase 1 | Pending |
-| ADMIN-02 | Phase 1 | Pending |
+| ADMIN-01 | Phase 1 | Complete |
+| ADMIN-02 | Phase 1 | Complete |
 | ADMIN-03 | Phase 3 | Pending |
 | ADMIN-04 | Phase 3 | Pending |
 | ADMIN-05 | Phase 3 | Pending |

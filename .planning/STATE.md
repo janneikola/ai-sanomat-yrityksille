@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-03-02)
 
 ## Current Position
 
-Phase: 1 of 4 (Foundation and Admin Setup)
-Plan: 2 of 2 in current phase (01-01 complete, 01-02 auto tasks complete, checkpoint pending)
-Status: In progress — awaiting human verification (Task 3 checkpoint)
-Last activity: 2026-03-02 -- Completed 01-02 auto tasks (Next.js admin panel)
+Phase: 1 of 4 (Foundation and Admin Setup) — COMPLETE
+Plan: 2 of 2 in current phase (01-01 complete, 01-02 complete — checkpoint approved)
+Status: Phase 1 complete — ready to begin Phase 2
+Last activity: 2026-03-02 -- Completed 01-02 (admin panel verified, CORS fix applied)
 
-Progress: [##########] 13% (1/8 plans fully verified)
+Progress: [####################] 25% (2/8 plans fully verified)
 
 ## Performance Metrics
 
@@ -27,10 +27,10 @@ Progress: [##########] 13% (1/8 plans fully verified)
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-foundation-admin-setup | 1 | 11min | 11min |
+| 01-foundation-admin-setup | 2 | ~56min | ~28min |
 
 **Recent Trend:**
-- Last 5 plans: 11min
+- Last 5 plans: 11min, ~45min
 - Trend: -
 
 *Updated after each plan completion*
@@ -53,6 +53,7 @@ Recent decisions affecting current work:
 - 01-02: Dev fallback JWT secret in middleware for local dev without env vars
 - 01-02: Optimistic toggle in SourceTable -- Switch updates local state on PATCH success
 - 01-02: shadcn toast deprecated, using sonner component instead
+- 01-02: API proxied through Next.js rewrites -- CORS prevented httpOnly cookie forwarding to cross-origin Fastify; rewrites make calls same-origin (commit 61a0496)
 
 ### Pending Todos
 
@@ -69,5 +70,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Checkpoint Task 3 — human-verify full admin flow for 01-02 (Next.js admin panel)
+Stopped at: Completed 01-02-PLAN.md — Phase 1 Foundation and Admin Setup fully complete
 Resume file: None
