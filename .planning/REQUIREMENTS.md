@@ -42,10 +42,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **ADMIN-01**: Admin can add, edit, and list enterprise clients with name, industry, contact info, and plan
 - [x] **ADMIN-02**: Admin can add, edit, activate/deactivate news sources (RSS, Beehiiv, manual)
-- [ ] **ADMIN-03**: Admin can trigger digest generation for a specific client
-- [ ] **ADMIN-04**: Admin can preview generated digest (with images) before sending
-- [ ] **ADMIN-05**: Admin can approve and send, or regenerate a digest
-- [ ] **ADMIN-06**: Dashboard shows all clients with team size, latest send date, and open rate
+- [x] **ADMIN-03**: Admin can trigger digest generation for a specific client
+- [x] **ADMIN-04**: Admin can preview generated digest (with images) before sending
+- [x] **ADMIN-05**: Admin can approve and send, or regenerate a digest
+- [x] **ADMIN-06**: Dashboard shows all clients with team size, latest send date, and open rate
 
 ### Company Portal
 
@@ -129,10 +129,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EMAIL-07 | Phase 3 | Complete |
 | ADMIN-01 | Phase 1 | Complete |
 | ADMIN-02 | Phase 1 | Complete |
-| ADMIN-03 | Phase 3 | Pending |
-| ADMIN-04 | Phase 3 | Pending |
-| ADMIN-05 | Phase 3 | Pending |
-| ADMIN-06 | Phase 3 | Pending |
+| ADMIN-03 | Phase 3 | Complete |
+| ADMIN-04 | Phase 3 | Complete |
+| ADMIN-05 | Phase 3 | Complete |
+| ADMIN-06 | Phase 3 | Complete |
 | PORTAL-01 | Phase 4 | Pending |
 | PORTAL-02 | Phase 4 | Pending |
 
@@ -143,4 +143,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-03-02*
-*Last updated: 2026-03-02 after 03-01 plan completion*
+*Last updated: 2026-03-02 after 03-02 plan completion*

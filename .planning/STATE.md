@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-02)
 
 **Core value:** The AI-generated weekly digest must be genuinely useful and industry-relevant -- content quality is the entire selling point.
-**Current focus:** Phase 3: Email Delivery and Send Workflow
+**Current focus:** Phase 3 complete. Ready for Phase 4: Company Portal and Scheduled Pipeline
 
 ## Current Position
 
-Phase: 3 of 4 (Email Delivery and Send Workflow) — IN PROGRESS
-Plan: 1 of 2 in current phase
-Status: Plan 03-01 complete (email delivery backend) -- ready for Plan 03-02
-Last activity: 2026-03-02 -- Completed 03-01 (email delivery and send workflow)
+Phase: 3 of 4 (Email Delivery and Send Workflow) — COMPLETE
+Plan: 2 of 2 in current phase (complete)
+Status: Phase 03 complete -- ready for Phase 04
+Last activity: 2026-03-02 -- Completed 03-02 (admin send workflow UI and dashboard)
 
-Progress: [##############################################] 71% (5/7 plans fully verified)
+Progress: [####################################################] 86% (6/7 plans fully verified)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
-- Average duration: ~14 min
-- Total execution time: ~1.2 hours
+- Total plans completed: 6
+- Average duration: ~12 min
+- Total execution time: ~1.3 hours
 
 **By Phase:**
 
@@ -29,10 +29,10 @@ Progress: [##############################################] 71% (5/7 plans fully 
 |-------|-------|-------|----------|
 | 01-foundation-admin-setup | 2 | ~56min | ~28min |
 | 02-content-pipeline | 2 | 9min | ~5min |
-| 03-email-delivery-send-workflow | 1 | 5min | 5min |
+| 03-email-delivery-send-workflow | 2 | 8min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: ~45min, 5min, 4min, 5min
+- Last 5 plans: 5min, 4min, 5min, 3min
 - Trend: consistent fast execution
 
 *Updated after each plan completion*
@@ -70,6 +70,10 @@ Recent decisions affecting current work:
 - 03-01: Raw body registered global: false to avoid performance overhead on non-webhook routes
 - 03-01: Dashboard stats use per-client sequential queries with SQL aggregates for clarity
 - 03-01: Pino logger calls use object-first syntax ({ err }, message) per Fastify strict typing
+- 03-02: Digest status drives action button visibility (ready: approve+send+regenerate, approved: send+regenerate, sent: confirmation, failed: regenerate)
+- 03-02: Email preview uses iframe with API endpoint src for pixel-perfect rendering
+- 03-02: Dashboard delivery stats sorted by latest send date, no-sends clients last
+- 03-02: Sidebar unchanged -- existing isActive(startsWith) correctly handles /clients/[id] subroutes
 
 ### Pending Todos
 
@@ -93,5 +97,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Completed 03-01-PLAN.md -- Email delivery backend complete, ready for Plan 03-02
+Stopped at: Completed 03-02-PLAN.md -- Admin send workflow UI and dashboard complete, Phase 03 done
 Resume file: None
