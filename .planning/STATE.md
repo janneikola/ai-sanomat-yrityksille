@@ -5,33 +5,33 @@
 See: .planning/PROJECT.md (updated 2026-03-02)
 
 **Core value:** The AI-generated weekly digest must be genuinely useful and industry-relevant -- content quality is the entire selling point.
-**Current focus:** Phase 2: Content Pipeline
+**Current focus:** Phase 3: Email Delivery and Send Workflow
 
 ## Current Position
 
-Phase: 2 of 4 (Content Pipeline) — IN PROGRESS
-Plan: 1 of 2 in current phase (02-01 complete)
-Status: 02-01 complete — ready for 02-02 (digest generation)
-Last activity: 2026-03-02 -- Completed 02-01 (news collection, scheduler, admin news page)
+Phase: 3 of 4 (Email Delivery and Send Workflow) — NOT STARTED
+Plan: 0 of 2 in current phase
+Status: Phase 2 complete -- ready for Phase 3 (email delivery)
+Last activity: 2026-03-02 -- Completed 02-02 (digest generation pipeline)
 
-Progress: [##############################] 43% (3/7 plans fully verified)
+Progress: [########################################] 57% (4/7 plans fully verified)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: ~20 min
-- Total execution time: ~1.0 hours
+- Total plans completed: 4
+- Average duration: ~16 min
+- Total execution time: ~1.1 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation-admin-setup | 2 | ~56min | ~28min |
-| 02-content-pipeline | 1 | 5min | 5min |
+| 02-content-pipeline | 2 | 9min | ~5min |
 
 **Recent Trend:**
-- Last 5 plans: 11min, ~45min, 5min
+- Last 5 plans: 11min, ~45min, 5min, 4min
 - Trend: improving
 
 *Updated after each plan completion*
@@ -59,16 +59,24 @@ Recent decisions affecting current work:
 - 02-01: Toaster from sonner added to admin layout for toast notification support
 - 02-01: Sidebar icon Newspaper moved to Uutiset, Rss icon for Uutislahteet
 - 02-01: Integration client pattern established in api/src/integrations/ with typed interfaces
+- 02-02: Claude structured outputs via output_config.format for guaranteed JSON -- no prompt-based extraction
+- 02-02: All JSON schemas use additionalProperties: false at every object level with all properties required
+- 02-02: Model ID stored as CLAUDE_MODEL env var (default: claude-sonnet-4-5-20250929) for easy updates
+- 02-02: Images generated sequentially (not Promise.all) to avoid Gemini rate limits
+- 02-02: Validation prompt includes all 26 humanizer AI-pattern rules inline
 
 ### Pending Todos
 
 - Set up DATABASE_URL, JWT_SECRET, ADMIN_PASSWORD in api/.env before running db:push/db:seed
 - Set NEXT_PUBLIC_API_URL=http://localhost:3000 in web/.env.local for local dev
 - Set BEEHIIV_API_KEY and BEEHIIV_PUBLICATION_ID in api/.env for Beehiiv source collection
+- Set ANTHROPIC_API_KEY in api/.env for Claude digest generation
+- Set GEMINI_API_KEY in api/.env for Gemini image generation
+- Optional: Set IMAGE_STORAGE_PATH (default: ./uploads) and CLAUDE_MODEL (default: claude-sonnet-4-5-20250929)
 
 ### Blockers/Concerns
 
-- Gemini Nano Banana 2 exact API capabilities need verification before Phase 2 image generation work
+- Gemini Nano Banana 2 exact API capabilities: RESOLVED -- using gemini-2.5-flash-preview-05-20 with @google/genai SDK
 - Zod 4 vs Zod 3 compatibility with fastify-type-provider-zod: RESOLVED -- use zod v3 API (standard `import { z } from 'zod'`)
 - Resend free tier (100 emails/day) may require Pro plan once clients onboard
 - SPF/DKIM/DMARC DNS records for mail.aisanomat.fi need 2-4 weeks of monitoring before client sends
@@ -76,5 +84,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Completed 02-01-PLAN.md — News collection pipeline complete, ready for 02-02 digest generation
+Stopped at: Completed 02-02-PLAN.md -- Digest generation pipeline complete, Phase 2 done, ready for Phase 3
 Resume file: None

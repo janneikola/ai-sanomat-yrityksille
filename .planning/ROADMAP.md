@@ -13,7 +13,7 @@ Build an enterprise AI newsletter platform from scratch: database and API founda
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation and Admin Setup** - Database, API, auth, deployment, client/source management
-- [ ] **Phase 2: Content Pipeline** - News collection, AI digest generation, fact validation, image generation
+- [x] **Phase 2: Content Pipeline** - News collection, AI digest generation, fact validation, image generation
 - [ ] **Phase 3: Email Delivery and Send Workflow** - Email rendering, Resend integration, admin digest preview/approve/send, dashboard
 - [ ] **Phase 4: Company Portal** - Magic link auth and team management for enterprise contacts
 
@@ -49,7 +49,7 @@ Plans:
 
 Plans:
 - [x] 02-01-PLAN.md — News collection: RSS feed parsing, Beehiiv API client, news collector service, daily cron scheduler, manual entry API+UI, deduplication
-- [ ] 02-02-PLAN.md — Digest generation: Claude structured output for content generation, fact validation with language quality check, Gemini image generation with fallback, newsletter service pipeline
+- [x] 02-02-PLAN.md — Digest generation: Claude structured output for content generation, fact validation with language quality check, Gemini image generation with fallback, newsletter service pipeline
 
 ### Phase 3: Email Delivery and Send Workflow
 **Goal**: Admin can preview, approve, and send digests as branded HTML emails, and the system tracks delivery, opens, and bounces
@@ -87,6 +87,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation and Admin Setup | 2/2 | Complete | 2026-03-02 |
-| 2. Content Pipeline | 1/2 | In progress | - |
+| 2. Content Pipeline | 2/2 | Complete | 2026-03-02 |
 | 3. Email Delivery and Send Workflow | 0/2 | Not started | - |
 | 4. Company Portal | 0/1 | Not started | - |

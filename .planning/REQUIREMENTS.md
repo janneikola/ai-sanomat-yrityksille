@@ -22,11 +22,11 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **CONT-03**: Admin can manually add news items via the admin panel
 - [x] **CONT-04**: Collected news items are deduplicated by URL
 - [x] **CONT-05**: Admin can manage prompt templates (view, edit) from the admin panel
-- [ ] **CONT-06**: System generates industry-tailored Finnish digest using Claude Sonnet per client
-- [ ] **CONT-07**: System validates generated content against source articles in a second Claude call
-- [ ] **CONT-08**: Validation flags uncertain claims and stores a quality report per digest
-- [ ] **CONT-09**: System generates hero image (1200x630) and section images (800x450) with Gemini
-- [ ] **CONT-10**: Image generation failure degrades gracefully to text-only digest
+- [x] **CONT-06**: System generates industry-tailored Finnish digest using Claude Sonnet per client
+- [x] **CONT-07**: System validates generated content against source articles in a second Claude call
+- [x] **CONT-08**: Validation flags uncertain claims and stores a quality report per digest
+- [x] **CONT-09**: System generates hero image (1200x630) and section images (800x450) with Gemini
+- [x] **CONT-10**: Image generation failure degrades gracefully to text-only digest
 
 ### Email Delivery
 
@@ -115,11 +115,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CONT-03 | Phase 2 | Complete |
 | CONT-04 | Phase 2 | Complete |
 | CONT-05 | Phase 1 | Complete |
-| CONT-06 | Phase 2 | Pending |
-| CONT-07 | Phase 2 | Pending |
-| CONT-08 | Phase 2 | Pending |
-| CONT-09 | Phase 2 | Pending |
-| CONT-10 | Phase 2 | Pending |
+| CONT-06 | Phase 2 | Complete |
+| CONT-07 | Phase 2 | Complete |
+| CONT-08 | Phase 2 | Complete |
+| CONT-09 | Phase 2 | Complete |
+| CONT-10 | Phase 2 | Complete |
 | EMAIL-01 | Phase 3 | Pending |
 | EMAIL-02 | Phase 3 | Pending |
 | EMAIL-03 | Phase 3 | Pending |
