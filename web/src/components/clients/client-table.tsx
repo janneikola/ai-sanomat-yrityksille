@@ -6,6 +6,7 @@ import {
   flexRender,
   type ColumnDef,
 } from '@tanstack/react-table';
+import Link from 'next/link';
 import {
   Table,
   TableBody,
@@ -28,6 +29,14 @@ export function ClientTable({ clients, onEdit }: ClientTableProps) {
     {
       accessorKey: 'name',
       header: 'Nimi',
+      cell: ({ row }) => (
+        <Link
+          href={`/clients/${row.original.id}`}
+          className="font-medium text-primary hover:underline"
+        >
+          {row.getValue<string>('name')}
+        </Link>
+      ),
     },
     {
       accessorKey: 'industry',
@@ -65,13 +74,22 @@ export function ClientTable({ clients, onEdit }: ClientTableProps) {
       id: 'actions',
       header: 'Toiminnot',
       cell: ({ row }) => (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onEdit(row.original)}
-        >
-          Muokkaa
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+          >
+            <Link href={`/clients/${row.original.id}`}>Nayta</Link>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onEdit(row.original)}
+          >
+            Muokkaa
+          </Button>
+        </div>
       ),
     },
   ];
