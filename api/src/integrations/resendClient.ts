@@ -60,3 +60,21 @@ export async function sendBatchEmails(
 
   return results;
 }
+
+/**
+ * Lahettaa yksittaisen sahkopostin Resend-rajapinnan kautta.
+ * Kaytossa magic link -viestien lahettamiseen.
+ */
+export async function sendSingleEmail(payload: {
+  from: string;
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+}): Promise<{ id: string }> {
+  const response = await getResend().emails.send(payload);
+  if (response.error) {
+    throw new Error(`Resend send failed: ${response.error.message}`);
+  }
+  return { id: response.data!.id };
+}
