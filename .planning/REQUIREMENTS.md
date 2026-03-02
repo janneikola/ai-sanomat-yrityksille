@@ -1,7 +1,7 @@
 # Requirements: AI-Sanomat Yrityksille
 
 **Defined:** 2026-03-02
-**Core Value:** The AI-generated weekly digest must be genuinely useful and industry-relevant — content quality is the entire selling point.
+**Core Value:** The AI-generated weekly digest must be genuinely useful and industry-relevant -- content quality is the entire selling point.
 
 ## v1 Requirements
 
@@ -60,16 +60,16 @@ Deferred to future release. Tracked but not in current roadmap.
 
 - **PORTAL-03**: Company contact can view open rate stats per newsletter send
 - **PORTAL-04**: Company engagement dashboard with aggregate trends (open rate over time, top topics)
-- **PORTAL-05**: Newsletter archive — company contact can view past digests
+- **PORTAL-05**: Newsletter archive -- company contact can view past digests
 
 ### Content Enhancements
 
-- **CONT-11**: Source relevance scoring — AI rates article relevance per industry before generation
+- **CONT-11**: Source relevance scoring -- AI rates article relevance per industry before generation
 - **CONT-12**: Automated weekly generation and send (cron: Monday 06:00)
 
 ### Admin Enhancements
 
-- **ADMIN-07**: Admin analytics dashboard — cross-client engagement, generation costs, churn risk
+- **ADMIN-07**: Admin analytics dashboard -- cross-client engagement, generation costs, churn risk
 - **ADMIN-08**: Content quality scoring visible in dashboard per digest
 
 ### Integrations
@@ -89,9 +89,9 @@ Explicitly excluded. Documented to prevent scope creep.
 | Multiple newsletters per week | Weekly is the product cadence, more = cost explosion |
 | Multi-language support | Finnish is the competitive moat, English newsletters already exist |
 | Mobile app | Web-first, email is the delivery channel |
-| Beehiiv integration for sending | Intentionally separate system — Beehiiv can't do per-client tailoring |
+| Beehiiv integration for sending | Intentionally separate system -- Beehiiv can't do per-client tailoring |
 | Self-service team member unsubscribe | Company contact manages team, individual unsubscribe undermines enterprise model |
-| Custom email template per client | One AI-Sanomat brand, not white-label — maintain consistency |
+| Custom email template per client | One AI-Sanomat brand, not white-label -- maintain consistency |
 | Self-serve company signup | Enterprise clients need personal onboarding |
 | Rich text editor for digests | If AI output needs editing, fix the prompts, not add an editor |
 | Slack/Teams delivery | Email-only; if 5+ clients request, build a simple webhook forwarder |
@@ -105,42 +105,42 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOUND-01 | — | Pending |
-| FOUND-02 | — | Pending |
-| FOUND-03 | — | Pending |
-| FOUND-04 | — | Pending |
-| FOUND-05 | — | Pending |
-| CONT-01 | — | Pending |
-| CONT-02 | — | Pending |
-| CONT-03 | — | Pending |
-| CONT-04 | — | Pending |
-| CONT-05 | — | Pending |
-| CONT-06 | — | Pending |
-| CONT-07 | — | Pending |
-| CONT-08 | — | Pending |
-| CONT-09 | — | Pending |
-| CONT-10 | — | Pending |
-| EMAIL-01 | — | Pending |
-| EMAIL-02 | — | Pending |
-| EMAIL-03 | — | Pending |
-| EMAIL-04 | — | Pending |
-| EMAIL-05 | — | Pending |
-| EMAIL-06 | — | Pending |
-| EMAIL-07 | — | Pending |
-| ADMIN-01 | — | Pending |
-| ADMIN-02 | — | Pending |
-| ADMIN-03 | — | Pending |
-| ADMIN-04 | — | Pending |
-| ADMIN-05 | — | Pending |
-| ADMIN-06 | — | Pending |
-| PORTAL-01 | — | Pending |
-| PORTAL-02 | — | Pending |
+| FOUND-01 | Phase 1 | Pending |
+| FOUND-02 | Phase 1 | Pending |
+| FOUND-03 | Phase 1 | Pending |
+| FOUND-04 | Phase 1 | Pending |
+| FOUND-05 | Phase 1 | Pending |
+| CONT-01 | Phase 2 | Pending |
+| CONT-02 | Phase 2 | Pending |
+| CONT-03 | Phase 2 | Pending |
+| CONT-04 | Phase 2 | Pending |
+| CONT-05 | Phase 1 | Pending |
+| CONT-06 | Phase 2 | Pending |
+| CONT-07 | Phase 2 | Pending |
+| CONT-08 | Phase 2 | Pending |
+| CONT-09 | Phase 2 | Pending |
+| CONT-10 | Phase 2 | Pending |
+| EMAIL-01 | Phase 3 | Pending |
+| EMAIL-02 | Phase 3 | Pending |
+| EMAIL-03 | Phase 3 | Pending |
+| EMAIL-04 | Phase 3 | Pending |
+| EMAIL-05 | Phase 3 | Pending |
+| EMAIL-06 | Phase 3 | Pending |
+| EMAIL-07 | Phase 3 | Pending |
+| ADMIN-01 | Phase 1 | Pending |
+| ADMIN-02 | Phase 1 | Pending |
+| ADMIN-03 | Phase 3 | Pending |
+| ADMIN-04 | Phase 3 | Pending |
+| ADMIN-05 | Phase 3 | Pending |
+| ADMIN-06 | Phase 3 | Pending |
+| PORTAL-01 | Phase 4 | Pending |
+| PORTAL-02 | Phase 4 | Pending |
 
 **Coverage:**
 - v1 requirements: 30 total
-- Mapped to phases: 0
-- Unmapped: 30 ⚠️
+- Mapped to phases: 30
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-02*
-*Last updated: 2026-03-02 after initial definition*
+*Last updated: 2026-03-02 after roadmap creation*
