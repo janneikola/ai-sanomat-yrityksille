@@ -2,6 +2,7 @@
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./dist",
+    "jsx": "react-jsx",
     "paths": {
       "@ai-sanomat/shared": ["../packages/shared/src/index.ts"]
     }
