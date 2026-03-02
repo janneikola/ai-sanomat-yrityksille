@@ -89,7 +89,7 @@ export default function DashboardPage() {
 
   function formatOpenRate(rate: number | null): string {
     if (rate === null || rate === undefined) return '-';
-    return `${(rate * 100).toFixed(1)}%`;
+    return `${rate.toFixed(1)}%`;
   }
 
   return (
