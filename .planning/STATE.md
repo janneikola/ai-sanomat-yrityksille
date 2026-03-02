@@ -5,33 +5,34 @@
 See: .planning/PROJECT.md (updated 2026-03-02)
 
 **Core value:** The AI-generated weekly digest must be genuinely useful and industry-relevant -- content quality is the entire selling point.
-**Current focus:** Phase 1: Foundation and Admin Setup
+**Current focus:** Phase 2: Content Pipeline
 
 ## Current Position
 
-Phase: 1 of 4 (Foundation and Admin Setup) — COMPLETE
-Plan: 2 of 2 in current phase (01-01 complete, 01-02 complete — checkpoint approved)
-Status: Phase 1 complete — ready to begin Phase 2
-Last activity: 2026-03-02 -- Completed 01-02 (admin panel verified, CORS fix applied)
+Phase: 2 of 4 (Content Pipeline) — IN PROGRESS
+Plan: 1 of 2 in current phase (02-01 complete)
+Status: 02-01 complete — ready for 02-02 (digest generation)
+Last activity: 2026-03-02 -- Completed 02-01 (news collection, scheduler, admin news page)
 
-Progress: [####################] 25% (2/8 plans fully verified)
+Progress: [##############################] 43% (3/7 plans fully verified)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1 (01-01 fully verified)
-- Average duration: 11 min
-- Total execution time: 0.18 hours
+- Total plans completed: 3
+- Average duration: ~20 min
+- Total execution time: ~1.0 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-foundation-admin-setup | 2 | ~56min | ~28min |
+| 02-content-pipeline | 1 | 5min | 5min |
 
 **Recent Trend:**
-- Last 5 plans: 11min, ~45min
-- Trend: -
+- Last 5 plans: 11min, ~45min, 5min
+- Trend: improving
 
 *Updated after each plan completion*
 
@@ -54,11 +55,16 @@ Recent decisions affecting current work:
 - 01-02: Optimistic toggle in SourceTable -- Switch updates local state on PATCH success
 - 01-02: shadcn toast deprecated, using sonner component instead
 - 01-02: API proxied through Next.js rewrites -- CORS prevented httpOnly cookie forwarding to cross-origin Fastify; rewrites make calls same-origin (commit 61a0496)
+- 02-01: Beehiiv response typed with explicit BeehiivPost interface for strict TypeScript compatibility
+- 02-01: Toaster from sonner added to admin layout for toast notification support
+- 02-01: Sidebar icon Newspaper moved to Uutiset, Rss icon for Uutislahteet
+- 02-01: Integration client pattern established in api/src/integrations/ with typed interfaces
 
 ### Pending Todos
 
 - Set up DATABASE_URL, JWT_SECRET, ADMIN_PASSWORD in api/.env before running db:push/db:seed
 - Set NEXT_PUBLIC_API_URL=http://localhost:3000 in web/.env.local for local dev
+- Set BEEHIIV_API_KEY and BEEHIIV_PUBLICATION_ID in api/.env for Beehiiv source collection
 
 ### Blockers/Concerns
 
@@ -70,5 +76,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Completed 01-02-PLAN.md — Phase 1 Foundation and Admin Setup fully complete
+Stopped at: Completed 02-01-PLAN.md — News collection pipeline complete, ready for 02-02 digest generation
 Resume file: None

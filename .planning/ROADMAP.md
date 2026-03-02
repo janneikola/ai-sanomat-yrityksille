@@ -48,7 +48,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — News collection: RSS feed parsing, Beehiiv API client, news collector service, daily cron scheduler, manual entry API+UI, deduplication
+- [x] 02-01-PLAN.md — News collection: RSS feed parsing, Beehiiv API client, news collector service, daily cron scheduler, manual entry API+UI, deduplication
 - [ ] 02-02-PLAN.md — Digest generation: Claude structured output for content generation, fact validation with language quality check, Gemini image generation with fallback, newsletter service pipeline
 
 ### Phase 3: Email Delivery and Send Workflow
@@ -87,6 +87,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation and Admin Setup | 2/2 | Complete | 2026-03-02 |
-| 2. Content Pipeline | 0/2 | Not started | - |
+| 2. Content Pipeline | 1/2 | In progress | - |
 | 3. Email Delivery and Send Workflow | 0/2 | Not started | - |
 | 4. Company Portal | 0/1 | Not started | - |

@@ -17,10 +17,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Content Pipeline
 
-- [ ] **CONT-01**: System collects AI news from RSS feeds on a daily schedule
-- [ ] **CONT-02**: System fetches latest articles from Beehiiv API (aisanomat.fi)
-- [ ] **CONT-03**: Admin can manually add news items via the admin panel
-- [ ] **CONT-04**: Collected news items are deduplicated by URL
+- [x] **CONT-01**: System collects AI news from RSS feeds on a daily schedule
+- [x] **CONT-02**: System fetches latest articles from Beehiiv API (aisanomat.fi)
+- [x] **CONT-03**: Admin can manually add news items via the admin panel
+- [x] **CONT-04**: Collected news items are deduplicated by URL
 - [x] **CONT-05**: Admin can manage prompt templates (view, edit) from the admin panel
 - [ ] **CONT-06**: System generates industry-tailored Finnish digest using Claude Sonnet per client
 - [ ] **CONT-07**: System validates generated content against source articles in a second Claude call
@@ -110,10 +110,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FOUND-03 | Phase 1 | Complete |
 | FOUND-04 | Phase 1 | Pending |
 | FOUND-05 | Phase 1 | Complete |
-| CONT-01 | Phase 2 | Pending |
-| CONT-02 | Phase 2 | Pending |
-| CONT-03 | Phase 2 | Pending |
-| CONT-04 | Phase 2 | Pending |
+| CONT-01 | Phase 2 | Complete |
+| CONT-02 | Phase 2 | Complete |
+| CONT-03 | Phase 2 | Complete |
+| CONT-04 | Phase 2 | Complete |
 | CONT-05 | Phase 1 | Complete |
 | CONT-06 | Phase 2 | Pending |
 | CONT-07 | Phase 2 | Pending |
