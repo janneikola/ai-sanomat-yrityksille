@@ -1,5 +1,8 @@
+import path from 'node:path';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import fastifyStatic from '@fastify/static';
+import rawBody from 'fastify-raw-body';
 import { validatorCompiler, serializerCompiler } from 'fastify-type-provider-zod';
 import authPlugin from './plugins/auth.js';
 import authRoutes from './routes/auth.js';
@@ -8,6 +11,8 @@ import sourceRoutes from './routes/sources.js';
 import templateRoutes from './routes/templates.js';
 import newsRoutes from './routes/news.js';
 import digestRoutes from './routes/digests.js';
+import webhookRoutes from './routes/webhooks.js';
+import dashboardRoutes from './routes/dashboard.js';
 
 export async function buildApp() {
   const app = Fastify({ logger: true });
@@ -22,6 +27,16 @@ export async function buildApp() {
     credentials: true,
   });
 
+  // Raw body -tuki webhook-allekirjoitusten vahvistamiseen
+  await app.register(rawBody, { global: false });
+
+  // Staattisten tiedostojen tarjoilu (ladatut kuvat sahkoposteja varten)
+  await app.register(fastifyStatic, {
+    root: path.resolve(process.env.IMAGE_STORAGE_PATH || './uploads'),
+    prefix: '/api/images/',
+    decorateReply: false,
+  });
+
   // Autentikointiplugin (JWT + eväste + salasanahash)
   await app.register(authPlugin);
 
@@ -31,13 +46,17 @@ export async function buildApp() {
     timestamp: new Date().toISOString(),
   }));
 
-  // Reitit
+  // Julkiset reitit (ei autentikointia)
+  await app.register(webhookRoutes, { prefix: '/api' });
+
+  // Autentikoidut reitit
   await app.register(authRoutes, { prefix: '/api/auth' });
   await app.register(clientRoutes, { prefix: '/api/admin' });
   await app.register(sourceRoutes, { prefix: '/api/admin' });
   await app.register(templateRoutes, { prefix: '/api/admin' });
   await app.register(newsRoutes, { prefix: '/api/admin' });
   await app.register(digestRoutes, { prefix: '/api/admin' });
+  await app.register(dashboardRoutes, { prefix: '/api/admin' });
 
   return app;
 }
