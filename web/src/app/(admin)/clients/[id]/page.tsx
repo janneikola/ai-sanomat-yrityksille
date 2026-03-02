@@ -375,7 +375,9 @@ export default function ClientDetailPage() {
                     Laaturaportti
                   </summary>
                   <pre className="mt-2 whitespace-pre-wrap text-xs text-muted-foreground">
-                    {digest.validationReport}
+                    {typeof digest.validationReport === 'string'
+                      ? digest.validationReport
+                      : JSON.stringify(digest.validationReport, null, 2)}
                   </pre>
                 </details>
               )}

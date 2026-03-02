@@ -46,6 +46,7 @@ export const digestJsonSchema = {
     intro: { type: 'string' as const, description: 'Opening paragraph' },
     stories: {
       type: 'array' as const,
+      description: 'Between 3 and 5 news stories',
       items: {
         type: 'object' as const,
         properties: {
@@ -56,8 +57,6 @@ export const digestJsonSchema = {
         required: ['title', 'businessImpact', 'sourceUrl'] as const,
         additionalProperties: false,
       },
-      minItems: 3,
-      maxItems: 5,
     },
     closing: { type: 'string' as const, description: 'Closing paragraph' },
   },

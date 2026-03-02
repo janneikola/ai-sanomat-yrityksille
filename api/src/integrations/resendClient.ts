@@ -1,6 +1,16 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let resend: Resend | null = null;
+
+function getResend(): Resend {
+  if (!resend) {
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error('RESEND_API_KEY environment variable is not set');
+    }
+    resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resend;
+}
 
 export interface EmailPayload {
   from: string;
@@ -24,7 +34,7 @@ export async function sendBatchEmails(
   for (let i = 0; i < emails.length; i += BATCH_SIZE) {
     const chunk = emails.slice(i, i + BATCH_SIZE);
 
-    const response = await resend.batch.send(
+    const response = await getResend().batch.send(
       chunk.map((email) => ({
         from: email.from,
         to: email.to,
