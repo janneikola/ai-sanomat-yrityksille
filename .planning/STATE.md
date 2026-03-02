@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-02)
 
 **Core value:** The AI-generated weekly digest must be genuinely useful and industry-relevant -- content quality is the entire selling point.
-**Current focus:** Phase 3 complete. Ready for Phase 4: Company Portal and Scheduled Pipeline
+**Current focus:** Phase 4 in progress: Company Portal backend complete, portal frontend next
 
 ## Current Position
 
-Phase: 3 of 4 (Email Delivery and Send Workflow) — COMPLETE
-Plan: 2 of 2 in current phase (complete)
-Status: Phase 03 complete -- ready for Phase 04
-Last activity: 2026-03-02 -- Completed 03-02 (admin send workflow UI and dashboard)
+Phase: 4 of 4 (Company Portal) — IN PROGRESS
+Plan: 1 of 2 in current phase (complete)
+Status: 04-01 complete -- portal backend ready, 04-02 next (portal frontend UI)
+Last activity: 2026-03-02 -- Completed 04-01 (portal backend: magic link auth, API routes, middleware)
 
-Progress: [####################################################] 86% (6/7 plans fully verified)
+Progress: [############################################################] 93% (7/8 plans fully verified)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: ~12 min
-- Total execution time: ~1.3 hours
+- Total plans completed: 7
+- Average duration: ~11 min
+- Total execution time: ~1.4 hours
 
 **By Phase:**
 
@@ -30,9 +30,10 @@ Progress: [####################################################] 86% (6/7 plans 
 | 01-foundation-admin-setup | 2 | ~56min | ~28min |
 | 02-content-pipeline | 2 | 9min | ~5min |
 | 03-email-delivery-send-workflow | 2 | 8min | 4min |
+| 04-company-portal | 1 | 4min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 5min, 4min, 5min, 3min
+- Last 5 plans: 4min, 5min, 3min, 4min
 - Trend: consistent fast execution
 
 *Updated after each plan completion*
@@ -74,6 +75,10 @@ Recent decisions affecting current work:
 - 03-02: Email preview uses iframe with API endpoint src for pixel-perfect rendering
 - 03-02: Dashboard delivery stats sorted by latest send date, no-sends clients last
 - 03-02: Sidebar unchanged -- existing isActive(startsWith) correctly handles /clients/[id] subroutes
+- 04-01: FastifyJWT type extended with optional clientId and purpose fields for portal tokens
+- 04-01: Magic link token includes purpose=magic-link claim to prevent session JWT reuse as magic link
+- 04-01: Portal auth is a local decorator inside portal routes, not a global Fastify decorator
+- 04-01: Archive endpoint serializes Date objects to ISO strings for JSON response compatibility
 
 ### Pending Todos
 
@@ -86,6 +91,7 @@ Recent decisions affecting current work:
 - Set RESEND_API_KEY in api/.env for Resend email sending
 - Set RESEND_WEBHOOK_SECRET in api/.env for webhook signature verification
 - Configure mail.aisanomat.fi domain in Resend Dashboard with SPF/DKIM/DMARC DNS records
+- Set PUBLIC_URL in api/.env for magic link URL generation (default: http://localhost:3001)
 
 ### Blockers/Concerns
 
@@ -97,5 +103,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Completed 03-02-PLAN.md -- Admin send workflow UI and dashboard complete, Phase 03 done
+Stopped at: Completed 04-01-PLAN.md -- Portal backend complete (magic link auth, API routes, middleware)
 Resume file: None

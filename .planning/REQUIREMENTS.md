@@ -49,8 +49,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Company Portal
 
-- [ ] **PORTAL-01**: Company contact receives magic link via email and logs in without password
-- [ ] **PORTAL-02**: Company contact can add and remove team members (email addresses)
+- [x] **PORTAL-01**: Company contact receives magic link via email and logs in without password
+- [x] **PORTAL-02**: Company contact can add and remove team members (email addresses)
 
 ## v2 Requirements
 
@@ -133,8 +133,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ADMIN-04 | Phase 3 | Complete |
 | ADMIN-05 | Phase 3 | Complete |
 | ADMIN-06 | Phase 3 | Complete |
-| PORTAL-01 | Phase 4 | Pending |
-| PORTAL-02 | Phase 4 | Pending |
+| PORTAL-01 | Phase 4 | Complete |
+| PORTAL-02 | Phase 4 | Complete |
 
 **Coverage:**
 - v1 requirements: 30 total
@@ -143,4 +143,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-03-02*
-*Last updated: 2026-03-02 after 03-02 plan completion*
+*Last updated: 2026-03-02 after 04-01 plan completion*

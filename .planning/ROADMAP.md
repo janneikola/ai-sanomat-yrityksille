@@ -77,7 +77,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Magic link auth backend: JWT-based magic link service, React Email template, portal API routes (auth + members CRUD + archive), middleware update
+- [x] 04-01-PLAN.md — Magic link auth backend: JWT-based magic link service, React Email template, portal API routes (auth + members CRUD + archive), middleware update
 - [ ] 04-02-PLAN.md — Portal frontend UI: login/verify pages, branded sidebar, team management page (add/bulk/remove), newsletter archive page
 
 ## Progress
@@ -90,4 +90,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 1. Foundation and Admin Setup | 2/2 | Complete | 2026-03-02 |
 | 2. Content Pipeline | 2/2 | Complete | 2026-03-02 |
 | 3. Email Delivery and Send Workflow | 2/2 | Complete | 2026-03-02 |
-| 4. Company Portal | 0/2 | Not started | - |
+| 4. Company Portal | 1/2 | In progress | - |
