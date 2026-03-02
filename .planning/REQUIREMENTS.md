@@ -9,11 +9,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Foundation
 
-- [ ] **FOUND-01**: PostgreSQL database schema with all tables (clients, members, news_items, issues, delivery_stats, news_sources, prompt_templates)
-- [ ] **FOUND-02**: Fastify API server with typed routes and JSON Schema validation
+- [x] **FOUND-01**: PostgreSQL database schema with all tables (clients, members, news_items, issues, delivery_stats, news_sources, prompt_templates)
+- [x] **FOUND-02**: Fastify API server with typed routes and JSON Schema validation
 - [ ] **FOUND-03**: Admin can log in with hardcoded email/password and receive JWT token
 - [ ] **FOUND-04**: Application deploys to Railway (API + DB + frontend)
-- [ ] **FOUND-05**: Monorepo structure with npm workspaces (api/, web/, packages/shared/)
+- [x] **FOUND-05**: Monorepo structure with npm workspaces (api/, web/, packages/shared/)
 
 ### Content Pipeline
 

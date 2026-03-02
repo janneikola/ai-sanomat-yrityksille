@@ -32,7 +32,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Monorepo structure, database schema (all 7 tables), Fastify API with auth and CRUD routes, shared Zod schemas
+- [x] 01-01-PLAN.md — Monorepo structure, database schema (all 7 tables), Fastify API with auth and CRUD routes, shared Zod schemas
 - [ ] 01-02-PLAN.md — Next.js 16 admin panel with shadcn/ui, login, sidebar, client/source/template CRUD pages, seed data, Railway deployment
 
 ### Phase 2: Content Pipeline
@@ -86,7 +86,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation and Admin Setup | 0/2 | Not started | - |
+| 1. Foundation and Admin Setup | 1/2 | In progress | - |
 | 2. Content Pipeline | 0/2 | Not started | - |
 | 3. Email Delivery and Send Workflow | 0/2 | Not started | - |
 | 4. Company Portal | 0/1 | Not started | - |
