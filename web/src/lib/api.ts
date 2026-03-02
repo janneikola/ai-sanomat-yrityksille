@@ -15,7 +15,10 @@ export async function apiFetch<T>(
 
   if (res.status === 401) {
     if (typeof window !== 'undefined') {
-      window.location.href = '/login';
+      // Portaalisivut ohjataan portaalin kirjautumissivulle
+      const portalPaths = ['/tiimi', '/arkisto', '/portal'];
+      const isPortal = portalPaths.some((p) => window.location.pathname.startsWith(p));
+      window.location.href = isPortal ? '/portal/login' : '/login';
     }
     throw new Error('Istunto vanhentunut. Kirjaudu uudelleen sisään.');
   }
