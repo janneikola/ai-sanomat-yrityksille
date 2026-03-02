@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 export const createSourceSchema = z.object({
   name: z.string().min(1, 'Nimi on pakollinen'),

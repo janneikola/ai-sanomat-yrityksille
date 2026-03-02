@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import { z } from 'zod';
 
 export const updateTemplateSchema = z.object({
   description: z.string().optional(),
