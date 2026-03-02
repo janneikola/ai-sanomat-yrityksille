@@ -45,11 +45,11 @@ Plans:
   3. System generates a Finnish-language industry-tailored digest for a specific client using collected news
   4. Generated digest includes a quality report from the validation pass with flagged uncertain claims
   5. Generated digest includes hero and section images, or degrades gracefully to text-only if image generation fails
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 02-01: News collection (RSS, Beehiiv API, manual entry, deduplication)
-- [ ] 02-02: Digest generation (Claude API), fact validation (second Claude call), image generation (Gemini)
+- [ ] 02-01-PLAN.md — News collection: RSS feed parsing, Beehiiv API client, news collector service, daily cron scheduler, manual entry API+UI, deduplication
+- [ ] 02-02-PLAN.md — Digest generation: Claude structured output for content generation, fact validation with language quality check, Gemini image generation with fallback, newsletter service pipeline
 
 ### Phase 3: Email Delivery and Send Workflow
 **Goal**: Admin can preview, approve, and send digests as branded HTML emails, and the system tracks delivery, opens, and bounces
