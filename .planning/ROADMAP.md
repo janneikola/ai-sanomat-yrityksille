@@ -74,10 +74,11 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. Company contact receives a magic link email and can log in without a password
   2. Logged-in company contact can add and remove team member email addresses
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: Magic link auth via Resend, team member management UI
+- [ ] 04-01-PLAN.md — Magic link auth backend: JWT-based magic link service, React Email template, portal API routes (auth + members CRUD + archive), middleware update
+- [ ] 04-02-PLAN.md — Portal frontend UI: login/verify pages, branded sidebar, team management page (add/bulk/remove), newsletter archive page
 
 ## Progress
 
@@ -89,4 +90,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 1. Foundation and Admin Setup | 2/2 | Complete | 2026-03-02 |
 | 2. Content Pipeline | 2/2 | Complete | 2026-03-02 |
 | 3. Email Delivery and Send Workflow | 2/2 | Complete | 2026-03-02 |
-| 4. Company Portal | 0/1 | Not started | - |
+| 4. Company Portal | 0/2 | Not started | - |
