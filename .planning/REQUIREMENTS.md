@@ -1,0 +1,146 @@
+# Requirements: AI-Sanomat Yrityksille
+
+**Defined:** 2026-03-02
+**Core Value:** The AI-generated weekly digest must be genuinely useful and industry-relevant — content quality is the entire selling point.
+
+## v1 Requirements
+
+Requirements for initial release. Each maps to roadmap phases.
+
+### Foundation
+
+- [ ] **FOUND-01**: PostgreSQL database schema with all tables (clients, members, news_items, issues, delivery_stats, news_sources, prompt_templates)
+- [ ] **FOUND-02**: Fastify API server with typed routes and JSON Schema validation
+- [ ] **FOUND-03**: Admin can log in with hardcoded email/password and receive JWT token
+- [ ] **FOUND-04**: Application deploys to Railway (API + DB + frontend)
+- [ ] **FOUND-05**: Monorepo structure with npm workspaces (api/, web/, packages/shared/)
+
+### Content Pipeline
+
+- [ ] **CONT-01**: System collects AI news from RSS feeds on a daily schedule
+- [ ] **CONT-02**: System fetches latest articles from Beehiiv API (aisanomat.fi)
+- [ ] **CONT-03**: Admin can manually add news items via the admin panel
+- [ ] **CONT-04**: Collected news items are deduplicated by URL
+- [ ] **CONT-05**: Admin can manage prompt templates (view, edit) from the admin panel
+- [ ] **CONT-06**: System generates industry-tailored Finnish digest using Claude Sonnet per client
+- [ ] **CONT-07**: System validates generated content against source articles in a second Claude call
+- [ ] **CONT-08**: Validation flags uncertain claims and stores a quality report per digest
+- [ ] **CONT-09**: System generates hero image (1200x630) and section images (800x450) with Gemini
+- [ ] **CONT-10**: Image generation failure degrades gracefully to text-only digest
+
+### Email Delivery
+
+- [ ] **EMAIL-01**: System renders responsive HTML email using React Email with AI-Sanomat branding
+- [ ] **EMAIL-02**: System sends emails via Resend using own domain (mail.aisanomat.fi)
+- [ ] **EMAIL-03**: SPF, DKIM, and DMARC DNS records configured for mail.aisanomat.fi
+- [ ] **EMAIL-04**: System processes Resend webhooks for delivery, open, and bounce events
+- [ ] **EMAIL-05**: Hard-bounced member emails are automatically suppressed from future sends
+- [ ] **EMAIL-06**: Every email includes List-Unsubscribe header (RFC 8058)
+- [ ] **EMAIL-07**: Both HTML and plain text versions included in every email
+
+### Admin Panel
+
+- [ ] **ADMIN-01**: Admin can add, edit, and list enterprise clients with name, industry, contact info, and plan
+- [ ] **ADMIN-02**: Admin can add, edit, activate/deactivate news sources (RSS, Beehiiv, manual)
+- [ ] **ADMIN-03**: Admin can trigger digest generation for a specific client
+- [ ] **ADMIN-04**: Admin can preview generated digest (with images) before sending
+- [ ] **ADMIN-05**: Admin can approve and send, or regenerate a digest
+- [ ] **ADMIN-06**: Dashboard shows all clients with team size, latest send date, and open rate
+
+### Company Portal
+
+- [ ] **PORTAL-01**: Company contact receives magic link via email and logs in without password
+- [ ] **PORTAL-02**: Company contact can add and remove team members (email addresses)
+
+## v2 Requirements
+
+Deferred to future release. Tracked but not in current roadmap.
+
+### Company Portal Enhancements
+
+- **PORTAL-03**: Company contact can view open rate stats per newsletter send
+- **PORTAL-04**: Company engagement dashboard with aggregate trends (open rate over time, top topics)
+- **PORTAL-05**: Newsletter archive — company contact can view past digests
+
+### Content Enhancements
+
+- **CONT-11**: Source relevance scoring — AI rates article relevance per industry before generation
+- **CONT-12**: Automated weekly generation and send (cron: Monday 06:00)
+
+### Admin Enhancements
+
+- **ADMIN-07**: Admin analytics dashboard — cross-client engagement, generation costs, churn risk
+- **ADMIN-08**: Content quality scoring visible in dashboard per digest
+
+### Integrations
+
+- **INTG-01**: X/Twitter news source collection
+- **INTG-02**: Reddit news source collection
+- **INTG-03**: Web search news source collection
+- **INTG-04**: Stripe billing integration
+
+## Out of Scope
+
+Explicitly excluded. Documented to prevent scope creep.
+
+| Feature | Reason |
+|---------|--------|
+| A/B testing for email content | Premature with small client base, results statistically meaningless |
+| Multiple newsletters per week | Weekly is the product cadence, more = cost explosion |
+| Multi-language support | Finnish is the competitive moat, English newsletters already exist |
+| Mobile app | Web-first, email is the delivery channel |
+| Beehiiv integration for sending | Intentionally separate system — Beehiiv can't do per-client tailoring |
+| Self-service team member unsubscribe | Company contact manages team, individual unsubscribe undermines enterprise model |
+| Custom email template per client | One AI-Sanomat brand, not white-label — maintain consistency |
+| Self-serve company signup | Enterprise clients need personal onboarding |
+| Rich text editor for digests | If AI output needs editing, fix the prompts, not add an editor |
+| Slack/Teams delivery | Email-only; if 5+ clients request, build a simple webhook forwarder |
+| Live webinars | Manual service, not part of the app |
+| Kehotesuunnittelija Pro | Integrate later from separate system |
+| Quarterly report auto-generation | Manual for now |
+
+## Traceability
+
+Which phases cover which requirements. Updated during roadmap creation.
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| FOUND-01 | — | Pending |
+| FOUND-02 | — | Pending |
+| FOUND-03 | — | Pending |
+| FOUND-04 | — | Pending |
+| FOUND-05 | — | Pending |
+| CONT-01 | — | Pending |
+| CONT-02 | — | Pending |
+| CONT-03 | — | Pending |
+| CONT-04 | — | Pending |
+| CONT-05 | — | Pending |
+| CONT-06 | — | Pending |
+| CONT-07 | — | Pending |
+| CONT-08 | — | Pending |
+| CONT-09 | — | Pending |
+| CONT-10 | — | Pending |
+| EMAIL-01 | — | Pending |
+| EMAIL-02 | — | Pending |
+| EMAIL-03 | — | Pending |
+| EMAIL-04 | — | Pending |
+| EMAIL-05 | — | Pending |
+| EMAIL-06 | — | Pending |
+| EMAIL-07 | — | Pending |
+| ADMIN-01 | — | Pending |
+| ADMIN-02 | — | Pending |
+| ADMIN-03 | — | Pending |
+| ADMIN-04 | — | Pending |
+| ADMIN-05 | — | Pending |
+| ADMIN-06 | — | Pending |
+| PORTAL-01 | — | Pending |
+| PORTAL-02 | — | Pending |
+
+**Coverage:**
+- v1 requirements: 30 total
+- Mapped to phases: 0
+- Unmapped: 30 ⚠️
+
+---
+*Requirements defined: 2026-03-02*
+*Last updated: 2026-03-02 after initial definition*
