@@ -18,6 +18,8 @@ export const newsItemResponseSchema = z.object({
   publishedAt: z.coerce.date().nullable(),
   collectedAt: z.coerce.date(),
   createdAt: z.coerce.date(),
+  isDuplicate: z.boolean(),
+  canonicalItemId: z.number().nullable(),
 });
 
 // Keruutuloksen skeema

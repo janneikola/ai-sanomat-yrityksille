@@ -10,6 +10,7 @@ import {
   checkHealthTransitionNotification,
 } from './sourceHealthService.js';
 import { searchForClient, isDueWithin24Hours } from './webSearchService.js';
+import { processNewEmbeddings } from './deduplicationService.js';
 
 export async function collectAllNews() {
   const sources = await db
@@ -113,6 +114,18 @@ export async function collectAllNews() {
     }
   } catch (error) {
     console.error('Web search client query failed:', error);
+  }
+
+  // Semanttinen deduplikointi: generoi upotukset uusille uutisille ja etsi duplikaatit
+  try {
+    const dedupResult = await processNewEmbeddings();
+    if (dedupResult.embedded > 0) {
+      console.log(
+        `Deduplication: ${dedupResult.embedded} items embedded, ${dedupResult.duplicatesFound} duplicates found`
+      );
+    }
+  } catch (error) {
+    console.error('Deduplication processing failed:', error);
   }
 
   return { collected: collected + webSearchCollected, errors, sources: sources.length };
