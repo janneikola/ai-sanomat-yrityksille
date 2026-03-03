@@ -88,7 +88,7 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 05-01: Database schema changes (client schedule columns, source health columns, sourceHealthLogs table), schedule service, daily cron that checks DB for due clients
+- [x] 05-01: Database schema changes (client schedule columns, source health columns, sourceHealthLogs table), schedule service, daily cron that checks DB for due clients
 - [ ] 05-02: Source health service (tracking, thresholds, auto-disable), admin UI for schedule config and source health display
 
 ### Phase 6: Premium Email Experience
@@ -158,7 +158,7 @@ Phases execute in numeric order: 5 -> 6 -> 7 -> 8 -> 9
 | 2. Content Pipeline | v1.0 | 2/2 | Complete | 2026-03-02 |
 | 3. Email Delivery and Send Workflow | v1.0 | 2/2 | Complete | 2026-03-02 |
 | 4. Company Portal | v1.0 | 2/2 | Complete | 2026-03-03 |
-| 5. Foundation Automation | v1.1 | 0/2 | Not started | - |
+| 5. Foundation Automation | v1.1 | 1/2 | In progress | - |
 | 6. Premium Email Experience | v1.1 | 0/2 | Not started | - |
 | 7. Web Search Integration | v1.1 | 0/1 | Not started | - |
 | 8. Semantic Deduplication | v1.1 | 0/1 | Not started | - |

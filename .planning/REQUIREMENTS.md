@@ -58,10 +58,10 @@ Requirements for Smart Sourcing & Polish milestone. Each maps to roadmap phases 
 
 ### Scheduling
 
-- [ ] **SCHED-01**: System auto-generates draft digests on each client's configured schedule (weekly/bi-weekly/monthly)
-- [ ] **SCHED-02**: Admin can configure per-client send frequency (weekly, bi-weekly, monthly) and preferred day/time
-- [ ] **SCHED-03**: Scheduling uses database-driven state (survives Railway deploys), not in-memory cron
-- [ ] **SCHED-04**: System prevents duplicate generation if digest already exists for current period
+- [x] **SCHED-01**: System auto-generates draft digests on each client's configured schedule (weekly/bi-weekly/monthly)
+- [x] **SCHED-02**: Admin can configure per-client send frequency (weekly, bi-weekly, monthly) and preferred day/time
+- [x] **SCHED-03**: Scheduling uses database-driven state (survives Railway deploys), not in-memory cron
+- [x] **SCHED-04**: System prevents duplicate generation if digest already exists for current period
 
 ### Newsletter Design
 
@@ -91,10 +91,10 @@ Requirements for Smart Sourcing & Polish milestone. Each maps to roadmap phases 
 
 ### Source Health
 
-- [ ] **HEALTH-01**: System tracks per-source health metrics (last success, consecutive failures, items per fetch)
-- [ ] **HEALTH-02**: Stale and failing sources are detected automatically with configurable thresholds
+- [x] **HEALTH-01**: System tracks per-source health metrics (last success, consecutive failures, items per fetch)
+- [x] **HEALTH-02**: Stale and failing sources are detected automatically with configurable thresholds
 - [ ] **HEALTH-03**: Admin panel shows source health status (green/yellow/red) on source list
-- [ ] **HEALTH-04**: Persistently failing sources are auto-disabled with admin notification
+- [x] **HEALTH-04**: Persistently failing sources are auto-disabled with admin notification
 
 ### Engagement
 
@@ -195,10 +195,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SCHED-01 | Phase 5 | Pending |
-| SCHED-02 | Phase 5 | Pending |
-| SCHED-03 | Phase 5 | Pending |
-| SCHED-04 | Phase 5 | Pending |
+| SCHED-01 | Phase 5 | Complete |
+| SCHED-02 | Phase 5 | Complete |
+| SCHED-03 | Phase 5 | Complete |
+| SCHED-04 | Phase 5 | Complete |
 | DESIGN-01 | Phase 6 | Pending |
 | DESIGN-02 | Phase 6 | Pending |
 | DESIGN-03 | Phase 6 | Pending |
@@ -216,10 +216,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DEDUP-02 | Phase 8 | Pending |
 | DEDUP-03 | Phase 8 | Pending |
 | DEDUP-04 | Phase 8 | Pending |
-| HEALTH-01 | Phase 5 | Pending |
-| HEALTH-02 | Phase 5 | Pending |
+| HEALTH-01 | Phase 5 | Complete |
+| HEALTH-02 | Phase 5 | Complete |
 | HEALTH-03 | Phase 5 | Pending |
-| HEALTH-04 | Phase 5 | Pending |
+| HEALTH-04 | Phase 5 | Complete |
 | FEED-01 | Phase 6 | Pending |
 | FEED-02 | Phase 6 | Pending |
 | FEED-03 | Phase 6 | Pending |

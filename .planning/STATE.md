@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-03-03)
 ## Current Position
 
 Phase: 5 of 9 (Foundation Automation)
-Plan: 0 of 2 in current phase
-Status: Ready to plan
-Last activity: 2026-03-03 -- v1.1 roadmap created (5 phases, 29 requirements mapped)
+Plan: 1 of 2 in current phase
+Status: Executing
+Last activity: 2026-03-03 -- Plan 05-01 complete (scheduling + health services)
 
-Progress: [########..........] 53% (8/15 total plans across all milestones -- v1.0 complete, v1.1 starting)
+Progress: [#########.........] 60% (9/15 total plans across all milestones)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
+- Total plans completed: 9
 - Average duration: ~10 min
-- Total execution time: ~1.4 hours
+- Total execution time: ~1.5 hours
 
 **By Phase:**
 
@@ -31,10 +31,11 @@ Progress: [########..........] 53% (8/15 total plans across all milestones -- v1
 | 02-content-pipeline | 2 | 9min | ~5min |
 | 03-email-delivery-send-workflow | 2 | 8min | 4min |
 | 04-company-portal | 2 | 7min | ~4min |
+| 05-foundation-automation | 1 | 8min | 8min |
 
 **Recent Trend:**
-- Last 5 plans: 5min, 3min, 4min, 3min
-- Trend: consistent fast execution
+- Last 5 plans: 3min, 4min, 3min, 8min
+- Trend: consistent execution, slightly longer for TDD + schema-heavy plan
 
 *Updated after each plan completion*
 
@@ -46,6 +47,10 @@ Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
 - v1.1 Roadmap: 5 phases (quick depth), scheduling+health first, template+feedback together, X monitoring last (highest cost/complexity)
+- 05-01: Pure functions for isDueToday/getPeriodNumber/computeHealthStatus enable unit testing without DB
+- 05-01: Dynamic import for generateClientDigest avoids circular dependency in scheduleService
+- 05-01: Admin notification errors silently caught to never block scheduling pipeline
+- 05-01: Source health columns co-located on newsSources (not separate table) for query simplicity
 - Research: Database-driven scheduling is non-negotiable (Railway deploys destroy in-memory cron state)
 - Research: Tavily over Serper (returns extracted content in one call, no separate scraping needed)
 - Research: OpenAI text-embedding-3-small for embeddings (Anthropic has no embeddings model)
@@ -57,6 +62,7 @@ Recent decisions affecting current work:
 - Set up DATABASE_URL, JWT_SECRET, ADMIN_PASSWORD in api/.env before running db:push/db:seed
 - Set NEXT_PUBLIC_API_URL=http://localhost:3000 in web/.env.local for local dev
 - Configure mail.aisanomat.fi domain in Resend Dashboard with SPF/DKIM/DMARC DNS records
+- Set ADMIN_EMAIL in api/.env for admin notifications (defaults to admin@aisanomat.fi)
 - New for v1.1: X_BEARER_TOKEN, TAVILY_API_KEY, OPENAI_API_KEY env vars needed in later phases
 
 ### Blockers/Concerns
@@ -69,5 +75,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: v1.1 roadmap created -- 5 phases derived, 29 requirements mapped, ready to plan Phase 5
+Stopped at: Completed 05-01-PLAN.md -- scheduling + health services done, ready for 05-02
 Resume file: None
