@@ -122,6 +122,12 @@ export const validationJsonSchema = {
   additionalProperties: false,
 };
 
+export interface FeaturedPost {
+  title: string;
+  url: string;
+  summary: string | null;
+}
+
 export const imagePromptsJsonSchema = {
   type: 'object' as const,
   properties: {
