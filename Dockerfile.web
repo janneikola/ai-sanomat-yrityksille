@@ -1,0 +1,34 @@
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+COPY api/package.json api/
+COPY packages/shared/package.json packages/shared/
+COPY web/package.json web/
+
+RUN npm ci
+
+COPY packages/ packages/
+COPY web/ web/
+COPY tsconfig.base.json ./
+
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN npm run build:web
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/package-lock.json ./
+COPY --from=builder /app/node_modules/ ./node_modules/
+COPY --from=builder /app/packages/ ./packages/
+COPY --from=builder /app/web/ ./web/
+
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+
+EXPOSE 3001
+
+CMD ["npm", "run", "start", "-w", "web"]

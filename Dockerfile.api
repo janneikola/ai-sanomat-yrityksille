@@ -1,0 +1,22 @@
+FROM node:20-alpine
+
+RUN apk add --no-cache python3 make g++
+
+WORKDIR /app
+
+# Copy package files for workspace dependency resolution
+COPY package.json package-lock.json ./
+COPY api/package.json api/
+COPY packages/shared/package.json packages/shared/
+COPY web/package.json web/
+
+RUN npm ci
+
+# Copy source
+COPY packages/ packages/
+COPY api/ api/
+COPY tsconfig.base.json ./
+
+EXPOSE 3000
+
+CMD ["npx", "tsx", "api/src/index.ts"]
