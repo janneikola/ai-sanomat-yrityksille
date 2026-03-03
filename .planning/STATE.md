@@ -2,19 +2,17 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-02)
+See: .planning/PROJECT.md (updated 2026-03-03)
 
 **Core value:** The AI-generated weekly digest must be genuinely useful and industry-relevant -- content quality is the entire selling point.
-**Current focus:** All 4 phases complete. Full platform delivered: admin, content pipeline, email delivery, company portal.
+**Current focus:** v1.1 Smart Sourcing & Polish — comprehensive news sourcing, automation, newsletter design
 
 ## Current Position
 
-Phase: 4 of 4 (Company Portal) — COMPLETE
-Plan: 2 of 2 in current phase (complete)
-Status: All plans complete -- full platform delivered
-Last activity: 2026-03-03 -- Completed 04-02 (portal frontend: login, team management, archive, sidebar)
-
-Progress: [################################################################] 100% (8/8 plans fully verified)
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-03 — Milestone v1.1 started
 
 ## Performance Metrics
 
