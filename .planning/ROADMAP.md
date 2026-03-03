@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Foundation and Admin Setup** - Database, API, auth, deployment, client/source management
 - [x] **Phase 2: Content Pipeline** - News collection, AI digest generation, fact validation, image generation
 - [x] **Phase 3: Email Delivery and Send Workflow** - Email rendering, Resend integration, admin digest preview/approve/send, dashboard
-- [ ] **Phase 4: Company Portal** - Magic link auth and team management for enterprise contacts
+- [x] **Phase 4: Company Portal** - Magic link auth and team management for enterprise contacts
 
 ## Phase Details
 
@@ -78,7 +78,7 @@ Plans:
 
 Plans:
 - [x] 04-01-PLAN.md — Magic link auth backend: JWT-based magic link service, React Email template, portal API routes (auth + members CRUD + archive), middleware update
-- [ ] 04-02-PLAN.md — Portal frontend UI: login/verify pages, branded sidebar, team management page (add/bulk/remove), newsletter archive page
+- [x] 04-02-PLAN.md — Portal frontend UI: login/verify pages, branded sidebar, team management page (add/bulk/remove), newsletter archive page
 
 ## Progress
 
@@ -90,4 +90,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 1. Foundation and Admin Setup | 2/2 | Complete | 2026-03-02 |
 | 2. Content Pipeline | 2/2 | Complete | 2026-03-02 |
 | 3. Email Delivery and Send Workflow | 2/2 | Complete | 2026-03-02 |
-| 4. Company Portal | 1/2 | In progress | - |
+| 4. Company Portal | 2/2 | Complete | 2026-03-03 |

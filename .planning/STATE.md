@@ -5,22 +5,22 @@
 See: .planning/PROJECT.md (updated 2026-03-02)
 
 **Core value:** The AI-generated weekly digest must be genuinely useful and industry-relevant -- content quality is the entire selling point.
-**Current focus:** Phase 4 in progress: Company Portal backend complete, portal frontend next
+**Current focus:** All 4 phases complete. Full platform delivered: admin, content pipeline, email delivery, company portal.
 
 ## Current Position
 
-Phase: 4 of 4 (Company Portal) — IN PROGRESS
-Plan: 1 of 2 in current phase (complete)
-Status: 04-01 complete -- portal backend ready, 04-02 next (portal frontend UI)
-Last activity: 2026-03-02 -- Completed 04-01 (portal backend: magic link auth, API routes, middleware)
+Phase: 4 of 4 (Company Portal) — COMPLETE
+Plan: 2 of 2 in current phase (complete)
+Status: All plans complete -- full platform delivered
+Last activity: 2026-03-03 -- Completed 04-02 (portal frontend: login, team management, archive, sidebar)
 
-Progress: [############################################################] 93% (7/8 plans fully verified)
+Progress: [################################################################] 100% (8/8 plans fully verified)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
-- Average duration: ~11 min
+- Total plans completed: 8
+- Average duration: ~10 min
 - Total execution time: ~1.4 hours
 
 **By Phase:**
@@ -30,10 +30,10 @@ Progress: [############################################################] 93% (7/
 | 01-foundation-admin-setup | 2 | ~56min | ~28min |
 | 02-content-pipeline | 2 | 9min | ~5min |
 | 03-email-delivery-send-workflow | 2 | 8min | 4min |
-| 04-company-portal | 1 | 4min | 4min |
+| 04-company-portal | 2 | 7min | ~4min |
 
 **Recent Trend:**
-- Last 5 plans: 4min, 5min, 3min, 4min
+- Last 5 plans: 5min, 3min, 4min, 3min
 - Trend: consistent fast execution
 
 *Updated after each plan completion*
@@ -79,6 +79,10 @@ Recent decisions affecting current work:
 - 04-01: Magic link token includes purpose=magic-link claim to prevent session JWT reuse as magic link
 - 04-01: Portal auth is a local decorator inside portal routes, not a global Fastify decorator
 - 04-01: Archive endpoint serializes Date objects to ISO strings for JSON response compatibility
+- 04-02: Portal login/verify pages placed outside (portal) route group -- public pages need no sidebar
+- 04-02: Inactive members filtered out from team table for cleaner UX (soft-deleted hidden)
+- 04-02: Portal sidebar fetches company info from /api/portal/me on mount for dynamic branding
+- 04-02: Archive page uses card layout with week/year, sorted most recent first
 
 ### Pending Todos
 
@@ -102,6 +106,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-02
-Stopped at: Completed 04-01-PLAN.md -- Portal backend complete (magic link auth, API routes, middleware)
+Last session: 2026-03-03
+Stopped at: Completed 04-02-PLAN.md -- All phases complete. Full AI-Sanomat platform delivered.
 Resume file: None
