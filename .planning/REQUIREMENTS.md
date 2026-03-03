@@ -76,8 +76,8 @@ Requirements for Smart Sourcing & Polish milestone. Each maps to roadmap phases 
 
 - [ ] **SRC-01**: System monitors curated X influencer accounts and collects AI-related posts
 - [ ] **SRC-02**: System searches X by keyword for AI topics and trending discussions
-- [ ] **SRC-03**: System searches web via Tavily for industry-specific AI news per client
-- [ ] **SRC-04**: Admin can configure per-client industry search prompts for Tavily queries
+- [x] **SRC-03**: System searches web via Tavily for industry-specific AI news per client
+- [x] **SRC-04**: Admin can configure per-client industry search prompts for Tavily queries
 - [x] **SRC-05**: System checks aisanomat.fi for new blog posts and makes them available for the featured section
 - [ ] **SRC-06**: Admin can add and manage X influencer accounts and keyword searches as source types
 - [ ] **SRC-07**: X API usage tracked with monthly budget cap to prevent cost overruns
@@ -207,8 +207,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DESIGN-06 | Phase 6 | Complete |
 | SRC-01 | Phase 9 | Pending |
 | SRC-02 | Phase 9 | Pending |
-| SRC-03 | Phase 7 | Pending |
-| SRC-04 | Phase 7 | Pending |
+| SRC-03 | Phase 7 | Complete |
+| SRC-04 | Phase 7 | Complete |
 | SRC-05 | Phase 6 | Complete |
 | SRC-06 | Phase 9 | Pending |
 | SRC-07 | Phase 9 | Pending |

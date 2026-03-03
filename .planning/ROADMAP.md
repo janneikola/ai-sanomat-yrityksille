@@ -69,7 +69,7 @@ Plans:
 
 - [x] **Phase 5: Foundation Automation** - Database-driven scheduling, per-client frequency, source health monitoring
 - [x] **Phase 6: Premium Email Experience** - Newsletter template redesign, co-branding, dark mode, aisanomat.fi section, email feedback loop
-- [ ] **Phase 7: Web Search Integration** - Tavily industry-specific search with per-client prompts, search caching
+- [x] **Phase 7: Web Search Integration** - Tavily industry-specific search with per-client prompts, search caching
 - [ ] **Phase 8: Semantic Deduplication** - Embedding-based near-duplicate detection across all sources
 - [ ] **Phase 9: X/Twitter Monitoring** - Influencer timelines, keyword search, budget tracking
 
@@ -117,7 +117,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 07-01-PLAN.md — Tavily client integration, web search service (query generation, caching, relevance filter), schema changes (searchCache table, client columns), collection pipeline integration, admin API routes, web search management page
+- [x] 07-01-PLAN.md — Tavily client integration, web search service (query generation, caching, relevance filter), schema changes (searchCache table, client columns), collection pipeline integration, admin API routes, web search management page
 
 ### Phase 8: Semantic Deduplication
 **Goal**: System detects and flags near-duplicate news items across all sources using semantic similarity, not just URL matching
@@ -160,6 +160,6 @@ Phases execute in numeric order: 5 -> 6 -> 7 -> 8 -> 9
 | 4. Company Portal | v1.0 | 2/2 | Complete | 2026-03-03 |
 | 5. Foundation Automation | v1.1 | 2/2 | Complete | 2026-03-03 |
 | 6. Premium Email Experience | v1.1 | 2/2 | Complete | 2026-03-03 |
-| 7. Web Search Integration | v1.1 | 0/1 | Not started | - |
+| 7. Web Search Integration | v1.1 | 1/1 | Complete | 2026-03-03 |
 | 8. Semantic Deduplication | v1.1 | 0/1 | Not started | - |
 | 9. X/Twitter Monitoring | v1.1 | 0/1 | Not started | - |
