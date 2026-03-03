@@ -1,16 +1,19 @@
 import {
   Html,
   Head,
+  Preview,
   Body,
   Container,
   Section,
   Text,
-  Img,
   Link,
+  Img,
   Hr,
-  Preview,
+  Tailwind,
 } from '@react-email/components';
+import { pixelBasedPreset } from '@react-email/components';
 import type { DigestStory } from '../types/digest.js';
+import type { FeaturedPost } from '../types/digest.js';
 
 export interface DigestEmailStory extends DigestStory {
   imageUrl?: string;
@@ -24,16 +27,22 @@ export interface DigestEmailDigest {
 
 export interface DigestEmailProps {
   clientName: string;
+  clientIndustry: string;
   digest: DigestEmailDigest;
   heroImageUrl: string | null;
+  featuredPosts: FeaturedPost[];
+  feedbackUrls?: { up: string; down: string };
   unsubscribeUrl: string;
   trackingPixelUrl?: string;
 }
 
 export function DigestEmail({
   clientName,
+  clientIndustry,
   digest,
   heroImageUrl,
+  featuredPosts,
+  feedbackUrls,
   unsubscribeUrl,
   trackingPixelUrl,
 }: DigestEmailProps) {
@@ -41,181 +50,219 @@ export function DigestEmail({
 
   return (
     <Html lang="fi">
-      <Head />
-      <Preview>{previewText}</Preview>
-      <Body style={bodyStyle}>
-        <Container style={containerStyle}>
-          {/* Header */}
-          <Section style={headerStyle}>
-            <Text style={logoStyle}>AI-Sanomat</Text>
-            <Text style={subtitleStyle}>{clientName}</Text>
-          </Section>
+      <Tailwind
+        config={{
+          presets: [pixelBasedPreset],
+          theme: {
+            extend: {
+              colors: {
+                brand: '#0D9488',
+              },
+            },
+          },
+        }}
+      >
+        <Head>
+          <meta content="light dark" name="color-scheme" />
+          <meta content="light dark" name="supported-color-schemes" />
+          <style>{`
+            :root { color-scheme: light dark; }
+            @media (prefers-color-scheme: dark) {
+              .email-body { background-color: #1a1a1a !important; }
+              .email-container { background-color: #262626 !important; }
+              .email-text { color: #e5e5e5 !important; }
+              .email-heading { color: #f5f5f5 !important; }
+              .email-subheading { color: #d4d4d4 !important; }
+              .email-muted { color: #a3a3a3 !important; }
+              .email-footer { color: #a3a3a3 !important; }
+              .email-divider { border-color: #404040 !important; }
+              .email-brand-bar { background-color: #0D9488 !important; }
+              .email-featured-bg { background-color: #1f2937 !important; }
+              .email-link { color: #2dd4bf !important; }
+            }
+          `}</style>
+        </Head>
+        <Preview>{previewText}</Preview>
+        <Body className="bg-[#F7F7F7] font-sans email-body" style={{ margin: 0, padding: 0 }}>
+          <Container className="max-w-[600px] mx-auto bg-white my-[32px] rounded-lg overflow-hidden email-container">
 
-          {/* Hero image */}
-          {heroImageUrl && (
-            <Section>
-              <Img
-                src={heroImageUrl}
-                alt="Viikkokatsauksen kuva"
-                width="600"
-                style={heroImageStyle}
-              />
+            {/* BRAND HEADER */}
+            <Section className="pt-[32px] pb-[16px] px-[24px] text-center">
+              <Text className="text-[30px] font-bold text-[#111111] m-0 email-heading">
+                AI-Sanomat
+              </Text>
+              <Text className="text-[14px] text-[#666666] m-0 mt-[4px] email-muted">
+                {clientName} | {clientIndustry}
+              </Text>
             </Section>
-          )}
 
-          {/* Intro */}
-          <Section style={contentSectionStyle}>
-            <Text style={paragraphStyle}>{digest.intro}</Text>
-          </Section>
+            {/* TEAL ACCENT BAR */}
+            <Section style={{ height: '4px', backgroundColor: '#0D9488' }} className="email-brand-bar" />
 
-          {/* Stories */}
-          {digest.stories.map((story, index) => (
-            <Section key={index} style={contentSectionStyle}>
-              {story.imageUrl && (
+            {/* HERO IMAGE */}
+            {heroImageUrl && (
+              <Section>
                 <Img
-                  src={story.imageUrl}
-                  alt={story.title}
-                  width="560"
-                  style={storyImageStyle}
+                  src={heroImageUrl}
+                  alt="Viikkokatsauksen kuva"
+                  width="600"
+                  style={{ width: '100%', height: 'auto', display: 'block' }}
                 />
-              )}
-              <Text style={storyTitleStyle}>{story.title}</Text>
-              <Text style={paragraphStyle}>{story.businessImpact}</Text>
-              <Link href={story.sourceUrl} style={linkStyle}>
-                Lue lisaa
+              </Section>
+            )}
+
+            {/* INTRO */}
+            <Section className="px-[24px] pt-[24px] pb-[8px]">
+              <Text className="text-[16px] leading-relaxed text-[#333333] m-0 email-text">
+                {digest.intro}
+              </Text>
+            </Section>
+
+            {/* STORIES */}
+            {digest.stories.map((story, i) => (
+              <Section key={i} className="px-[24px] py-[16px]">
+                {story.imageUrl && (
+                  <Img
+                    src={story.imageUrl}
+                    alt={story.title}
+                    width="552"
+                    style={{
+                      width: '100%',
+                      maxWidth: '552px',
+                      height: 'auto',
+                      borderRadius: '8px',
+                      display: 'block',
+                      marginBottom: '12px',
+                    }}
+                  />
+                )}
+                <Text className="text-[20px] font-bold text-[#111111] m-0 mb-[8px] email-heading">
+                  {story.title}
+                </Text>
+                <Text className="text-[16px] leading-relaxed text-[#333333] m-0 mb-[8px] email-text">
+                  {story.businessImpact}
+                </Text>
+                <Link
+                  href={story.sourceUrl}
+                  className="text-[#0D9488] text-[16px] no-underline email-link"
+                >
+                  Lue lisaa &rarr;
+                </Link>
+                {i < digest.stories.length - 1 && (
+                  <Hr
+                    style={{ borderTop: '1px solid #EEEEEE', margin: '16px 0 0' }}
+                    className="email-divider"
+                  />
+                )}
+              </Section>
+            ))}
+
+            {/* CLOSING */}
+            <Section className="px-[24px] py-[16px]">
+              <Hr
+                style={{ borderTop: '1px solid #EEEEEE', margin: '0 0 8px' }}
+                className="email-divider"
+              />
+              <Text className="text-[16px] leading-relaxed text-[#333333] m-0 email-text">
+                {digest.closing}
+              </Text>
+            </Section>
+
+            {/* FEEDBACK (only if feedbackUrls provided) */}
+            {feedbackUrls && (
+              <Section className="px-[24px] py-[24px] text-center">
+                <Text className="text-[16px] text-[#555555] m-0 mb-[12px] email-text">
+                  Oliko tama katsaus hyodyllinen?
+                </Text>
+                <Link href={feedbackUrls.up} className="text-[24px] no-underline" style={{ marginRight: '16px' }}>
+                  {'👍'}
+                </Link>
+                <Link href={feedbackUrls.down} className="text-[24px] no-underline" style={{ marginLeft: '16px' }}>
+                  {'👎'}
+                </Link>
+              </Section>
+            )}
+
+            {/* FEATURED SECTION: "AI-Sanomat suosittelee" */}
+            {featuredPosts.length > 0 && (
+              <Section className="px-[24px] pt-[24px] pb-[8px] bg-[#F9FAFB] email-featured-bg">
+                <Text className="text-[12px] font-bold text-[#0D9488] uppercase tracking-widest m-0 mb-[16px]">
+                  AI-Sanomat suosittelee
+                </Text>
+                {featuredPosts.map((post, i) => (
+                  <Section key={i} className="mb-[16px]">
+                    <Link
+                      href={post.url}
+                      className="text-[16px] font-semibold text-[#111111] no-underline email-heading"
+                    >
+                      {post.title}
+                    </Link>
+                    {post.summary && (
+                      <Text className="text-[14px] text-[#666666] m-0 mt-[4px] email-muted">
+                        {post.summary}
+                      </Text>
+                    )}
+                  </Section>
+                ))}
+              </Section>
+            )}
+
+            {/* FOOTER */}
+            <Section className="px-[24px] py-[24px] text-center bg-[#F7F7F7] email-footer">
+              <Text className="text-[14px] font-bold text-[#333333] m-0 mb-[4px] email-text">
+                AI-Sanomat
+              </Text>
+              <Text className="text-[12px] text-[#999999] m-0 mb-[12px] email-muted">
+                Tekoalyuutiset yrityksellesi — viikoittain
+              </Text>
+              <Link
+                href="https://aisanomat.fi"
+                className="text-[12px] text-[#0D9488] email-link"
+                style={{ marginRight: '16px' }}
+              >
+                aisanomat.fi
+              </Link>
+              <Link
+                href="https://x.com/aisanomat"
+                className="text-[12px] text-[#0D9488] email-link"
+                style={{ marginRight: '16px' }}
+              >
+                X
+              </Link>
+              <Link
+                href="https://linkedin.com/company/aisanomat"
+                className="text-[12px] text-[#0D9488] email-link"
+              >
+                LinkedIn
+              </Link>
+              <Hr
+                style={{ borderTop: '1px solid #EEEEEE', margin: '16px 0' }}
+                className="email-divider"
+              />
+              <Text className="text-[12px] text-[#999999] m-0 email-muted">
+                AI-Sanomat Oy | Helsinki, Suomi
+              </Text>
+              <Link href={unsubscribeUrl} className="text-[12px] text-[#999999] underline email-muted">
+                Peruuta tilaus
               </Link>
             </Section>
-          ))}
 
-          {/* Closing */}
-          <Section style={contentSectionStyle}>
-            <Hr style={hrStyle} />
-            <Text style={paragraphStyle}>{digest.closing}</Text>
-          </Section>
+            {/* TRACKING PIXEL */}
+            {trackingPixelUrl && (
+              <Img
+                src={trackingPixelUrl}
+                alt=""
+                width="1"
+                height="1"
+                style={{ border: 'none', display: 'block' }}
+              />
+            )}
 
-          {/* Footer */}
-          <Section style={footerSectionStyle}>
-            <Text style={footerTextStyle}>
-              AI-Sanomat - Tekoalyuutiset yrityksellesi
-            </Text>
-            <Link href={unsubscribeUrl} style={unsubscribeLinkStyle}>
-              Peruuta tilaus
-            </Link>
-          </Section>
-
-          {/* Tracking pixel */}
-          {trackingPixelUrl && (
-            <Img
-              src={trackingPixelUrl}
-              alt=""
-              width="1"
-              height="1"
-              style={trackingPixelStyle}
-            />
-          )}
-        </Container>
-      </Body>
+          </Container>
+        </Body>
+      </Tailwind>
     </Html>
   );
 }
-
-// -- Styles --
-
-const bodyStyle: React.CSSProperties = {
-  backgroundColor: '#f6f6f6',
-  fontFamily: 'Arial, sans-serif',
-  margin: 0,
-  padding: 0,
-};
-
-const containerStyle: React.CSSProperties = {
-  maxWidth: '600px',
-  margin: '0 auto',
-  backgroundColor: '#ffffff',
-};
-
-const headerStyle: React.CSSProperties = {
-  padding: '24px 20px 16px',
-  textAlign: 'center' as const,
-};
-
-const logoStyle: React.CSSProperties = {
-  fontSize: '24px',
-  fontWeight: 'bold',
-  color: '#111111',
-  margin: '0 0 4px',
-};
-
-const subtitleStyle: React.CSSProperties = {
-  fontSize: '14px',
-  color: '#666666',
-  margin: '0',
-};
-
-const heroImageStyle: React.CSSProperties = {
-  width: '100%',
-  height: 'auto',
-  display: 'block',
-};
-
-const contentSectionStyle: React.CSSProperties = {
-  padding: '16px 20px',
-};
-
-const paragraphStyle: React.CSSProperties = {
-  fontSize: '16px',
-  lineHeight: '1.6',
-  color: '#333333',
-  margin: '0 0 12px',
-};
-
-const storyImageStyle: React.CSSProperties = {
-  width: '560px',
-  maxWidth: '100%',
-  height: 'auto',
-  borderRadius: '8px',
-  display: 'block',
-  marginBottom: '12px',
-};
-
-const storyTitleStyle: React.CSSProperties = {
-  fontSize: '20px',
-  fontWeight: 'bold',
-  color: '#111111',
-  margin: '0 0 8px',
-};
-
-const linkStyle: React.CSSProperties = {
-  color: '#0066cc',
-  fontSize: '16px',
-  textDecoration: 'underline',
-};
-
-const hrStyle: React.CSSProperties = {
-  borderTop: '1px solid #dddddd',
-  margin: '16px 0',
-};
-
-const footerSectionStyle: React.CSSProperties = {
-  padding: '16px 20px 24px',
-  textAlign: 'center' as const,
-};
-
-const footerTextStyle: React.CSSProperties = {
-  fontSize: '12px',
-  color: '#999999',
-  margin: '0 0 8px',
-};
-
-const unsubscribeLinkStyle: React.CSSProperties = {
-  fontSize: '12px',
-  color: '#999999',
-  textDecoration: 'underline',
-};
-
-const trackingPixelStyle: React.CSSProperties = {
-  border: 'none',
-  display: 'block',
-};
 
 export default DigestEmail;

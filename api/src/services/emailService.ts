@@ -5,6 +5,7 @@ import { issues, clients, members, deliveryStats } from '../db/schema.js';
 import { DigestEmail } from '../emails/DigestEmail.js';
 import type { DigestEmailDigest } from '../emails/DigestEmail.js';
 import { sendBatchEmails, sendSingleEmail } from '../integrations/resendClient.js';
+import { getFeaturedPosts } from './featuredPostsService.js';
 
 /**
  * Renderoi React Email -pohjan HTML- ja tekstiversioiksi.
@@ -14,7 +15,8 @@ export async function renderDigestEmail(
     generatedContent: string | null;
     heroImageUrl: string | null;
   },
-  client: { name: string }
+  client: { name: string; industry: string },
+  feedbackUrls?: { up: string; down: string }
 ): Promise<{ html: string; text: string }> {
   if (!issue.generatedContent) {
     throw new Error('Issue has no generated content');
@@ -35,10 +37,16 @@ export async function renderDigestEmail(
       : undefined,
   }));
 
+  // Query featured posts for "AI-Sanomat suosittelee" section
+  const featuredPosts = await getFeaturedPosts(3);
+
   const emailProps = {
     clientName: client.name,
+    clientIndustry: client.industry,
     digest: { ...digest, stories: storiesWithAbsoluteUrls },
     heroImageUrl,
+    featuredPosts,
+    feedbackUrls,
     unsubscribeUrl: '', // Placeholder -- korvataan per-jasen lahettaessa
   };
 
@@ -95,7 +103,10 @@ export async function sendDigestToClient(
   }
 
   // 4. Renderoi sahkoposti
-  const { html, text } = await renderDigestEmail(issue, client);
+  const { html, text } = await renderDigestEmail(issue, {
+    name: client.name,
+    industry: client.industry,
+  });
 
   // 5. Rakenna sahkopostipaketit jokaiselle jasenelle
   const emailPayloads = activeMembers.map((member) => ({
