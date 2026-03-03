@@ -5,14 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-03)
 
 **Core value:** The AI-generated weekly digest must be genuinely useful and industry-relevant -- content quality is the entire selling point.
-**Current focus:** v1.1 Smart Sourcing & Polish — comprehensive news sourcing, automation, newsletter design
+**Current focus:** v1.1 Smart Sourcing & Polish -- Phase 5: Foundation Automation
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-03-03 — Milestone v1.1 started
+Phase: 5 of 9 (Foundation Automation)
+Plan: 0 of 2 in current phase
+Status: Ready to plan
+Last activity: 2026-03-03 -- v1.1 roadmap created (5 phases, 29 requirements mapped)
+
+Progress: [########..........] 53% (8/15 total plans across all milestones -- v1.0 complete, v1.1 starting)
 
 ## Performance Metrics
 
@@ -43,67 +45,29 @@ Last activity: 2026-03-03 — Milestone v1.1 started
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- Roadmap: 4 phases (quick depth), content pipeline before email delivery, company portal last (no clients yet)
-- Research: Use Next.js 16 instead of 15, node-cron instead of BullMQ, Drizzle ORM for database
-- 01-01: Use zod (v3 API) not zod/v4 -- fastify-type-provider-zod 4.0.2 peer dep requires zod v3, types incompatible with zod/v4
-- 01-01: withTypeProvider<ZodTypeProvider>() required inside each plugin for typed handler request.body/params
-- 01-01: Removed rootDir from api/tsconfig.json to allow cross-package @ai-sanomat/shared imports without TS6059
-- 01-01: Admin password hashed once at startup (bcrypt 10 rounds) stored as fastify decorator
-- 01-01: drizzle-kit push for MVP dev, :: host binding for Railway
-- 01-02: Removed default root page.tsx -- (admin)/page.tsx serves / via Next.js route group
-- 01-02: Dev fallback JWT secret in middleware for local dev without env vars
-- 01-02: Optimistic toggle in SourceTable -- Switch updates local state on PATCH success
-- 01-02: shadcn toast deprecated, using sonner component instead
-- 01-02: API proxied through Next.js rewrites -- CORS prevented httpOnly cookie forwarding to cross-origin Fastify; rewrites make calls same-origin (commit 61a0496)
-- 02-01: Beehiiv response typed with explicit BeehiivPost interface for strict TypeScript compatibility
-- 02-01: Toaster from sonner added to admin layout for toast notification support
-- 02-01: Sidebar icon Newspaper moved to Uutiset, Rss icon for Uutislahteet
-- 02-01: Integration client pattern established in api/src/integrations/ with typed interfaces
-- 02-02: Claude structured outputs via output_config.format for guaranteed JSON -- no prompt-based extraction
-- 02-02: All JSON schemas use additionalProperties: false at every object level with all properties required
-- 02-02: Model ID stored as CLAUDE_MODEL env var (default: claude-sonnet-4-5-20250929) for easy updates
-- 02-02: Images generated sequentially (not Promise.all) to avoid Gemini rate limits
-- 02-02: Validation prompt includes all 26 humanizer AI-pattern rules inline
-- 03-01: DigestEmailStory extends DigestStory with optional imageUrl -- avoids intersection type issues with TypeScript strict mode
-- 03-01: Webhook processes events idempotently -- silently returns 200 if no matching deliveryStats record
-- 03-01: Raw body registered global: false to avoid performance overhead on non-webhook routes
-- 03-01: Dashboard stats use per-client sequential queries with SQL aggregates for clarity
-- 03-01: Pino logger calls use object-first syntax ({ err }, message) per Fastify strict typing
-- 03-02: Digest status drives action button visibility (ready: approve+send+regenerate, approved: send+regenerate, sent: confirmation, failed: regenerate)
-- 03-02: Email preview uses iframe with API endpoint src for pixel-perfect rendering
-- 03-02: Dashboard delivery stats sorted by latest send date, no-sends clients last
-- 03-02: Sidebar unchanged -- existing isActive(startsWith) correctly handles /clients/[id] subroutes
-- 04-01: FastifyJWT type extended with optional clientId and purpose fields for portal tokens
-- 04-01: Magic link token includes purpose=magic-link claim to prevent session JWT reuse as magic link
-- 04-01: Portal auth is a local decorator inside portal routes, not a global Fastify decorator
-- 04-01: Archive endpoint serializes Date objects to ISO strings for JSON response compatibility
-- 04-02: Portal login/verify pages placed outside (portal) route group -- public pages need no sidebar
-- 04-02: Inactive members filtered out from team table for cleaner UX (soft-deleted hidden)
-- 04-02: Portal sidebar fetches company info from /api/portal/me on mount for dynamic branding
-- 04-02: Archive page uses card layout with week/year, sorted most recent first
+- v1.1 Roadmap: 5 phases (quick depth), scheduling+health first, template+feedback together, X monitoring last (highest cost/complexity)
+- Research: Database-driven scheduling is non-negotiable (Railway deploys destroy in-memory cron state)
+- Research: Tavily over Serper (returns extracted content in one call, no separate scraping needed)
+- Research: OpenAI text-embedding-3-small for embeddings (Anthropic has no embeddings model)
+- Research: pgvector in existing PostgreSQL (dataset too small for dedicated vector DB)
+- Research: X API pay-per-use tier (not $200/month Basic -- budget cap in code from day one)
 
 ### Pending Todos
 
 - Set up DATABASE_URL, JWT_SECRET, ADMIN_PASSWORD in api/.env before running db:push/db:seed
 - Set NEXT_PUBLIC_API_URL=http://localhost:3000 in web/.env.local for local dev
-- Set BEEHIIV_API_KEY and BEEHIIV_PUBLICATION_ID in api/.env for Beehiiv source collection
-- Set ANTHROPIC_API_KEY in api/.env for Claude digest generation
-- Set GEMINI_API_KEY in api/.env for Gemini image generation
-- Optional: Set IMAGE_STORAGE_PATH (default: ./uploads) and CLAUDE_MODEL (default: claude-sonnet-4-5-20250929)
-- Set RESEND_API_KEY in api/.env for Resend email sending
-- Set RESEND_WEBHOOK_SECRET in api/.env for webhook signature verification
 - Configure mail.aisanomat.fi domain in Resend Dashboard with SPF/DKIM/DMARC DNS records
-- Set PUBLIC_URL in api/.env for magic link URL generation (default: http://localhost:3001)
+- New for v1.1: X_BEARER_TOKEN, TAVILY_API_KEY, OPENAI_API_KEY env vars needed in later phases
 
 ### Blockers/Concerns
 
-- Gemini Nano Banana 2 exact API capabilities: RESOLVED -- using gemini-2.5-flash-image with @google/genai SDK
-- Zod 4 vs Zod 3 compatibility with fastify-type-provider-zod: RESOLVED -- use zod v3 API (standard `import { z } from 'zod'`)
 - Resend free tier (100 emails/day) may require Pro plan once clients onboard
 - SPF/DKIM/DMARC DNS records for mail.aisanomat.fi need 2-4 weeks of monitoring before client sends
+- Finnish language embedding quality for text-embedding-3-small is unverified (Phase 8 concern)
+- X API pay-per-use pricing details may have evolved since Feb 2026 launch (Phase 9 concern)
 
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed 04-02-PLAN.md -- All phases complete. Full AI-Sanomat platform delivered.
+Stopped at: v1.1 roadmap created -- 5 phases derived, 29 requirements mapped, ready to plan Phase 5
 Resume file: None

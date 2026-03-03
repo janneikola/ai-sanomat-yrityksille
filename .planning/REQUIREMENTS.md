@@ -191,45 +191,45 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PORTAL-01 | Phase 4 | Complete |
 | PORTAL-02 | Phase 4 | Complete |
 
-### v1.1 (Pending — updated by roadmapper)
+### v1.1 (Mapped)
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SCHED-01 | — | Pending |
-| SCHED-02 | — | Pending |
-| SCHED-03 | — | Pending |
-| SCHED-04 | — | Pending |
-| DESIGN-01 | — | Pending |
-| DESIGN-02 | — | Pending |
-| DESIGN-03 | — | Pending |
-| DESIGN-04 | — | Pending |
-| DESIGN-05 | — | Pending |
-| DESIGN-06 | — | Pending |
-| SRC-01 | — | Pending |
-| SRC-02 | — | Pending |
-| SRC-03 | — | Pending |
-| SRC-04 | — | Pending |
-| SRC-05 | — | Pending |
-| SRC-06 | — | Pending |
-| SRC-07 | — | Pending |
-| DEDUP-01 | — | Pending |
-| DEDUP-02 | — | Pending |
-| DEDUP-03 | — | Pending |
-| DEDUP-04 | — | Pending |
-| HEALTH-01 | — | Pending |
-| HEALTH-02 | — | Pending |
-| HEALTH-03 | — | Pending |
-| HEALTH-04 | — | Pending |
-| FEED-01 | — | Pending |
-| FEED-02 | — | Pending |
-| FEED-03 | — | Pending |
-| FEED-04 | — | Pending |
+| SCHED-01 | Phase 5 | Pending |
+| SCHED-02 | Phase 5 | Pending |
+| SCHED-03 | Phase 5 | Pending |
+| SCHED-04 | Phase 5 | Pending |
+| DESIGN-01 | Phase 6 | Pending |
+| DESIGN-02 | Phase 6 | Pending |
+| DESIGN-03 | Phase 6 | Pending |
+| DESIGN-04 | Phase 6 | Pending |
+| DESIGN-05 | Phase 6 | Pending |
+| DESIGN-06 | Phase 6 | Pending |
+| SRC-01 | Phase 9 | Pending |
+| SRC-02 | Phase 9 | Pending |
+| SRC-03 | Phase 7 | Pending |
+| SRC-04 | Phase 7 | Pending |
+| SRC-05 | Phase 6 | Pending |
+| SRC-06 | Phase 9 | Pending |
+| SRC-07 | Phase 9 | Pending |
+| DEDUP-01 | Phase 8 | Pending |
+| DEDUP-02 | Phase 8 | Pending |
+| DEDUP-03 | Phase 8 | Pending |
+| DEDUP-04 | Phase 8 | Pending |
+| HEALTH-01 | Phase 5 | Pending |
+| HEALTH-02 | Phase 5 | Pending |
+| HEALTH-03 | Phase 5 | Pending |
+| HEALTH-04 | Phase 5 | Pending |
+| FEED-01 | Phase 6 | Pending |
+| FEED-02 | Phase 6 | Pending |
+| FEED-03 | Phase 6 | Pending |
+| FEED-04 | Phase 6 | Pending |
 
 **Coverage:**
-- v1.1 requirements: 25 total
-- Mapped to phases: 0 (pending roadmap creation)
-- Unmapped: 25
+- v1.1 requirements: 29 total
+- Mapped to phases: 29/29
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-02*
-*Last updated: 2026-03-03 after v1.1 milestone requirements definition*
+*Last updated: 2026-03-03 after v1.1 roadmap creation*
