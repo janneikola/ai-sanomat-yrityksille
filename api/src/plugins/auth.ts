@@ -13,8 +13,8 @@ declare module 'fastify' {
 
 declare module '@fastify/jwt' {
   interface FastifyJWT {
-    payload: { email: string; role: string; clientId?: number; purpose?: string };
-    user: { email: string; role: string; clientId?: number; purpose?: string };
+    payload: { email: string; role: string; clientId?: number; purpose?: string; memberId?: number; issueId?: number; vote?: string };
+    user: { email: string; role: string; clientId?: number; purpose?: string; memberId?: number; issueId?: number; vote?: string };
   }
 }
 

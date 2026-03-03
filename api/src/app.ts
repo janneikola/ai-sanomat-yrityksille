@@ -14,6 +14,7 @@ import digestRoutes from './routes/digests.js';
 import webhookRoutes from './routes/webhooks.js';
 import dashboardRoutes from './routes/dashboard.js';
 import portalRoutes from './routes/portal.js';
+import feedbackRoutes from './routes/feedback.js';
 
 export async function buildApp() {
   const app = Fastify({ logger: true });
@@ -49,6 +50,7 @@ export async function buildApp() {
 
   // Julkiset reitit (ei autentikointia)
   await app.register(webhookRoutes, { prefix: '/api' });
+  await app.register(feedbackRoutes, { prefix: '/api' });
 
   // Autentikoidut reitit
   await app.register(authRoutes, { prefix: '/api/auth' });

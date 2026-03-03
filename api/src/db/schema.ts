@@ -7,6 +7,7 @@ import {
   timestamp,
   varchar,
   pgEnum,
+  unique,
 } from 'drizzle-orm/pg-core';
 
 // Enumeraatiot
@@ -30,6 +31,7 @@ export const deliveryStatusEnum = pgEnum('delivery_status', [
 ]);
 
 export const scheduleFrequencyEnum = pgEnum('schedule_frequency', ['weekly', 'biweekly', 'monthly']);
+export const voteTypeEnum = pgEnum('vote_type', ['up', 'down']);
 
 // Asiakkaat
 export const clients = pgTable('clients', {
@@ -158,3 +160,14 @@ export const promptTemplates = pgTable('prompt_templates', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow().$onUpdate(() => new Date()),
 });
+
+// Lukijapalaute (thumbs up/down aanestys per jasen per katsaus)
+export const feedbackVotes = pgTable('feedback_votes', {
+  id: serial('id').primaryKey(),
+  memberId: integer('member_id').notNull().references(() => members.id),
+  issueId: integer('issue_id').notNull().references(() => issues.id),
+  vote: voteTypeEnum('vote').notNull(),
+  votedAt: timestamp('voted_at').notNull().defaultNow(),
+}, (table) => [
+  unique().on(table.memberId, table.issueId),
+]);
