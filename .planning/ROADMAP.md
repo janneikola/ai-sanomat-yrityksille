@@ -144,7 +144,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 09-01-PLAN.md — Backend: Apify xClient, x_account/x_search source types, xCollectorService (influencer daily), xSearchService (keyword on-demand), xBudgetService (cost tracking), API routes, newsCollectorService pipeline integration
+- [x] 09-01-PLAN.md — Backend: Apify xClient, x_account/x_search source types, xCollectorService (influencer daily), xSearchService (keyword on-demand), xBudgetService (cost tracking), API routes, newsCollectorService pipeline integration
 - [ ] 09-02-PLAN.md — Frontend: Admin X monitoring page (accounts CRUD, searches CRUD, budget overview), sidebar navigation, dashboard budget card
 
 ## Progress
@@ -163,4 +163,4 @@ Phases execute in numeric order: 5 -> 6 -> 7 -> 8 -> 9
 | 6. Premium Email Experience | v1.1 | 2/2 | Complete | 2026-03-03 |
 | 7. Web Search Integration | v1.1 | 1/1 | Complete | 2026-03-03 |
 | 8. Semantic Deduplication | v1.1 | 1/1 | Complete | 2026-03-03 |
-| 9. X/Twitter Monitoring | v1.1 | 0/2 | Not started | - |
+| 9. X/Twitter Monitoring | v1.1 | 1/2 | In progress | - |

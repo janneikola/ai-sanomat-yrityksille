@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Smart Sourcing & Polish
 status: in-progress
-last_updated: "2026-03-03T13:44:04Z"
+last_updated: "2026-03-03T16:44:10Z"
 progress:
   total_phases: 9
   completed_phases: 8
   total_plans: 15
-  completed_plans: 14
+  completed_plans: 15
 ---
 
 # Project State
@@ -18,23 +18,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-03)
 
 **Core value:** The AI-generated weekly digest must be genuinely useful and industry-relevant -- content quality is the entire selling point.
-**Current focus:** v1.1 Smart Sourcing & Polish -- Phase 8: Semantic Deduplication
+**Current focus:** v1.1 Smart Sourcing & Polish -- Phase 9: X/Twitter Monitoring
 
 ## Current Position
 
-Phase: 8 of 9 (Semantic Deduplication) -- COMPLETE
-Plan: 1 of 1 in current phase (all done)
-Status: Phase 8 Complete
-Last activity: 2026-03-03 -- Plan 08-01 complete (OpenAI embeddings, pgvector cosine similarity, admin dedup review)
+Phase: 9 of 9 (X/Twitter Monitoring)
+Plan: 1 of 2 in current phase (09-01 complete)
+Status: Plan 09-01 Complete
+Last activity: 2026-03-03 -- Plan 09-01 complete (Apify xClient, collection services, budget tracking, API routes, pipeline integration)
 
-Progress: [##############....] 93% (14/15 total plans across all milestones)
+Progress: [################..] 100% (15/15 total plans across all milestones)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 14
+- Total plans completed: 15
 - Average duration: ~9 min
-- Total execution time: ~2 hours
+- Total execution time: ~2h 5min
 
 **By Phase:**
 
@@ -48,9 +48,10 @@ Progress: [##############....] 93% (14/15 total plans across all milestones)
 | 06-premium-email-experience | 2 | 9min | ~5min |
 | 07-web-search-integration | 1 | 5min | 5min |
 | 08-semantic-deduplication | 1 | 5min | 5min |
+| 09-x-twitter-monitoring | 1 | 5min | 5min |
 
 **Recent Trend:**
-- Last 5 plans: 4min, 5min, 5min, 5min
+- Last 5 plans: 5min, 5min, 5min, 5min
 - Trend: consistent fast execution
 
 *Updated after each plan completion*
@@ -89,6 +90,12 @@ Recent decisions affecting current work:
 - 08-01: Two-tier dedup thresholds (0.95 exact, 0.85 near-duplicate) for Finnish content tolerance
 - 08-01: Embedding pipeline as post-collection step in try/catch (never blocks collection)
 - 08-01: Client-side cosine similarity in getDuplicates for display (avoids extra pgvector query)
+- 09-01: Apify Tweet Scraper V2 via direct HTTP (no SDK) -- matches tavilyClient pattern
+- 09-01: APIFY_TOKEN env var (Apify official convention, not APIFY_API_KEY)
+- 09-01: Engagement threshold for keyword search: likeCount >= 5 OR retweetCount >= 2
+- 09-01: Budget cap soft: warns at 80% and 100% but never blocks fetching ($50/month default)
+- 09-01: Cost formula: $0.40 per 1,000 tweets (Apify pay-per-result model)
+- 09-01: dueClients query hoisted for reuse between web search and X search blocks
 
 ### Pending Todos
 
@@ -99,17 +106,19 @@ Recent decisions affecting current work:
 - Set TAVILY_API_KEY in api/.env for web search (https://app.tavily.com, free tier = 1,000 credits/month)
 - Set OPENAI_API_KEY in api/.env for semantic deduplication (https://platform.openai.com/api-keys, $0.02/1M tokens)
 - Run `cd api && npx tsx src/db/enablePgvector.ts && npx drizzle-kit push` to enable pgvector and apply schema
-- New for v1.1: X_BEARER_TOKEN env var needed in Phase 9
+- Set APIFY_TOKEN in api/.env for X/Twitter collection (https://console.apify.com/account/integrations)
+- Optionally set X_MONTHLY_BUDGET in api/.env (default $50/month)
+- Run `npx drizzle-kit push` to apply x_account/x_search enum values and xBudgetUsage table
 
 ### Blockers/Concerns
 
 - Resend free tier (100 emails/day) may require Pro plan once clients onboard
 - SPF/DKIM/DMARC DNS records for mail.aisanomat.fi need 2-4 weeks of monitoring before client sends
 - Finnish language embedding quality for text-embedding-3-small is unverified (monitor via admin dedup page, adjust 0.85 threshold if needed)
-- X API pay-per-use pricing details may have evolved since Feb 2026 launch (Phase 9 concern)
+- X monitoring uses Apify ($0.40/1K tweets) -- monitor estimated vs actual Apify billing
 
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed 08-01-PLAN.md (Phase 8 complete)
-Resume file: .planning/phases/09-x-monitoring/09-01-PLAN.md
+Stopped at: Completed 09-01-PLAN.md
+Resume file: .planning/phases/09-x-twitter-monitoring/09-02-PLAN.md

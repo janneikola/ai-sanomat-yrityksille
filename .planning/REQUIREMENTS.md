@@ -74,13 +74,13 @@ Requirements for Smart Sourcing & Polish milestone. Each maps to roadmap phases 
 
 ### News Sourcing
 
-- [ ] **SRC-01**: System monitors curated X influencer accounts and collects AI-related posts
-- [ ] **SRC-02**: System searches X by keyword for AI topics and trending discussions
+- [x] **SRC-01**: System monitors curated X influencer accounts and collects AI-related posts
+- [x] **SRC-02**: System searches X by keyword for AI topics and trending discussions
 - [x] **SRC-03**: System searches web via Tavily for industry-specific AI news per client
 - [x] **SRC-04**: Admin can configure per-client industry search prompts for Tavily queries
 - [x] **SRC-05**: System checks aisanomat.fi for new blog posts and makes them available for the featured section
-- [ ] **SRC-06**: Admin can add and manage X influencer accounts and keyword searches as source types
-- [ ] **SRC-07**: X API usage tracked with monthly budget cap to prevent cost overruns
+- [x] **SRC-06**: Admin can add and manage X influencer accounts and keyword searches as source types
+- [x] **SRC-07**: X API usage tracked with monthly budget cap to prevent cost overruns
 
 ### Semantic Deduplication
 
@@ -205,13 +205,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DESIGN-04 | Phase 6 | Complete |
 | DESIGN-05 | Phase 6 | Complete |
 | DESIGN-06 | Phase 6 | Complete |
-| SRC-01 | Phase 9 | Pending |
-| SRC-02 | Phase 9 | Pending |
+| SRC-01 | Phase 9 | Complete |
+| SRC-02 | Phase 9 | Complete |
 | SRC-03 | Phase 7 | Complete |
 | SRC-04 | Phase 7 | Complete |
 | SRC-05 | Phase 6 | Complete |
-| SRC-06 | Phase 9 | Pending |
-| SRC-07 | Phase 9 | Pending |
+| SRC-06 | Phase 9 | Complete |
+| SRC-07 | Phase 9 | Complete |
 | DEDUP-01 | Phase 8 | Complete |
 | DEDUP-02 | Phase 8 | Complete |
 | DEDUP-03 | Phase 8 | Complete |
