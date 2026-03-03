@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { LayoutDashboard, Users, Newspaper, FileText, LogOut, Rss, Search, Copy } from 'lucide-react';
+import { LayoutDashboard, Users, Newspaper, FileText, LogOut, Rss, Search, Copy, AtSign } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -24,6 +24,7 @@ const navItems = [
   { title: 'Uutislähteet', href: '/sources', icon: Rss },
   { title: 'Verkkohaku', href: '/web-search', icon: Search },
   { title: 'Duplikaatit', href: '/deduplication', icon: Copy },
+  { title: 'X-seuranta', href: '/x-monitoring', icon: AtSign },
   { title: 'Kehotepohjat', href: '/templates', icon: FileText },
 ];
 

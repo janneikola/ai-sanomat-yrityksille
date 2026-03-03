@@ -12,7 +12,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Users, Newspaper, FileText, Clock, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Users, Newspaper, FileText, Clock, ThumbsUp, ThumbsDown, DollarSign, AlertTriangle } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 
 interface DashboardStats {
@@ -55,6 +55,16 @@ interface SatisfactionByIssue {
   flagged: boolean;
 }
 
+interface XBudget {
+  currentMonth: {
+    spent: number;
+    limit: number;
+    remaining: number;
+    warningLevel: 'none' | 'warning' | 'exceeded';
+    tweetsCollected: number;
+  };
+}
+
 interface SatisfactionByClient {
   clientId: number;
   clientName: string;
@@ -75,6 +85,7 @@ export default function DashboardPage() {
   const [schedulerRuns, setSchedulerRuns] = useState<SchedulerRun[]>([]);
   const [satisfaction, setSatisfaction] = useState<SatisfactionData | null>(null);
   const [satisfactionLoading, setSatisfactionLoading] = useState(true);
+  const [xBudget, setXBudget] = useState<XBudget | null>(null);
   const [loading, setLoading] = useState(true);
   const [deliveryLoading, setDeliveryLoading] = useState(true);
   const [runsLoading, setRunsLoading] = useState(true);
@@ -139,10 +150,20 @@ export default function DashboardPage() {
       }
     }
 
+    async function loadXBudget() {
+      try {
+        const data = await apiFetch<XBudget>('/api/admin/x-monitoring/budget');
+        setXBudget(data);
+      } catch {
+        // X budget will remain null if not configured or fetch fails
+      }
+    }
+
     loadStats();
     loadDeliveryStats();
     loadSchedulerRuns();
     loadSatisfaction();
+    loadXBudget();
   }, []);
 
   const cards = [
@@ -184,7 +205,7 @@ export default function DashboardPage() {
       <h1 className="text-2xl font-bold">Hallintapaneeli</h1>
 
       {/* Summary cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         {cards.map((card) => (
           <Card key={card.title}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -198,6 +219,45 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         ))}
+
+        {/* X Budget Card */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">X-seuranta budjetti</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {xBudget ? (
+              <>
+                <div className="text-2xl font-bold">
+                  ${xBudget.currentMonth.spent.toFixed(2)} / ${xBudget.currentMonth.limit.toFixed(2)}
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  {xBudget.currentMonth.warningLevel === 'warning' && (
+                    <Badge variant="outline" className="text-yellow-700 border-yellow-400 bg-yellow-50">
+                      <AlertTriangle className="h-3 w-3 mr-1" />
+                      Varoitus
+                    </Badge>
+                  )}
+                  {xBudget.currentMonth.warningLevel === 'exceeded' && (
+                    <Badge variant="destructive">
+                      <AlertTriangle className="h-3 w-3 mr-1" />
+                      Ylitetty
+                    </Badge>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    {xBudget.currentMonth.tweetsCollected} twiittia
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">-</div>
+                <p className="text-xs text-muted-foreground">Ei kaytetty</p>
+              </>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Delivery stats table */}
