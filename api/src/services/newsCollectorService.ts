@@ -1,6 +1,6 @@
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { newsItems, newsSources } from '../db/schema.js';
+import { newsItems, newsSources, clients } from '../db/schema.js';
 import { fetchRssFeed } from '../integrations/rssCollector.js';
 import { fetchBeehiivPosts } from '../integrations/beehiivClient.js';
 import {
@@ -9,6 +9,7 @@ import {
   checkAutoDisable,
   checkHealthTransitionNotification,
 } from './sourceHealthService.js';
+import { searchForClient, isDueWithin24Hours } from './webSearchService.js';
 
 export async function collectAllNews() {
   const sources = await db
@@ -80,5 +81,39 @@ export async function collectAllNews() {
     }
   }
 
-  return { collected, errors, sources: sources.length };
+  // Verkkohaku: hae AI-uutisia verkosta asiakkaille joiden katsaus eraantyy 24h sisalla
+  let webSearchCollected = 0;
+  try {
+    const webSearchClients = await db
+      .select()
+      .from(clients)
+      .where(
+        and(
+          eq(clients.isActive, true),
+          eq(clients.webSearchEnabled, true),
+          eq(clients.schedulePaused, false)
+        )
+      );
+
+    const dueClients = webSearchClients.filter((c) =>
+      isDueWithin24Hours(c.scheduleFrequency, c.scheduleDay, c.scheduleBiweeklyWeek)
+    );
+
+    for (const client of dueClients) {
+      try {
+        const result = await searchForClient(client.id);
+        webSearchCollected += result.collected;
+        console.log(
+          `Web search for ${client.name}: ${result.collected} new items (${result.queries} queries, ${result.cached} cached)`
+        );
+      } catch (error) {
+        console.error(`Web search failed for client ${client.name}:`, error);
+        errors++;
+      }
+    }
+  } catch (error) {
+    console.error('Web search client query failed:', error);
+  }
+
+  return { collected: collected + webSearchCollected, errors, sources: sources.length };
 }

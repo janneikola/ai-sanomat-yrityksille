@@ -20,6 +20,9 @@ export const updateClientSchema = z.object({
   scheduleDay: z.number().int().min(0).max(6).optional(),
   scheduleBiweeklyWeek: z.enum(['even', 'odd']).nullable().optional(),
   schedulePaused: z.boolean().optional(),
+  // Web search fields
+  webSearchEnabled: z.boolean().optional(),
+  searchPrompt: z.string().nullable().optional(),
 });
 
 export const clientResponseSchema = z.object({
@@ -36,6 +39,10 @@ export const clientResponseSchema = z.object({
   scheduleBiweeklyWeek: z.string().nullable(),
   schedulePaused: z.boolean(),
   nextScheduledDate: z.string().nullable(),
+  // Web search fields
+  webSearchEnabled: z.boolean(),
+  searchPrompt: z.string().nullable(),
+  lastWebSearchAt: z.coerce.date().nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 });

@@ -11,7 +11,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 // Enumeraatiot
-export const sourceTypeEnum = pgEnum('source_type', ['rss', 'beehiiv', 'manual']);
+export const sourceTypeEnum = pgEnum('source_type', ['rss', 'beehiiv', 'manual', 'web_search']);
 export const planEnum = pgEnum('plan', ['ai_pulse', 'ai_teams']);
 export const issueStatusEnum = pgEnum('issue_status', [
   'draft',
@@ -47,6 +47,10 @@ export const clients = pgTable('clients', {
   scheduleDay: integer('schedule_day').notNull().default(1), // 0=Sun..6=Sat, default Monday
   scheduleBiweeklyWeek: varchar('schedule_biweekly_week', { length: 4 }), // 'even' | 'odd' | null
   schedulePaused: boolean('schedule_paused').notNull().default(true), // default paused
+  // Web search columns
+  webSearchEnabled: boolean('web_search_enabled').notNull().default(false),
+  searchPrompt: text('search_prompt'), // nullable -- null means auto-generate from industry
+  lastWebSearchAt: timestamp('last_web_search_at'), // nullable
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow().$onUpdate(() => new Date()),
 });
@@ -171,3 +175,14 @@ export const feedbackVotes = pgTable('feedback_votes', {
 }, (table) => [
   unique().on(table.memberId, table.issueId),
 ]);
+
+// Verkkohakujen valimuisti (24h TTL)
+export const searchCache = pgTable('search_cache', {
+  id: serial('id').primaryKey(),
+  queryHash: varchar('query_hash', { length: 255 }).notNull(),
+  query: text('query').notNull(),
+  clientId: integer('client_id').references(() => clients.id),
+  results: text('results').notNull(), // JSON string of TavilyResult[]
+  resultCount: integer('result_count').notNull().default(0),
+  cachedAt: timestamp('cached_at').notNull().defaultNow(),
+});

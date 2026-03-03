@@ -15,6 +15,7 @@ import webhookRoutes from './routes/webhooks.js';
 import dashboardRoutes from './routes/dashboard.js';
 import portalRoutes from './routes/portal.js';
 import feedbackRoutes from './routes/feedback.js';
+import webSearchRoutes from './routes/webSearch.js';
 
 export async function buildApp() {
   const app = Fastify({ logger: true });
@@ -60,6 +61,7 @@ export async function buildApp() {
   await app.register(newsRoutes, { prefix: '/api/admin' });
   await app.register(digestRoutes, { prefix: '/api/admin' });
   await app.register(dashboardRoutes, { prefix: '/api/admin' });
+  await app.register(webSearchRoutes, { prefix: '/api/admin' });
 
   // Portaalireitit (magic link -kirjautuminen ja tiiminhallinta)
   await app.register(portalRoutes, { prefix: '/api/portal' });
