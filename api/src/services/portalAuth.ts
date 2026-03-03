@@ -35,6 +35,11 @@ export async function generateMagicLink(
   const publicUrl = process.env.PUBLIC_URL || 'http://localhost:3001';
   const magicLinkUrl = `${publicUrl}/portal/verify?token=${magicToken}`;
 
+  // Dev-tilassa logitetaan magic link URL konsoliin testausta varten
+  if (process.env.NODE_ENV !== 'production') {
+    app.log.info({ magicLinkUrl }, 'DEV: Magic link URL (copy-paste to browser)');
+  }
+
   // Renderoi sahkopostipohja
   const html = await render(MagicLinkEmail({ magicLinkUrl, companyName: client.name }));
   const text = await render(MagicLinkEmail({ magicLinkUrl, companyName: client.name }), {
@@ -42,15 +47,21 @@ export async function generateMagicLink(
   });
 
   // Laheta magic link sahkoposti
-  await sendSingleEmail({
-    from: 'AI-Sanomat <katsaus@mail.aisanomat.fi>',
-    to: contactEmail,
-    subject: 'Kirjaudu AI-Sanomat-portaaliin',
-    html,
-    text,
-  });
-
-  app.log.info({ email: contactEmail, clientId: client.id }, 'Magic link sent');
+  try {
+    await sendSingleEmail({
+      from: 'AI-Sanomat <katsaus@mail.aisanomat.fi>',
+      to: contactEmail,
+      subject: 'Kirjaudu AI-Sanomat-portaaliin',
+      html,
+      text,
+    });
+    app.log.info({ email: contactEmail, clientId: client.id }, 'Magic link sent');
+  } catch (err) {
+    app.log.error({ err }, 'Magic link generation failed');
+    if (process.env.NODE_ENV !== 'production') {
+      app.log.info('DEV: Email send failed, but magic link URL was logged above — use it directly');
+    }
+  }
 }
 
 /**
