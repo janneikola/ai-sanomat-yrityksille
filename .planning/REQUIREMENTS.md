@@ -52,6 +52,57 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **PORTAL-01**: Company contact receives magic link via email and logs in without password
 - [x] **PORTAL-02**: Company contact can add and remove team members (email addresses)
 
+## v1.1 Requirements
+
+Requirements for Smart Sourcing & Polish milestone. Each maps to roadmap phases 5+.
+
+### Scheduling
+
+- [ ] **SCHED-01**: System auto-generates draft digests on each client's configured schedule (weekly/bi-weekly/monthly)
+- [ ] **SCHED-02**: Admin can configure per-client send frequency (weekly, bi-weekly, monthly) and preferred day/time
+- [ ] **SCHED-03**: Scheduling uses database-driven state (survives Railway deploys), not in-memory cron
+- [ ] **SCHED-04**: System prevents duplicate generation if digest already exists for current period
+
+### Newsletter Design
+
+- [ ] **DESIGN-01**: Newsletter uses premium clean layout with generous whitespace and modern typography
+- [ ] **DESIGN-02**: Newsletter includes AI-Sanomat brand header with logo and accent color bar
+- [ ] **DESIGN-03**: Newsletter includes client company name and industry in header area
+- [ ] **DESIGN-04**: Newsletter supports dark mode via prefers-color-scheme media query
+- [ ] **DESIGN-05**: Newsletter includes "AI-Sanomat suosittelee" featured section with recent aisanomat.fi posts
+- [ ] **DESIGN-06**: Newsletter footer includes AI-Sanomat links, company info, and consistent branding
+
+### News Sourcing
+
+- [ ] **SRC-01**: System monitors curated X influencer accounts and collects AI-related posts
+- [ ] **SRC-02**: System searches X by keyword for AI topics and trending discussions
+- [ ] **SRC-03**: System searches web via Tavily for industry-specific AI news per client
+- [ ] **SRC-04**: Admin can configure per-client industry search prompts for Tavily queries
+- [ ] **SRC-05**: System checks aisanomat.fi for new blog posts and makes them available for the featured section
+- [ ] **SRC-06**: Admin can add and manage X influencer accounts and keyword searches as source types
+- [ ] **SRC-07**: X API usage tracked with monthly budget cap to prevent cost overruns
+
+### Semantic Deduplication
+
+- [ ] **DEDUP-01**: System generates embeddings for news items using OpenAI text-embedding-3-small
+- [ ] **DEDUP-02**: System detects semantically similar news items across sources using cosine similarity
+- [ ] **DEDUP-03**: Near-duplicate items are flagged (not silently deleted) with link to canonical item
+- [ ] **DEDUP-04**: Admin can view deduplication decisions and override false positives
+
+### Source Health
+
+- [ ] **HEALTH-01**: System tracks per-source health metrics (last success, consecutive failures, items per fetch)
+- [ ] **HEALTH-02**: Stale and failing sources are detected automatically with configurable thresholds
+- [ ] **HEALTH-03**: Admin panel shows source health status (green/yellow/red) on source list
+- [ ] **HEALTH-04**: Persistently failing sources are auto-disabled with admin notification
+
+### Engagement
+
+- [ ] **FEED-01**: Newsletter includes thumbs up/down feedback links at the bottom
+- [ ] **FEED-02**: Feedback is recorded per member per digest with one-click (no login required)
+- [ ] **FEED-03**: Admin dashboard shows per-digest and per-client satisfaction scores
+- [ ] **FEED-04**: Low satisfaction digests are flagged for prompt template review
+
 ## v2 Requirements
 
 Deferred to future release. Tracked but not in current roadmap.
@@ -65,7 +116,6 @@ Deferred to future release. Tracked but not in current roadmap.
 ### Content Enhancements
 
 - **CONT-11**: Source relevance scoring -- AI rates article relevance per industry before generation
-- **CONT-12**: Automated weekly generation and send (cron: Monday 06:00)
 
 ### Admin Enhancements
 
@@ -74,10 +124,13 @@ Deferred to future release. Tracked but not in current roadmap.
 
 ### Integrations
 
-- **INTG-01**: X/Twitter news source collection
 - **INTG-02**: Reddit news source collection
-- **INTG-03**: Web search news source collection
 - **INTG-04**: Stripe billing integration
+
+### Automation
+
+- **AUTO-01**: Fully automated sending without admin approval (for trusted high-quality clients)
+- **AUTO-02**: Click tracking (link wrapping infrastructure)
 
 ## Out of Scope
 
@@ -86,22 +139,24 @@ Explicitly excluded. Documented to prevent scope creep.
 | Feature | Reason |
 |---------|--------|
 | A/B testing for email content | Premature with small client base, results statistically meaningless |
-| Multiple newsletters per week | Weekly is the product cadence, more = cost explosion |
+| Daily digest frequency | 7x content generation cost, subscriber fatigue; weekly minimum is the product |
 | Multi-language support | Finnish is the competitive moat, English newsletters already exist |
 | Mobile app | Web-first, email is the delivery channel |
 | Beehiiv integration for sending | Intentionally separate system -- Beehiiv can't do per-client tailoring |
 | Self-service team member unsubscribe | Company contact manages team, individual unsubscribe undermines enterprise model |
-| Custom email template per client | One AI-Sanomat brand, not white-label -- maintain consistency |
+| Custom email template per client | One AI-Sanomat brand with co-branding, not white-label |
 | Self-serve company signup | Enterprise clients need personal onboarding |
 | Rich text editor for digests | If AI output needs editing, fix the prompts, not add an editor |
 | Slack/Teams delivery | Email-only; if 5+ clients request, build a simple webhook forwarder |
+| Reddit/HN scraping | Legal ambiguity, high noise-to-signal; best content surfaces via Tavily |
 | Live webinars | Manual service, not part of the app |
 | Kehotesuunnittelija Pro | Integrate later from separate system |
-| Quarterly report auto-generation | Manual for now |
 
 ## Traceability
 
 Which phases cover which requirements. Updated during roadmap creation.
+
+### v1.0 (Complete)
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
@@ -136,11 +191,45 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PORTAL-01 | Phase 4 | Complete |
 | PORTAL-02 | Phase 4 | Complete |
 
+### v1.1 (Pending — updated by roadmapper)
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| SCHED-01 | — | Pending |
+| SCHED-02 | — | Pending |
+| SCHED-03 | — | Pending |
+| SCHED-04 | — | Pending |
+| DESIGN-01 | — | Pending |
+| DESIGN-02 | — | Pending |
+| DESIGN-03 | — | Pending |
+| DESIGN-04 | — | Pending |
+| DESIGN-05 | — | Pending |
+| DESIGN-06 | — | Pending |
+| SRC-01 | — | Pending |
+| SRC-02 | — | Pending |
+| SRC-03 | — | Pending |
+| SRC-04 | — | Pending |
+| SRC-05 | — | Pending |
+| SRC-06 | — | Pending |
+| SRC-07 | — | Pending |
+| DEDUP-01 | — | Pending |
+| DEDUP-02 | — | Pending |
+| DEDUP-03 | — | Pending |
+| DEDUP-04 | — | Pending |
+| HEALTH-01 | — | Pending |
+| HEALTH-02 | — | Pending |
+| HEALTH-03 | — | Pending |
+| HEALTH-04 | — | Pending |
+| FEED-01 | — | Pending |
+| FEED-02 | — | Pending |
+| FEED-03 | — | Pending |
+| FEED-04 | — | Pending |
+
 **Coverage:**
-- v1 requirements: 30 total
-- Mapped to phases: 30
-- Unmapped: 0
+- v1.1 requirements: 25 total
+- Mapped to phases: 0 (pending roadmap creation)
+- Unmapped: 25
 
 ---
 *Requirements defined: 2026-03-02*
-*Last updated: 2026-03-02 after 04-01 plan completion*
+*Last updated: 2026-03-03 after v1.1 milestone requirements definition*
