@@ -1,9 +1,10 @@
 import { z } from 'zod';
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, desc } from 'drizzle-orm';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { db } from '../db/index.js';
-import { clients, members, deliveryStats, issues } from '../db/schema.js';
+import { clients, members, deliveryStats, issues, schedulerRuns } from '../db/schema.js';
+import { getNextScheduledDate } from '../services/scheduleService.js';
 
 const dashboardRoutes: FastifyPluginAsyncZod = async (fastify) => {
   const f = fastify.withTypeProvider<ZodTypeProvider>();
@@ -22,6 +23,9 @@ const dashboardRoutes: FastifyPluginAsyncZod = async (fastify) => {
             teamSize: z.number(),
             latestSend: z.string().nullable(),
             openRate: z.number(),
+            nextScheduledDate: z.string().nullable(),
+            scheduleFrequency: z.string(),
+            schedulePaused: z.boolean(),
           })
         ),
       },
@@ -71,17 +75,64 @@ const dashboardRoutes: FastifyPluginAsyncZod = async (fastify) => {
               ? Math.round((opened / totalDeliveries) * 10000) / 100
               : 0;
 
+          // Compute next scheduled date if not paused
+          let nextScheduledDate: string | null = null;
+          if (!client.schedulePaused) {
+            try {
+              nextScheduledDate = getNextScheduledDate(
+                client.scheduleFrequency,
+                client.scheduleDay,
+                client.scheduleBiweeklyWeek
+              ).toISOString();
+            } catch {
+              nextScheduledDate = null;
+            }
+          }
+
           return {
             clientId: client.id,
             clientName: client.name,
             teamSize: teamResult?.count ?? 0,
             latestSend: latestResult?.latestSend ?? null,
             openRate,
+            nextScheduledDate,
+            scheduleFrequency: client.scheduleFrequency,
+            schedulePaused: client.schedulePaused,
           };
         })
       );
 
       return reply.code(200).send(stats);
+    },
+  });
+  // GET /dashboard/scheduler-runs -- viimeiset 30 ajastusajoa
+  f.route({
+    method: 'GET',
+    url: '/dashboard/scheduler-runs',
+    onRequest: [fastify.authenticate],
+    schema: {
+      response: {
+        200: z.array(
+          z.object({
+            id: z.number(),
+            startedAt: z.coerce.date(),
+            completedAt: z.coerce.date().nullable(),
+            clientsProcessed: z.number(),
+            successes: z.number(),
+            failures: z.number(),
+            skips: z.number(),
+            notes: z.string().nullable(),
+          })
+        ),
+      },
+    },
+    handler: async (_request, reply) => {
+      const runs = await db
+        .select()
+        .from(schedulerRuns)
+        .orderBy(desc(schedulerRuns.startedAt))
+        .limit(30);
+      return reply.code(200).send(runs);
     },
   });
 };

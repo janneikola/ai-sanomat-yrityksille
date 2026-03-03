@@ -1,6 +1,6 @@
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { newsSources } from '../db/schema.js';
+import { newsSources, sourceHealthLogs } from '../db/schema.js';
 import { computeHealthStatus } from './sourceHealthService.js';
 import type { CreateSource, UpdateSource } from '@ai-sanomat/shared';
 
@@ -40,6 +40,22 @@ export async function updateSource(id: number, data: UpdateSource) {
     .returning();
   const row = rows[0] ?? null;
   return row ? withHealthStatus(row) : null;
+}
+
+export async function getSourceHealthLogs(sourceId: number, limit = 20) {
+  const rows = await db
+    .select({
+      id: sourceHealthLogs.id,
+      success: sourceHealthLogs.success,
+      itemCount: sourceHealthLogs.itemCount,
+      errorMessage: sourceHealthLogs.errorMessage,
+      fetchedAt: sourceHealthLogs.fetchedAt,
+    })
+    .from(sourceHealthLogs)
+    .where(eq(sourceHealthLogs.sourceId, sourceId))
+    .orderBy(desc(sourceHealthLogs.fetchedAt))
+    .limit(limit);
+  return rows;
 }
 
 export async function toggleSource(id: number) {
