@@ -10,10 +10,11 @@ import {
   unique,
   vector,
   index,
+  real,
 } from 'drizzle-orm/pg-core';
 
 // Enumeraatiot
-export const sourceTypeEnum = pgEnum('source_type', ['rss', 'beehiiv', 'manual', 'web_search']);
+export const sourceTypeEnum = pgEnum('source_type', ['rss', 'beehiiv', 'manual', 'web_search', 'x_account', 'x_search']);
 export const planEnum = pgEnum('plan', ['ai_pulse', 'ai_teams']);
 export const issueStatusEnum = pgEnum('issue_status', [
   'draft',
@@ -193,4 +194,15 @@ export const searchCache = pgTable('search_cache', {
   results: text('results').notNull(), // JSON string of TavilyResult[]
   resultCount: integer('result_count').notNull().default(0),
   cachedAt: timestamp('cached_at').notNull().defaultNow(),
+});
+
+// X/Twitter-budjetin seuranta (Apify-kustannukset per ajo)
+export const xBudgetUsage = pgTable('x_budget_usage', {
+  id: serial('id').primaryKey(),
+  month: varchar('month', { length: 7 }).notNull(), // 'YYYY-MM'
+  estimatedCost: real('estimated_cost').notNull(),
+  tweetsCollected: integer('tweets_collected').notNull(),
+  runType: varchar('run_type', { length: 20 }).notNull(), // 'influencer' | 'search'
+  sourceId: integer('source_id').references(() => newsSources.id),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 });
