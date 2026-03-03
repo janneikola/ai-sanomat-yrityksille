@@ -71,7 +71,7 @@ Plans:
 - [x] **Phase 6: Premium Email Experience** - Newsletter template redesign, co-branding, dark mode, aisanomat.fi section, email feedback loop
 - [x] **Phase 7: Web Search Integration** - Tavily industry-specific search with per-client prompts, search caching
 - [x] **Phase 8: Semantic Deduplication** - Embedding-based near-duplicate detection across all sources
-- [ ] **Phase 9: X/Twitter Monitoring** - Influencer timelines, keyword search, budget tracking
+- [x] **Phase 9: X/Twitter Monitoring** - Influencer timelines, keyword search, budget tracking
 
 ## Phase Details
 
@@ -145,7 +145,7 @@ Plans:
 
 Plans:
 - [x] 09-01-PLAN.md — Backend: Apify xClient, x_account/x_search source types, xCollectorService (influencer daily), xSearchService (keyword on-demand), xBudgetService (cost tracking), API routes, newsCollectorService pipeline integration
-- [ ] 09-02-PLAN.md — Frontend: Admin X monitoring page (accounts CRUD, searches CRUD, budget overview), sidebar navigation, dashboard budget card
+- [x] 09-02-PLAN.md — Frontend: Admin X monitoring page (accounts CRUD, searches CRUD, budget overview), sidebar navigation, dashboard budget card
 
 ## Progress
 
@@ -163,4 +163,4 @@ Phases execute in numeric order: 5 -> 6 -> 7 -> 8 -> 9
 | 6. Premium Email Experience | v1.1 | 2/2 | Complete | 2026-03-03 |
 | 7. Web Search Integration | v1.1 | 1/1 | Complete | 2026-03-03 |
 | 8. Semantic Deduplication | v1.1 | 1/1 | Complete | 2026-03-03 |
-| 9. X/Twitter Monitoring | v1.1 | 1/2 | In progress | - |
+| 9. X/Twitter Monitoring | v1.1 | 2/2 | Complete | 2026-03-03 |

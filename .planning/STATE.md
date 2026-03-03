@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Smart Sourcing & Polish
-status: in-progress
-last_updated: "2026-03-03T16:44:10Z"
+status: complete
+last_updated: "2026-03-03T16:52:16Z"
 progress:
   total_phases: 9
-  completed_phases: 8
-  total_plans: 15
-  completed_plans: 15
+  completed_phases: 9
+  total_plans: 16
+  completed_plans: 16
 ---
 
 # Project State
@@ -18,23 +18,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-03)
 
 **Core value:** The AI-generated weekly digest must be genuinely useful and industry-relevant -- content quality is the entire selling point.
-**Current focus:** v1.1 Smart Sourcing & Polish -- Phase 9: X/Twitter Monitoring
+**Current focus:** v1.1 Smart Sourcing & Polish -- COMPLETE
 
 ## Current Position
 
-Phase: 9 of 9 (X/Twitter Monitoring)
-Plan: 1 of 2 in current phase (09-01 complete)
-Status: Plan 09-01 Complete
-Last activity: 2026-03-03 -- Plan 09-01 complete (Apify xClient, collection services, budget tracking, API routes, pipeline integration)
+Phase: 9 of 9 (X/Twitter Monitoring) -- COMPLETE
+Plan: 2 of 2 in current phase (09-02 complete)
+Status: v1.1 Milestone Complete
+Last activity: 2026-03-03 -- Plan 09-02 complete (Admin X monitoring page, sidebar nav, dashboard budget card)
 
-Progress: [################..] 100% (15/15 total plans across all milestones)
+Progress: [##################] 100% (16/16 total plans across all milestones)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 15
-- Average duration: ~9 min
-- Total execution time: ~2h 5min
+- Total plans completed: 16
+- Average duration: ~8 min
+- Total execution time: ~2h 9min
 
 **By Phase:**
 
@@ -48,10 +48,10 @@ Progress: [################..] 100% (15/15 total plans across all milestones)
 | 06-premium-email-experience | 2 | 9min | ~5min |
 | 07-web-search-integration | 1 | 5min | 5min |
 | 08-semantic-deduplication | 1 | 5min | 5min |
-| 09-x-twitter-monitoring | 1 | 5min | 5min |
+| 09-x-twitter-monitoring | 2 | 9min | ~5min |
 
 **Recent Trend:**
-- Last 5 plans: 5min, 5min, 5min, 5min
+- Last 5 plans: 5min, 5min, 5min, 5min, 4min
 - Trend: consistent fast execution
 
 *Updated after each plan completion*
@@ -96,6 +96,10 @@ Recent decisions affecting current work:
 - 09-01: Budget cap soft: warns at 80% and 100% but never blocks fetching ($50/month default)
 - 09-01: Cost formula: $0.40 per 1,000 tweets (Apify pay-per-result model)
 - 09-01: dueClients query hoisted for reuse between web search and X search blocks
+- 09-02: Dialog-based CRUD forms for X accounts and searches (cleaner than inline for multi-field forms)
+- 09-02: AtSign icon for X-seuranta sidebar (Twitter icon deprecated after X rebrand)
+- 09-02: Dashboard fetches X budget independently (not bundled into dashboard stats endpoint)
+- 09-02: Dashboard grid expanded from 3-col to 4-col for X budget card
 
 ### Pending Todos
 
@@ -120,5 +124,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed 09-01-PLAN.md
-Resume file: .planning/phases/09-x-twitter-monitoring/09-02-PLAN.md
+Stopped at: Completed 09-02-PLAN.md -- v1.1 milestone complete
+Resume file: N/A (all plans complete)
