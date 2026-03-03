@@ -11,7 +11,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Users, Newspaper, FileText } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Users, Newspaper, FileText, Clock } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 
 interface DashboardStats {
@@ -26,13 +27,29 @@ interface DeliveryStatsItem {
   teamSize: number;
   latestSend: string | null;
   openRate: number | null;
+  nextScheduledDate: string | null;
+  scheduleFrequency: string;
+  schedulePaused: boolean;
+}
+
+interface SchedulerRun {
+  id: number;
+  startedAt: string;
+  completedAt: string | null;
+  clientsProcessed: number;
+  successes: number;
+  failures: number;
+  skips: number;
+  notes: string | null;
 }
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>({ clients: 0, sources: 0, templates: 0 });
   const [deliveryStats, setDeliveryStats] = useState<DeliveryStatsItem[]>([]);
+  const [schedulerRuns, setSchedulerRuns] = useState<SchedulerRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [deliveryLoading, setDeliveryLoading] = useState(true);
+  const [runsLoading, setRunsLoading] = useState(true);
 
   useEffect(() => {
     async function loadStats() {
@@ -72,8 +89,20 @@ export default function DashboardPage() {
       }
     }
 
+    async function loadSchedulerRuns() {
+      try {
+        const data = await apiFetch<SchedulerRun[]>('/api/admin/dashboard/scheduler-runs');
+        setSchedulerRuns(data);
+      } catch {
+        // Scheduler runs will remain empty if loading fails
+      } finally {
+        setRunsLoading(false);
+      }
+    }
+
     loadStats();
     loadDeliveryStats();
+    loadSchedulerRuns();
   }, []);
 
   const cards = [
@@ -87,9 +116,27 @@ export default function DashboardPage() {
     return new Date(dateStr).toLocaleDateString('fi-FI');
   }
 
+  function formatDateTime(dateStr: string | null): string {
+    if (!dateStr) return '-';
+    const d = new Date(dateStr);
+    return `${d.toLocaleDateString('fi-FI')} ${d.toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' })}`;
+  }
+
   function formatOpenRate(rate: number | null): string {
     if (rate === null || rate === undefined) return '-';
     return `${rate.toFixed(1)}%`;
+  }
+
+  function formatNextScheduled(item: DeliveryStatsItem): React.ReactNode {
+    if (item.schedulePaused) {
+      return <Badge variant="secondary">Pysaytetty</Badge>;
+    }
+    if (!item.nextScheduledDate) return '-';
+    return new Date(item.nextScheduledDate).toLocaleDateString('fi-FI', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'numeric',
+    });
   }
 
   return (
@@ -132,6 +179,7 @@ export default function DashboardPage() {
                     <TableHead>Tiimin koko</TableHead>
                     <TableHead>Viimeisin lahetys</TableHead>
                     <TableHead>Avausprosentti</TableHead>
+                    <TableHead>Seuraava generointi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -148,6 +196,55 @@ export default function DashboardPage() {
                       <TableCell>{item.teamSize}</TableCell>
                       <TableCell>{formatDate(item.latestSend)}</TableCell>
                       <TableCell>{formatOpenRate(item.openRate)}</TableCell>
+                      <TableCell>{formatNextScheduled(item)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Scheduler run log */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Ajastushistoria
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {runsLoading ? (
+            <p className="text-muted-foreground">Ladataan...</p>
+          ) : schedulerRuns.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Ei viela ajoja</p>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Aika</TableHead>
+                    <TableHead>Kasitelty</TableHead>
+                    <TableHead>Onnistuneet</TableHead>
+                    <TableHead>Epaonnistuneet</TableHead>
+                    <TableHead>Ohitetut</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {schedulerRuns.map((run) => (
+                    <TableRow key={run.id}>
+                      <TableCell className="text-sm">
+                        {formatDateTime(run.startedAt)}
+                      </TableCell>
+                      <TableCell>{run.clientsProcessed}</TableCell>
+                      <TableCell>{run.successes}</TableCell>
+                      <TableCell>
+                        <span className={run.failures > 0 ? 'font-medium text-red-600' : ''}>
+                          {run.failures}
+                        </span>
+                      </TableCell>
+                      <TableCell>{run.skips}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

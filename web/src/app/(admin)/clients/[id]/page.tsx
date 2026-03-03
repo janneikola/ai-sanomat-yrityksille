@@ -3,10 +3,17 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Send, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, Send, RefreshCw, CheckCircle, AlertCircle, Calendar, Pause, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { apiFetch } from '@/lib/api';
 import { toast } from 'sonner';
 import type { ClientResponse } from '@ai-sanomat/shared';
@@ -77,6 +84,13 @@ export default function ClientDetailPage() {
   const [sending, setSending] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
 
+  // Schedule config state
+  const [scheduleFrequency, setScheduleFrequency] = useState<'weekly' | 'biweekly' | 'monthly'>('weekly');
+  const [scheduleDay, setScheduleDay] = useState<number>(1);
+  const [scheduleBiweeklyWeek, setScheduleBiweeklyWeek] = useState<string | null>(null);
+  const [schedulePaused, setSchedulePaused] = useState(true);
+  const [savingSchedule, setSavingSchedule] = useState(false);
+
   const loadDigest = useCallback(async (issueId?: number) => {
     try {
       if (issueId) {
@@ -104,6 +118,11 @@ export default function ClientDetailPage() {
       try {
         const data = await apiFetch<ClientResponse>(`/api/admin/clients/${clientId}`);
         setClient(data);
+        // Sync schedule state from server
+        setScheduleFrequency(data.scheduleFrequency);
+        setScheduleDay(data.scheduleDay);
+        setScheduleBiweeklyWeek(data.scheduleBiweeklyWeek);
+        setSchedulePaused(data.schedulePaused);
       } catch {
         toast.error('Asiakkaan lataus epaonnistui');
       } finally {
@@ -184,6 +203,59 @@ export default function ClientDetailPage() {
     } finally {
       setRegenerating(false);
     }
+  }
+
+  const DAY_NAMES = ['Sunnuntai', 'Maanantai', 'Tiistai', 'Keskiviikko', 'Torstai', 'Perjantai', 'Lauantai'];
+
+  async function handleSaveSchedule() {
+    setSavingSchedule(true);
+    try {
+      const updated = await apiFetch<ClientResponse>(
+        `/api/admin/clients/${clientId}/schedule`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({
+            scheduleFrequency,
+            scheduleDay,
+            scheduleBiweeklyWeek: scheduleFrequency === 'biweekly' ? scheduleBiweeklyWeek : null,
+            schedulePaused,
+          }),
+        }
+      );
+      setClient(updated);
+      toast.success('Aikataulu tallennettu');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Aikataulun tallennus epaonnistui');
+    } finally {
+      setSavingSchedule(false);
+    }
+  }
+
+  async function handleTogglePause() {
+    const newPaused = !schedulePaused;
+    setSavingSchedule(true);
+    try {
+      const updated = await apiFetch<ClientResponse>(
+        `/api/admin/clients/${clientId}/schedule`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ schedulePaused: newPaused }),
+        }
+      );
+      setClient(updated);
+      setSchedulePaused(newPaused);
+      toast.success(newPaused ? 'Aikataulu pysaytetty' : 'Aikataulu jatkettu');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Tilamuutos epaonnistui');
+    } finally {
+      setSavingSchedule(false);
+    }
+  }
+
+  function formatNextDate(dateStr: string | null): string {
+    if (!dateStr) return 'Pysaytetty';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('fi-FI', { weekday: 'short', day: 'numeric', month: 'numeric', year: 'numeric' });
   }
 
   if (loadingClient) {
@@ -387,6 +459,110 @@ export default function ClientDetailPage() {
               Ei viela katsauksia. Generoi ensimmainen katsaus painamalla yllaolevaa painiketta.
             </p>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Schedule config section */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Aikataulu
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Badge variant={schedulePaused ? 'secondary' : 'default'}>
+                {schedulePaused ? 'Aikataulu pysaytetty' : 'Aikataulu aktiivinen'}
+              </Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTogglePause}
+                disabled={savingSchedule}
+              >
+                {schedulePaused ? (
+                  <>
+                    <Play className="mr-1 h-3 w-3" />
+                    Jatka
+                  </>
+                ) : (
+                  <>
+                    <Pause className="mr-1 h-3 w-3" />
+                    Pysayta
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Frequency */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Tiheys</label>
+              <Select value={scheduleFrequency} onValueChange={(v) => setScheduleFrequency(v as 'weekly' | 'biweekly' | 'monthly')}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="weekly">Viikoittain</SelectItem>
+                  <SelectItem value="biweekly">Joka toinen viikko</SelectItem>
+                  <SelectItem value="monthly">Kuukausittain</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Preferred day */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Paiva</label>
+              <Select value={String(scheduleDay)} onValueChange={(v) => setScheduleDay(Number(v))}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {DAY_NAMES.map((name, idx) => (
+                    <SelectItem key={idx} value={String(idx)}>{name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Biweekly week (only when biweekly) */}
+            {scheduleFrequency === 'biweekly' && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Viikko</label>
+                <Select value={scheduleBiweeklyWeek ?? 'even'} onValueChange={setScheduleBiweeklyWeek}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="even">Parillinen viikko</SelectItem>
+                    <SelectItem value="odd">Pariton viikko</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          {/* Next scheduled date */}
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground">Seuraava generointi:</span>
+            <span className="font-medium">
+              {formatNextDate(client.nextScheduledDate)}
+            </span>
+          </div>
+
+          {/* Save button */}
+          <Button onClick={handleSaveSchedule} disabled={savingSchedule}>
+            {savingSchedule ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Tallennetaan...
+              </>
+            ) : (
+              'Tallenna aikataulu'
+            )}
+          </Button>
         </CardContent>
       </Card>
     </div>
