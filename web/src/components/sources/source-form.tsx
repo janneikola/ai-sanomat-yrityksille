@@ -25,7 +25,7 @@ export function SourceForm({ source, onSuccess, onCancel }: SourceFormProps) {
   const isEdit = !!source;
 
   const [name, setName] = useState(source?.name ?? '');
-  const [type, setType] = useState<'rss' | 'beehiiv' | 'manual'>(source?.type ?? 'rss');
+  const [type, setType] = useState<'rss' | 'beehiiv' | 'manual' | 'web_search'>(source?.type ?? 'rss');
   const [url, setUrl] = useState(source?.url ?? '');
   const [config, setConfig] = useState(source?.config ?? '');
   const [error, setError] = useState('');
@@ -88,7 +88,7 @@ export function SourceForm({ source, onSuccess, onCancel }: SourceFormProps) {
 
       <div className="space-y-2">
         <Label htmlFor="type">Tyyppi</Label>
-        <Select value={type} onValueChange={(v) => setType(v as 'rss' | 'beehiiv' | 'manual')}>
+        <Select value={type} onValueChange={(v) => setType(v as 'rss' | 'beehiiv' | 'manual' | 'web_search')}>
           <SelectTrigger id="type">
             <SelectValue />
           </SelectTrigger>
