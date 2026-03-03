@@ -68,7 +68,7 @@ Plans:
 **Milestone Goal:** Transform news collection into comprehensive multi-source intelligence, automate digest scheduling, redesign newsletter visuals, and add source health monitoring with engagement feedback.
 
 - [x] **Phase 5: Foundation Automation** - Database-driven scheduling, per-client frequency, source health monitoring
-- [ ] **Phase 6: Premium Email Experience** - Newsletter template redesign, co-branding, dark mode, aisanomat.fi section, email feedback loop
+- [x] **Phase 6: Premium Email Experience** - Newsletter template redesign, co-branding, dark mode, aisanomat.fi section, email feedback loop
 - [ ] **Phase 7: Web Search Integration** - Tavily industry-specific search with per-client prompts, search caching
 - [ ] **Phase 8: Semantic Deduplication** - Embedding-based near-duplicate detection across all sources
 - [ ] **Phase 9: X/Twitter Monitoring** - Influencer timelines, keyword search, budget tracking
@@ -105,7 +105,7 @@ Plans:
 
 Plans:
 - [x] 06-01: aisanomat.fi blog post collector (SRC-05), premium React Email template redesign (brand header, co-branding, dark mode, featured section, footer)
-- [ ] 06-02: Feedback system (JWT-signed vote links, feedbackVotes table, one-click endpoint, thank-you page, admin satisfaction dashboard)
+- [x] 06-02: Feedback system (JWT-signed vote links, feedbackVotes table, one-click endpoint, thank-you page, admin satisfaction dashboard)
 
 ### Phase 7: Web Search Integration
 **Goal**: System finds industry-specific AI news via web search that RSS feeds miss, with per-client tailored queries
@@ -159,7 +159,7 @@ Phases execute in numeric order: 5 -> 6 -> 7 -> 8 -> 9
 | 3. Email Delivery and Send Workflow | v1.0 | 2/2 | Complete | 2026-03-02 |
 | 4. Company Portal | v1.0 | 2/2 | Complete | 2026-03-03 |
 | 5. Foundation Automation | v1.1 | 2/2 | Complete | 2026-03-03 |
-| 6. Premium Email Experience | v1.1 | 1/2 | In progress | - |
+| 6. Premium Email Experience | v1.1 | 2/2 | Complete | 2026-03-03 |
 | 7. Web Search Integration | v1.1 | 0/1 | Not started | - |
 | 8. Semantic Deduplication | v1.1 | 0/1 | Not started | - |
 | 9. X/Twitter Monitoring | v1.1 | 0/1 | Not started | - |

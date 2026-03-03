@@ -98,10 +98,10 @@ Requirements for Smart Sourcing & Polish milestone. Each maps to roadmap phases 
 
 ### Engagement
 
-- [ ] **FEED-01**: Newsletter includes thumbs up/down feedback links at the bottom
-- [ ] **FEED-02**: Feedback is recorded per member per digest with one-click (no login required)
-- [ ] **FEED-03**: Admin dashboard shows per-digest and per-client satisfaction scores
-- [ ] **FEED-04**: Low satisfaction digests are flagged for prompt template review
+- [x] **FEED-01**: Newsletter includes thumbs up/down feedback links at the bottom
+- [x] **FEED-02**: Feedback is recorded per member per digest with one-click (no login required)
+- [x] **FEED-03**: Admin dashboard shows per-digest and per-client satisfaction scores
+- [x] **FEED-04**: Low satisfaction digests are flagged for prompt template review
 
 ## v2 Requirements
 
@@ -220,10 +220,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | HEALTH-02 | Phase 5 | Complete |
 | HEALTH-03 | Phase 5 | Complete |
 | HEALTH-04 | Phase 5 | Complete |
-| FEED-01 | Phase 6 | Pending |
-| FEED-02 | Phase 6 | Pending |
-| FEED-03 | Phase 6 | Pending |
-| FEED-04 | Phase 6 | Pending |
+| FEED-01 | Phase 6 | Complete |
+| FEED-02 | Phase 6 | Complete |
+| FEED-03 | Phase 6 | Complete |
+| FEED-04 | Phase 6 | Complete |
 
 **Coverage:**
 - v1.1 requirements: 29 total
