@@ -114,10 +114,10 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. System fetches AI news via Tavily web search and stores results as news items alongside RSS/Beehiiv items
   2. Admin can configure per-client industry search prompts that drive Tavily queries for that client's digests
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 07-01: Tavily webSearchClient integration, web_search source type, per-client searchPrompt field, search result caching, collection pipeline integration
+- [ ] 07-01-PLAN.md — Tavily client integration, web search service (query generation, caching, relevance filter), schema changes (searchCache table, client columns), collection pipeline integration, admin API routes, web search management page
 
 ### Phase 8: Semantic Deduplication
 **Goal**: System detects and flags near-duplicate news items across all sources using semantic similarity, not just URL matching
