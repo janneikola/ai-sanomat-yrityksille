@@ -3,6 +3,12 @@ import { db } from '../db/index.js';
 import { newsItems, newsSources } from '../db/schema.js';
 import { fetchRssFeed } from '../integrations/rssCollector.js';
 import { fetchBeehiivPosts } from '../integrations/beehiivClient.js';
+import {
+  logFetchAttempt,
+  updateSourceHealth,
+  checkAutoDisable,
+  checkHealthTransitionNotification,
+} from './sourceHealthService.js';
 
 export async function collectAllNews() {
   const sources = await db
@@ -54,10 +60,23 @@ export async function collectAllNews() {
           collected++;
         }
       }
+
+      // Terveyden seuranta: onnistunut haku
+      await logFetchAttempt(source.id, true, items.length, null);
+      await updateSourceHealth(source.id, true, items.length);
     } catch (error) {
       // Kirjataan virhe ja jatketaan -- yksi epaonnistunut lahde ei saa estaa muita
       console.error(`Failed to collect from ${source.name}:`, error);
       errors++;
+
+      // Terveyden seuranta: epaonnistunut haku
+      const oldFailures = source.consecutiveFailures ?? 0;
+      const newFailureCount = oldFailures + 1;
+
+      await logFetchAttempt(source.id, false, 0, String(error));
+      await updateSourceHealth(source.id, false, 0);
+      await checkAutoDisable(source.id, newFailureCount);
+      await checkHealthTransitionNotification(source.name, oldFailures, newFailureCount);
     }
   }
 

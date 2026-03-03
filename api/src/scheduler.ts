@@ -1,5 +1,6 @@
 import cron from 'node-cron';
 import { collectAllNews } from './services/newsCollectorService.js';
+import { processScheduledDigests } from './services/scheduleService.js';
 
 export function startScheduler() {
   // Paivittainen keruuajo klo 06:00 Suomen aikaa
@@ -21,7 +22,26 @@ export function startScheduler() {
     }
   );
 
-  console.log('Scheduler started: daily collection at 06:00 EET');
+  // Katsausten ajoitettu generointi klo 07:00 Suomen aikaa (1h keruun jalkeen)
+  cron.schedule(
+    '0 7 * * *',
+    async () => {
+      console.log('Starting scheduled digest generation...');
+      try {
+        const result = await processScheduledDigests();
+        console.log(
+          `Digest scheduling complete: ${result.successes} generated, ${result.failures} failed, ${result.skips} skipped`
+        );
+      } catch (error) {
+        console.error('Scheduled digest generation failed:', error);
+      }
+    },
+    {
+      timezone: 'Europe/Helsinki',
+    }
+  );
+
+  console.log('Scheduler started: collection 06:00, digests 07:00 EET');
 }
 
 export async function triggerCollection() {
