@@ -104,7 +104,7 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 06-01: aisanomat.fi blog post collector (SRC-05), premium React Email template redesign (brand header, co-branding, dark mode, featured section, footer)
+- [x] 06-01: aisanomat.fi blog post collector (SRC-05), premium React Email template redesign (brand header, co-branding, dark mode, featured section, footer)
 - [ ] 06-02: Feedback system (JWT-signed vote links, feedbackVotes table, one-click endpoint, thank-you page, admin satisfaction dashboard)
 
 ### Phase 7: Web Search Integration
@@ -159,7 +159,7 @@ Phases execute in numeric order: 5 -> 6 -> 7 -> 8 -> 9
 | 3. Email Delivery and Send Workflow | v1.0 | 2/2 | Complete | 2026-03-02 |
 | 4. Company Portal | v1.0 | 2/2 | Complete | 2026-03-03 |
 | 5. Foundation Automation | v1.1 | 2/2 | Complete | 2026-03-03 |
-| 6. Premium Email Experience | v1.1 | 0/2 | Not started | - |
+| 6. Premium Email Experience | v1.1 | 1/2 | In progress | - |
 | 7. Web Search Integration | v1.1 | 0/1 | Not started | - |
 | 8. Semantic Deduplication | v1.1 | 0/1 | Not started | - |
 | 9. X/Twitter Monitoring | v1.1 | 0/1 | Not started | - |

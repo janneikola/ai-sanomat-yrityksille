@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Smart Sourcing & Polish
-status: unknown
-last_updated: "2026-03-03T10:53:47.180Z"
+status: in-progress
+last_updated: "2026-03-03T12:17:00Z"
 progress:
   total_phases: 5
   completed_phases: 5
   total_plans: 10
-  completed_plans: 10
+  completed_plans: 11
 ---
 
 # Project State
@@ -23,18 +23,18 @@ See: .planning/PROJECT.md (updated 2026-03-03)
 ## Current Position
 
 Phase: 6 of 9 (Premium Email Experience)
-Plan: 1 of 2 in current phase
-Status: Ready
-Last activity: 2026-03-03 -- Plan 05-02 complete (admin UI for schedule, health, scheduler history)
+Plan: 2 of 2 in current phase
+Status: In Progress
+Last activity: 2026-03-03 -- Plan 06-01 complete (premium email template, featured posts, dark mode)
 
-Progress: [##########........] 67% (10/15 total plans across all milestones)
+Progress: [###########.......] 73% (11/15 total plans across all milestones)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
-- Average duration: ~10 min
-- Total execution time: ~1.6 hours
+- Total plans completed: 11
+- Average duration: ~9 min
+- Total execution time: ~1.7 hours
 
 **By Phase:**
 
@@ -45,9 +45,10 @@ Progress: [##########........] 67% (10/15 total plans across all milestones)
 | 03-email-delivery-send-workflow | 2 | 8min | 4min |
 | 04-company-portal | 2 | 7min | ~4min |
 | 05-foundation-automation | 2 | 13min | ~7min |
+| 06-premium-email-experience | 1 | 4min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 4min, 3min, 8min, 5min
+- Last 5 plans: 3min, 8min, 5min, 4min
 - Trend: consistent fast execution
 
 *Updated after each plan completion*
@@ -67,6 +68,9 @@ Recent decisions affecting current work:
 - 05-02: Health filtering via API query param (compute in service, filter in route handler) for clean separation
 - 05-02: Expandable table rows for health logs keeps source list as single page view
 - 05-02: Inline schedule config on client detail page (not dialog) for direct editing
+- 06-01: Tailwind with pixelBasedPreset for email-safe px units (no rem in output)
+- 06-01: Dark mode via CSS class selectors + @media prefers-color-scheme in Head style tag
+- 06-01: Featured posts queried at render time from existing Beehiiv data -- no new collector needed
 - Research: Database-driven scheduling is non-negotiable (Railway deploys destroy in-memory cron state)
 - Research: Tavily over Serper (returns extracted content in one call, no separate scraping needed)
 - Research: OpenAI text-embedding-3-small for embeddings (Anthropic has no embeddings model)
@@ -91,5 +95,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Phase 6 context gathered
-Resume file: .planning/phases/06-premium-email-experience/06-CONTEXT.md
+Stopped at: Completed 06-01-PLAN.md
+Resume file: .planning/phases/06-premium-email-experience/06-02-PLAN.md

@@ -65,12 +65,12 @@ Requirements for Smart Sourcing & Polish milestone. Each maps to roadmap phases 
 
 ### Newsletter Design
 
-- [ ] **DESIGN-01**: Newsletter uses premium clean layout with generous whitespace and modern typography
-- [ ] **DESIGN-02**: Newsletter includes AI-Sanomat brand header with logo and accent color bar
-- [ ] **DESIGN-03**: Newsletter includes client company name and industry in header area
-- [ ] **DESIGN-04**: Newsletter supports dark mode via prefers-color-scheme media query
-- [ ] **DESIGN-05**: Newsletter includes "AI-Sanomat suosittelee" featured section with recent aisanomat.fi posts
-- [ ] **DESIGN-06**: Newsletter footer includes AI-Sanomat links, company info, and consistent branding
+- [x] **DESIGN-01**: Newsletter uses premium clean layout with generous whitespace and modern typography
+- [x] **DESIGN-02**: Newsletter includes AI-Sanomat brand header with logo and accent color bar
+- [x] **DESIGN-03**: Newsletter includes client company name and industry in header area
+- [x] **DESIGN-04**: Newsletter supports dark mode via prefers-color-scheme media query
+- [x] **DESIGN-05**: Newsletter includes "AI-Sanomat suosittelee" featured section with recent aisanomat.fi posts
+- [x] **DESIGN-06**: Newsletter footer includes AI-Sanomat links, company info, and consistent branding
 
 ### News Sourcing
 
@@ -78,7 +78,7 @@ Requirements for Smart Sourcing & Polish milestone. Each maps to roadmap phases 
 - [ ] **SRC-02**: System searches X by keyword for AI topics and trending discussions
 - [ ] **SRC-03**: System searches web via Tavily for industry-specific AI news per client
 - [ ] **SRC-04**: Admin can configure per-client industry search prompts for Tavily queries
-- [ ] **SRC-05**: System checks aisanomat.fi for new blog posts and makes them available for the featured section
+- [x] **SRC-05**: System checks aisanomat.fi for new blog posts and makes them available for the featured section
 - [ ] **SRC-06**: Admin can add and manage X influencer accounts and keyword searches as source types
 - [ ] **SRC-07**: X API usage tracked with monthly budget cap to prevent cost overruns
 
@@ -199,17 +199,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SCHED-02 | Phase 5 | Complete |
 | SCHED-03 | Phase 5 | Complete |
 | SCHED-04 | Phase 5 | Complete |
-| DESIGN-01 | Phase 6 | Pending |
-| DESIGN-02 | Phase 6 | Pending |
-| DESIGN-03 | Phase 6 | Pending |
-| DESIGN-04 | Phase 6 | Pending |
-| DESIGN-05 | Phase 6 | Pending |
-| DESIGN-06 | Phase 6 | Pending |
+| DESIGN-01 | Phase 6 | Complete |
+| DESIGN-02 | Phase 6 | Complete |
+| DESIGN-03 | Phase 6 | Complete |
+| DESIGN-04 | Phase 6 | Complete |
+| DESIGN-05 | Phase 6 | Complete |
+| DESIGN-06 | Phase 6 | Complete |
 | SRC-01 | Phase 9 | Pending |
 | SRC-02 | Phase 9 | Pending |
 | SRC-03 | Phase 7 | Pending |
 | SRC-04 | Phase 7 | Pending |
-| SRC-05 | Phase 6 | Pending |
+| SRC-05 | Phase 6 | Complete |
 | SRC-06 | Phase 9 | Pending |
 | SRC-07 | Phase 9 | Pending |
 | DEDUP-01 | Phase 8 | Pending |
