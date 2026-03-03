@@ -23,6 +23,11 @@ export const sourceResponseSchema = z.object({
   url: z.string().nullable(),
   config: z.string().nullable(),
   isActive: z.boolean(),
+  // Health tracking fields
+  consecutiveFailures: z.number(),
+  lastSuccessAt: z.coerce.date().nullable(),
+  lastItemCount: z.number().nullable(),
+  healthStatus: z.enum(['green', 'yellow', 'red']),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 });

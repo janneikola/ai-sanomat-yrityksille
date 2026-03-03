@@ -1,8 +1,9 @@
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, gt } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { clients, issues, newsItems, promptTemplates } from '../db/schema.js';
 import { generateDigest, validateDigest, generateImagePrompts } from '../integrations/claudeClient.js';
 import { generateDigestImages } from './imageService.js';
+import { getISOWeekNumber, getPeriodNumber } from './scheduleService.js';
 import type { DigestContent } from '../types/digest.js';
 
 /**
@@ -17,15 +18,10 @@ export function fillTemplate(
 
 /**
  * Laskee ISO-viikkonumeron nykyiselle paivamaaralle.
+ * Wrapper getISOWeekNumber-funktiolle taaksepainyhteensopivuuden vuoksi.
  */
 function getWeekNumber(): number {
-  const date = new Date();
-  const target = new Date(date.valueOf());
-  const dayNumber = (date.getDay() + 6) % 7;
-  target.setDate(target.getDate() - dayNumber + 3);
-  const firstThursday = new Date(target.getFullYear(), 0, 4);
-  const diff = target.getTime() - firstThursday.getTime();
-  return 1 + Math.round(diff / (7 * 24 * 60 * 60 * 1000));
+  return getISOWeekNumber(new Date());
 }
 
 // Humanizer-taidon 26 AI-patternia validointia varten
@@ -76,7 +72,8 @@ Anna languageQuality.score valilla 1-10 (10 = taysin luonnollinen suomi).
  * 6. Paivita issue-tietue
  */
 export async function generateClientDigest(
-  clientId: number
+  clientId: number,
+  sinceDate?: Date
 ): Promise<{ issueId: number; status: string }> {
   // 1. Hae asiakas
   const [client] = await db
@@ -87,12 +84,22 @@ export async function generateClientDigest(
     throw new Error(`Client not found: ${clientId}`);
   }
 
-  // 2. Hae viimeisimmat uutiset (max 30 kpl)
-  const recentNews = await db
+  // 2. Hae viimeisimmat uutiset (max 30 kpl, valinnaisesti ikkunoituna)
+  const newsQuery = db
     .select()
-    .from(newsItems)
-    .orderBy(desc(newsItems.collectedAt))
-    .limit(30);
+    .from(newsItems);
+
+  let recentNews;
+  if (sinceDate) {
+    recentNews = await newsQuery
+      .where(gt(newsItems.collectedAt, sinceDate))
+      .orderBy(desc(newsItems.collectedAt))
+      .limit(30);
+  } else {
+    recentNews = await newsQuery
+      .orderBy(desc(newsItems.collectedAt))
+      .limit(30);
+  }
 
   const formattedNews = recentNews
     .map((item) => `- ${item.title}${item.summary ? ': ' + item.summary : ''} (${item.url})`)
@@ -117,12 +124,16 @@ export async function generateClientDigest(
   }
 
   // 4. Luo issue-tietue tilassa 'generating'
+  const now = new Date();
+  const clientRow = await db.select().from(clients).where(eq(clients.id, clientId));
+  const scheduleFreq = clientRow[0]?.scheduleFrequency ?? 'weekly';
   const [issue] = await db
     .insert(issues)
     .values({
       clientId,
       weekNumber: getWeekNumber(),
-      year: new Date().getFullYear(),
+      year: now.getFullYear(),
+      periodNumber: getPeriodNumber(scheduleFreq, now),
       status: 'generating',
     })
     .returning();

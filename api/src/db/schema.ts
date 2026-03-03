@@ -29,6 +29,8 @@ export const deliveryStatusEnum = pgEnum('delivery_status', [
   'failed',
 ]);
 
+export const scheduleFrequencyEnum = pgEnum('schedule_frequency', ['weekly', 'biweekly', 'monthly']);
+
 // Asiakkaat
 export const clients = pgTable('clients', {
   id: serial('id').primaryKey(),
@@ -38,6 +40,11 @@ export const clients = pgTable('clients', {
   contactName: varchar('contact_name', { length: 255 }),
   plan: planEnum('plan').notNull().default('ai_pulse'),
   isActive: boolean('is_active').notNull().default(true),
+  // Schedule columns
+  scheduleFrequency: scheduleFrequencyEnum('schedule_frequency').notNull().default('weekly'),
+  scheduleDay: integer('schedule_day').notNull().default(1), // 0=Sun..6=Sat, default Monday
+  scheduleBiweeklyWeek: varchar('schedule_biweekly_week', { length: 4 }), // 'even' | 'odd' | null
+  schedulePaused: boolean('schedule_paused').notNull().default(true), // default paused
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow().$onUpdate(() => new Date()),
 });
@@ -64,6 +71,11 @@ export const newsSources = pgTable('news_sources', {
   url: text('url'),
   config: text('config'), // JSON-merkkijono tyyppikohtaiselle konfiguraatiolle (esim. Beehiiv publication ID)
   isActive: boolean('is_active').notNull().default(true),
+  // Health tracking columns
+  consecutiveFailures: integer('consecutive_failures').notNull().default(0),
+  lastSuccessAt: timestamp('last_success_at'),
+  lastItemCount: integer('last_item_count'),
+  lastItemsAt: timestamp('last_items_at'), // updated only when items > 0, used for stale detection
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow().$onUpdate(() => new Date()),
 });
@@ -89,6 +101,7 @@ export const issues = pgTable('issues', {
     .references(() => clients.id),
   weekNumber: integer('week_number').notNull(),
   year: integer('year').notNull(),
+  periodNumber: integer('period_number'), // nullable for backward compat; new issues always set it
   status: issueStatusEnum('status').notNull().default('draft'),
   generatedContent: text('generated_content'),
   validationReport: text('validation_report'),
@@ -111,6 +124,28 @@ export const deliveryStats = pgTable('delivery_stats', {
   sentAt: timestamp('sent_at'),
   openedAt: timestamp('opened_at'),
   bouncedAt: timestamp('bounced_at'),
+});
+
+// Ajastettujen ajojen loki
+export const schedulerRuns = pgTable('scheduler_runs', {
+  id: serial('id').primaryKey(),
+  startedAt: timestamp('started_at').notNull().defaultNow(),
+  completedAt: timestamp('completed_at'),
+  clientsProcessed: integer('clients_processed').notNull().default(0),
+  successes: integer('successes').notNull().default(0),
+  failures: integer('failures').notNull().default(0),
+  skips: integer('skips').notNull().default(0),
+  notes: text('notes'), // JSON string with per-client results
+});
+
+// Uutislahteiden terveysloki
+export const sourceHealthLogs = pgTable('source_health_logs', {
+  id: serial('id').primaryKey(),
+  sourceId: integer('source_id').notNull().references(() => newsSources.id),
+  success: boolean('success').notNull(),
+  itemCount: integer('item_count').notNull().default(0),
+  errorMessage: text('error_message'),
+  fetchedAt: timestamp('fetched_at').notNull().defaultNow(),
 });
 
 // Kehotepohjat

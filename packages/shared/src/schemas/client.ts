@@ -15,6 +15,11 @@ export const updateClientSchema = z.object({
   contactName: z.string().optional(),
   plan: z.enum(['ai_pulse', 'ai_teams']).optional(),
   isActive: z.boolean().optional(),
+  // Schedule fields
+  scheduleFrequency: z.enum(['weekly', 'biweekly', 'monthly']).optional(),
+  scheduleDay: z.number().int().min(0).max(6).optional(),
+  scheduleBiweeklyWeek: z.enum(['even', 'odd']).nullable().optional(),
+  schedulePaused: z.boolean().optional(),
 });
 
 export const clientResponseSchema = z.object({
@@ -25,6 +30,12 @@ export const clientResponseSchema = z.object({
   contactName: z.string().nullable(),
   plan: z.enum(['ai_pulse', 'ai_teams']),
   isActive: z.boolean(),
+  // Schedule fields
+  scheduleFrequency: z.enum(['weekly', 'biweekly', 'monthly']),
+  scheduleDay: z.number(),
+  scheduleBiweeklyWeek: z.string().nullable(),
+  schedulePaused: z.boolean(),
+  nextScheduledDate: z.string().nullable(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 });

@@ -86,6 +86,32 @@ const clientRoutes: FastifyPluginAsyncZod = async (fastify) => {
       return reply.code(200).send(client);
     },
   });
+  // PUT /clients/:id/schedule - paivita asiakkaan ajoitusasetukset
+  f.route({
+    method: 'PUT',
+    url: '/clients/:id/schedule',
+    onRequest: [fastify.authenticate],
+    schema: {
+      params: z.object({ id: z.coerce.number() }),
+      body: z.object({
+        scheduleFrequency: z.enum(['weekly', 'biweekly', 'monthly']).optional(),
+        scheduleDay: z.number().int().min(0).max(6).optional(),
+        scheduleBiweeklyWeek: z.enum(['even', 'odd']).nullable().optional(),
+        schedulePaused: z.boolean().optional(),
+      }),
+      response: {
+        200: clientResponseSchema,
+        404: z.object({ error: z.string() }),
+      },
+    },
+    handler: async (request, reply) => {
+      const client = await clientService.updateClientSchedule(request.params.id, request.body);
+      if (!client) {
+        return reply.code(404).send({ error: 'Asiakasta ei löydy' });
+      }
+      return reply.code(200).send(client);
+    },
+  });
 };
 
 export default clientRoutes;

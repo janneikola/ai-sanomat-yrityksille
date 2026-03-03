@@ -4,7 +4,7 @@ import { db } from '../db/index.js';
 import { issues, clients, members, deliveryStats } from '../db/schema.js';
 import { DigestEmail } from '../emails/DigestEmail.js';
 import type { DigestEmailDigest } from '../emails/DigestEmail.js';
-import { sendBatchEmails } from '../integrations/resendClient.js';
+import { sendBatchEmails, sendSingleEmail } from '../integrations/resendClient.js';
 
 /**
  * Renderoi React Email -pohjan HTML- ja tekstiversioiksi.
@@ -132,4 +132,38 @@ export async function sendDigestToClient(
     .where(eq(issues.id, issue.id));
 
   return { sent: activeMembers.length, issueId: issue.id };
+}
+
+/**
+ * Lahettaa admin-ilmoitussahkopostin.
+ * Vastaanottaja: ADMIN_EMAIL ymparistomuuttuja tai oletusarvo.
+ * Lahettaja: sama kuin uutiskirjeissa.
+ */
+export async function sendAdminNotification(
+  subject: string,
+  htmlBody: string
+): Promise<void> {
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@aisanomat.fi';
+  const from = 'AI-Sanomat <noreply@mail.aisanomat.fi>';
+
+  // Yksinkertainen HTML-pohja
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+  ${htmlBody}
+  <hr style="margin-top: 30px; border: none; border-top: 1px solid #eee;">
+  <p style="color: #999; font-size: 12px;">AI-Sanomat automaattinen ilmoitus</p>
+</body>
+</html>`;
+
+  // Pelkka teksti -- riisutaan HTML-tagit
+  const text = htmlBody.replace(/<[^>]*>/g, '').trim();
+
+  try {
+    await sendSingleEmail({ from, to: adminEmail, subject, html, text });
+  } catch (error) {
+    console.error('Failed to send admin notification:', error);
+    // Don't throw -- admin notification failure should not block the calling process
+  }
 }
