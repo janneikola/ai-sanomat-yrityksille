@@ -12,7 +12,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Users, Newspaper, FileText, Clock } from 'lucide-react';
+import { Users, Newspaper, FileText, Clock, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 
 interface DashboardStats {
@@ -43,10 +43,38 @@ interface SchedulerRun {
   notes: string | null;
 }
 
+interface SatisfactionByIssue {
+  issueId: number;
+  clientId: number;
+  clientName: string;
+  issueDate: string;
+  totalVotes: number;
+  thumbsUp: number;
+  thumbsDown: number;
+  satisfaction: number | null;
+  flagged: boolean;
+}
+
+interface SatisfactionByClient {
+  clientId: number;
+  clientName: string;
+  totalVotes: number;
+  thumbsUp: number;
+  thumbsDown: number;
+  satisfaction: number | null;
+}
+
+interface SatisfactionData {
+  byIssue: SatisfactionByIssue[];
+  byClient: SatisfactionByClient[];
+}
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>({ clients: 0, sources: 0, templates: 0 });
   const [deliveryStats, setDeliveryStats] = useState<DeliveryStatsItem[]>([]);
   const [schedulerRuns, setSchedulerRuns] = useState<SchedulerRun[]>([]);
+  const [satisfaction, setSatisfaction] = useState<SatisfactionData | null>(null);
+  const [satisfactionLoading, setSatisfactionLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [deliveryLoading, setDeliveryLoading] = useState(true);
   const [runsLoading, setRunsLoading] = useState(true);
@@ -100,9 +128,21 @@ export default function DashboardPage() {
       }
     }
 
+    async function loadSatisfaction() {
+      try {
+        const data = await apiFetch<SatisfactionData>('/api/admin/dashboard/satisfaction');
+        setSatisfaction(data);
+      } catch {
+        // Satisfaction will remain null if loading fails
+      } finally {
+        setSatisfactionLoading(false);
+      }
+    }
+
     loadStats();
     loadDeliveryStats();
     loadSchedulerRuns();
+    loadSatisfaction();
   }, []);
 
   const cards = [
@@ -249,6 +289,99 @@ export default function DashboardPage() {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Reader feedback / satisfaction */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ThumbsUp className="h-5 w-5" />
+            Lukijapalaute
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {satisfactionLoading ? (
+            <p className="text-muted-foreground">Ladataan...</p>
+          ) : !satisfaction || (satisfaction.byIssue.length === 0 && satisfaction.byClient.length === 0) ? (
+            <p className="text-sm text-muted-foreground">
+              Ei viela palautetta. Palautetta kertyy kun lukijat aanetavat uutiskirjeissa.
+            </p>
+          ) : (
+            <div className="space-y-6">
+              {/* Per-digest feedback */}
+              {satisfaction.byIssue.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Katsauskohtainen palaute</h3>
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Asiakas</TableHead>
+                          <TableHead>Paivamaara</TableHead>
+                          <TableHead>Aanet</TableHead>
+                          <TableHead><ThumbsUp className="h-3 w-3 inline" /></TableHead>
+                          <TableHead><ThumbsDown className="h-3 w-3 inline" /></TableHead>
+                          <TableHead>Tyytyväisyys</TableHead>
+                          <TableHead>Tila</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {satisfaction.byIssue.slice(0, 20).map((item) => (
+                          <TableRow key={item.issueId}>
+                            <TableCell className="font-medium">{item.clientName}</TableCell>
+                            <TableCell>{formatDate(item.issueDate)}</TableCell>
+                            <TableCell>{item.totalVotes}</TableCell>
+                            <TableCell>{item.thumbsUp}</TableCell>
+                            <TableCell>{item.thumbsDown}</TableCell>
+                            <TableCell>
+                              {item.satisfaction !== null ? `${item.satisfaction}%` : '-'}
+                            </TableCell>
+                            <TableCell>
+                              {item.flagged && (
+                                <Badge variant="destructive">Tarkista</Badge>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
+              {/* Per-client summary */}
+              {satisfaction.byClient.filter((c) => c.totalVotes > 0).length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Asiakaskohtainen yhteenveto</h3>
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Asiakas</TableHead>
+                          <TableHead>Aanet</TableHead>
+                          <TableHead>Tyytyväisyys</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {satisfaction.byClient
+                          .filter((c) => c.totalVotes > 0)
+                          .map((item) => (
+                            <TableRow key={item.clientId}>
+                              <TableCell className="font-medium">{item.clientName}</TableCell>
+                              <TableCell>{item.totalVotes}</TableCell>
+                              <TableCell>
+                                {item.satisfaction !== null ? `${item.satisfaction}%` : '-'}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </CardContent>

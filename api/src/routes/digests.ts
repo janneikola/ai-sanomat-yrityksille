@@ -216,7 +216,7 @@ const digestRoutes: FastifyPluginAsyncZod = async (fastify) => {
         return reply.code(400).send({ error: `Cannot send issue with status: ${issue.status}` });
       }
 
-      const result = await sendDigestToClient(issue.id);
+      const result = await sendDigestToClient(issue.id, fastify);
       return reply.code(200).send(result);
     },
   });

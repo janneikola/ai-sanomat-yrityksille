@@ -6,6 +6,7 @@ import { DigestEmail } from '../emails/DigestEmail.js';
 import type { DigestEmailDigest } from '../emails/DigestEmail.js';
 import { sendBatchEmails, sendSingleEmail } from '../integrations/resendClient.js';
 import { getFeaturedPosts } from './featuredPostsService.js';
+import { generateFeedbackUrls } from './feedbackService.js';
 
 /**
  * Renderoi React Email -pohjan HTML- ja tekstiversioiksi.
@@ -59,9 +60,13 @@ export async function renderDigestEmail(
 /**
  * Orkestroi katsauksen lahettamisen kaikille asiakkaan aktiivisille jasenille.
  * Luo deliveryStats-tietueet ja paivittaa issuen tilaksi 'sent'.
+ *
+ * @param issueId - Lahetetavan katsauksen ID
+ * @param app - Fastify-instanssi JWT-allekirjoitusta varten (valinnainen taaksepain yhteensopivuuden vuoksi)
  */
 export async function sendDigestToClient(
-  issueId: number
+  issueId: number,
+  app?: import('fastify').FastifyInstance
 ): Promise<{ sent: number; issueId: number }> {
   // 1. Hae issue (pitaa olla 'approved' tilassa)
   const [issue] = await db
@@ -102,29 +107,40 @@ export async function sendDigestToClient(
     throw new Error(`No active members for client ${issue.clientId}`);
   }
 
-  // 4. Renderoi sahkoposti
-  const { html, text } = await renderDigestEmail(issue, {
-    name: client.name,
-    industry: client.industry,
-  });
+  // 4. Rakenna sahkopostipaketit per jasen (jokaisella omat palaute-URL:t)
+  const emailPayloads = await Promise.all(
+    activeMembers.map(async (member) => {
+      // Generoi per-jasen palaute-URL:t (jos app-instanssi saatavilla)
+      let feedbackUrls: { up: string; down: string } | undefined;
+      if (app) {
+        feedbackUrls = generateFeedbackUrls(app, member.id, issue.id);
+      }
 
-  // 5. Rakenna sahkopostipaketit jokaiselle jasenelle
-  const emailPayloads = activeMembers.map((member) => ({
-    from: 'AI-Sanomat <noreply@mail.aisanomat.fi>',
-    to: member.email,
-    subject: `AI-Sanomat viikkokatsaus: ${client.name}`,
-    html,
-    text,
-    headers: {
-      'List-Unsubscribe': `<https://app.aisanomat.fi/api/unsubscribe?member=${member.id}>`,
-      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-    },
-  }));
+      // Renderoi per-jasen sahkoposti jokaiselle omat palaute-URL:t
+      const { html, text } = await renderDigestEmail(
+        issue,
+        { name: client.name, industry: client.industry },
+        feedbackUrls
+      );
 
-  // 6. Laheta erana
+      return {
+        from: 'AI-Sanomat <noreply@mail.aisanomat.fi>',
+        to: member.email,
+        subject: `AI-Sanomat viikkokatsaus: ${client.name}`,
+        html,
+        text,
+        headers: {
+          'List-Unsubscribe': `<https://app.aisanomat.fi/api/unsubscribe?member=${member.id}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        },
+      };
+    })
+  );
+
+  // 5. Laheta erana
   const results = await sendBatchEmails(emailPayloads);
 
-  // 7. Luo deliveryStats-tietueet
+  // 6. Luo deliveryStats-tietueet
   const now = new Date();
   await db.insert(deliveryStats).values(
     activeMembers.map((member, i) => ({
@@ -136,7 +152,7 @@ export async function sendDigestToClient(
     }))
   );
 
-  // 8. Paivita issue tilaksi 'sent'
+  // 7. Paivita issue tilaksi 'sent'
   await db
     .update(issues)
     .set({ status: 'sent' })

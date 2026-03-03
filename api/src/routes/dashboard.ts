@@ -5,6 +5,7 @@ import { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { db } from '../db/index.js';
 import { clients, members, deliveryStats, issues, schedulerRuns } from '../db/schema.js';
 import { getNextScheduledDate } from '../services/scheduleService.js';
+import { getSatisfactionByIssue, getSatisfactionByClient } from '../services/feedbackService.js';
 
 const dashboardRoutes: FastifyPluginAsyncZod = async (fastify) => {
   const f = fastify.withTypeProvider<ZodTypeProvider>();
@@ -105,6 +106,45 @@ const dashboardRoutes: FastifyPluginAsyncZod = async (fastify) => {
       return reply.code(200).send(stats);
     },
   });
+  // GET /dashboard/satisfaction -- katsaus- ja asiakaskohtaiset tyytyväisyyspisteet
+  f.route({
+    method: 'GET',
+    url: '/dashboard/satisfaction',
+    onRequest: [fastify.authenticate],
+    schema: {
+      response: {
+        200: z.object({
+          byIssue: z.array(z.object({
+            issueId: z.number(),
+            clientId: z.number(),
+            clientName: z.string(),
+            issueDate: z.string(),
+            totalVotes: z.number(),
+            thumbsUp: z.number(),
+            thumbsDown: z.number(),
+            satisfaction: z.number().nullable(),
+            flagged: z.boolean(),
+          })),
+          byClient: z.array(z.object({
+            clientId: z.number(),
+            clientName: z.string(),
+            totalVotes: z.number(),
+            thumbsUp: z.number(),
+            thumbsDown: z.number(),
+            satisfaction: z.number().nullable(),
+          })),
+        }),
+      },
+    },
+    handler: async (_request, reply) => {
+      const [byIssue, byClient] = await Promise.all([
+        getSatisfactionByIssue(),
+        getSatisfactionByClient(),
+      ]);
+      return reply.code(200).send({ byIssue, byClient });
+    },
+  });
+
   // GET /dashboard/scheduler-runs -- viimeiset 30 ajastusajoa
   f.route({
     method: 'GET',
