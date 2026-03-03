@@ -11,6 +11,8 @@ import {
 } from './sourceHealthService.js';
 import { searchForClient, isDueWithin24Hours } from './webSearchService.js';
 import { processNewEmbeddings } from './deduplicationService.js';
+import { collectXAccounts } from './xCollectorService.js';
+import { searchXForClient } from './xSearchService.js';
 
 export async function collectAllNews() {
   const sources = await db
@@ -82,8 +84,20 @@ export async function collectAllNews() {
     }
   }
 
-  // Verkkohaku: hae AI-uutisia verkosta asiakkaille joiden katsaus eraantyy 24h sisalla
-  let webSearchCollected = 0;
+  // X/Twitter: hae influensseri-tilit
+  let xCollected = 0;
+  try {
+    const xResult = await collectXAccounts();
+    xCollected = xResult.collected;
+    if (xCollected > 0) {
+      console.log(`X accounts: ${xResult.collected} new items, ${xResult.errors} errors`);
+    }
+  } catch (error) {
+    console.error('X account collection failed:', error);
+  }
+
+  // Hae asiakkaat joiden katsaus eraantyy 24h sisalla (jaetaan web- ja X-haun kesken)
+  let dueClients: Array<{ id: number; name: string }> = [];
   try {
     const webSearchClients = await db
       .select()
@@ -96,24 +110,40 @@ export async function collectAllNews() {
         )
       );
 
-    const dueClients = webSearchClients.filter((c) =>
+    dueClients = webSearchClients.filter((c) =>
       isDueWithin24Hours(c.scheduleFrequency, c.scheduleDay, c.scheduleBiweeklyWeek)
     );
-
-    for (const client of dueClients) {
-      try {
-        const result = await searchForClient(client.id);
-        webSearchCollected += result.collected;
-        console.log(
-          `Web search for ${client.name}: ${result.collected} new items (${result.queries} queries, ${result.cached} cached)`
-        );
-      } catch (error) {
-        console.error(`Web search failed for client ${client.name}:`, error);
-        errors++;
-      }
-    }
   } catch (error) {
-    console.error('Web search client query failed:', error);
+    console.error('Due client query failed:', error);
+  }
+
+  // Verkkohaku: hae AI-uutisia verkosta asiakkaille joiden katsaus eraantyy 24h sisalla
+  let webSearchCollected = 0;
+  for (const client of dueClients) {
+    try {
+      const result = await searchForClient(client.id);
+      webSearchCollected += result.collected;
+      console.log(
+        `Web search for ${client.name}: ${result.collected} new items (${result.queries} queries, ${result.cached} cached)`
+      );
+    } catch (error) {
+      console.error(`Web search failed for client ${client.name}:`, error);
+      errors++;
+    }
+  }
+
+  // X/Twitter-haku: hae hakusanat asiakkaille joiden katsaus eraantyy 24h sisalla
+  let xSearchCollected = 0;
+  for (const client of dueClients) {
+    try {
+      const xResult = await searchXForClient(client.id);
+      xSearchCollected += xResult.collected;
+      if (xResult.collected > 0) {
+        console.log(`X search for ${client.name}: ${xResult.collected} new items (${xResult.queries} queries)`);
+      }
+    } catch (error) {
+      console.error(`X search failed for client ${client.name}:`, error);
+    }
   }
 
   // Semanttinen deduplikointi: generoi upotukset uusille uutisille ja etsi duplikaatit
@@ -128,5 +158,5 @@ export async function collectAllNews() {
     console.error('Deduplication processing failed:', error);
   }
 
-  return { collected: collected + webSearchCollected, errors, sources: sources.length };
+  return { collected: collected + webSearchCollected + xCollected + xSearchCollected, errors, sources: sources.length };
 }

@@ -17,6 +17,7 @@ import portalRoutes from './routes/portal.js';
 import feedbackRoutes from './routes/feedback.js';
 import webSearchRoutes from './routes/webSearch.js';
 import deduplicationRoutes from './routes/deduplication.js';
+import xMonitoringRoutes from './routes/xMonitoring.js';
 
 export async function buildApp() {
   const app = Fastify({ logger: true });
@@ -64,6 +65,7 @@ export async function buildApp() {
   await app.register(dashboardRoutes, { prefix: '/api/admin' });
   await app.register(webSearchRoutes, { prefix: '/api/admin' });
   await app.register(deduplicationRoutes, { prefix: '/api/admin' });
+  await app.register(xMonitoringRoutes, { prefix: '/api/admin' });
 
   // Portaalireitit (magic link -kirjautuminen ja tiiminhallinta)
   await app.register(portalRoutes, { prefix: '/api/portal' });
