@@ -70,7 +70,7 @@ Plans:
 - [x] **Phase 5: Foundation Automation** - Database-driven scheduling, per-client frequency, source health monitoring
 - [x] **Phase 6: Premium Email Experience** - Newsletter template redesign, co-branding, dark mode, aisanomat.fi section, email feedback loop
 - [x] **Phase 7: Web Search Integration** - Tavily industry-specific search with per-client prompts, search caching
-- [ ] **Phase 8: Semantic Deduplication** - Embedding-based near-duplicate detection across all sources
+- [x] **Phase 8: Semantic Deduplication** - Embedding-based near-duplicate detection across all sources
 - [ ] **Phase 9: X/Twitter Monitoring** - Influencer timelines, keyword search, budget tracking
 
 ## Phase Details
@@ -130,7 +130,7 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 08-01: pgvector extension, embeddingClient (OpenAI text-embedding-3-small), embedding generation pipeline, cosine similarity dedup service with two-tier thresholds, admin dedup review UI
+- [x] 08-01: pgvector extension, embeddingClient (OpenAI text-embedding-3-small), embedding generation pipeline, cosine similarity dedup service with two-tier thresholds, admin dedup review UI
 
 ### Phase 9: X/Twitter Monitoring
 **Goal**: System collects breaking AI news from X influencer accounts and keyword searches with budget protection
@@ -161,5 +161,5 @@ Phases execute in numeric order: 5 -> 6 -> 7 -> 8 -> 9
 | 5. Foundation Automation | v1.1 | 2/2 | Complete | 2026-03-03 |
 | 6. Premium Email Experience | v1.1 | 2/2 | Complete | 2026-03-03 |
 | 7. Web Search Integration | v1.1 | 1/1 | Complete | 2026-03-03 |
-| 8. Semantic Deduplication | v1.1 | 0/1 | Not started | - |
+| 8. Semantic Deduplication | v1.1 | 1/1 | Complete | 2026-03-03 |
 | 9. X/Twitter Monitoring | v1.1 | 0/1 | Not started | - |

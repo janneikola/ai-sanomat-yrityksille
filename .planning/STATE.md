@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Smart Sourcing & Polish
-status: unknown
-last_updated: "2026-03-03T13:17:34.517Z"
+status: in-progress
+last_updated: "2026-03-03T13:44:04Z"
 progress:
-  total_phases: 7
-  completed_phases: 7
-  total_plans: 13
-  completed_plans: 13
+  total_phases: 9
+  completed_phases: 8
+  total_plans: 15
+  completed_plans: 14
 ---
 
 # Project State
@@ -18,23 +18,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-03)
 
 **Core value:** The AI-generated weekly digest must be genuinely useful and industry-relevant -- content quality is the entire selling point.
-**Current focus:** v1.1 Smart Sourcing & Polish -- Phase 7: Web Search Integration
+**Current focus:** v1.1 Smart Sourcing & Polish -- Phase 8: Semantic Deduplication
 
 ## Current Position
 
-Phase: 7 of 9 (Web Search Integration) -- COMPLETE
+Phase: 8 of 9 (Semantic Deduplication) -- COMPLETE
 Plan: 1 of 1 in current phase (all done)
-Status: Phase 7 Complete
-Last activity: 2026-03-03 -- Plan 07-01 complete (Tavily web search with per-client queries, caching, admin UI)
+Status: Phase 8 Complete
+Last activity: 2026-03-03 -- Plan 08-01 complete (OpenAI embeddings, pgvector cosine similarity, admin dedup review)
 
-Progress: [#############.....] 87% (13/15 total plans across all milestones)
+Progress: [##############....] 93% (14/15 total plans across all milestones)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 13
+- Total plans completed: 14
 - Average duration: ~9 min
-- Total execution time: ~1.9 hours
+- Total execution time: ~2 hours
 
 **By Phase:**
 
@@ -47,9 +47,10 @@ Progress: [#############.....] 87% (13/15 total plans across all milestones)
 | 05-foundation-automation | 2 | 13min | ~7min |
 | 06-premium-email-experience | 2 | 9min | ~5min |
 | 07-web-search-integration | 1 | 5min | 5min |
+| 08-semantic-deduplication | 1 | 5min | 5min |
 
 **Recent Trend:**
-- Last 5 plans: 5min, 4min, 5min, 5min
+- Last 5 plans: 4min, 5min, 5min, 5min
 - Trend: consistent fast execution
 
 *Updated after each plan completion*
@@ -84,6 +85,10 @@ Recent decisions affecting current work:
 - Research: OpenAI text-embedding-3-small for embeddings (Anthropic has no embeddings model)
 - Research: pgvector in existing PostgreSQL (dataset too small for dedicated vector DB)
 - Research: X API pay-per-use tier (not $200/month Basic -- budget cap in code from day one)
+- 08-01: No FK constraint on canonicalItemId (self-referencing cascade complexity avoided)
+- 08-01: Two-tier dedup thresholds (0.95 exact, 0.85 near-duplicate) for Finnish content tolerance
+- 08-01: Embedding pipeline as post-collection step in try/catch (never blocks collection)
+- 08-01: Client-side cosine similarity in getDuplicates for display (avoids extra pgvector query)
 
 ### Pending Todos
 
@@ -92,17 +97,19 @@ Recent decisions affecting current work:
 - Configure mail.aisanomat.fi domain in Resend Dashboard with SPF/DKIM/DMARC DNS records
 - Set ADMIN_EMAIL in api/.env for admin notifications (defaults to admin@aisanomat.fi)
 - Set TAVILY_API_KEY in api/.env for web search (https://app.tavily.com, free tier = 1,000 credits/month)
-- New for v1.1: X_BEARER_TOKEN, OPENAI_API_KEY env vars needed in later phases
+- Set OPENAI_API_KEY in api/.env for semantic deduplication (https://platform.openai.com/api-keys, $0.02/1M tokens)
+- Run `cd api && npx tsx src/db/enablePgvector.ts && npx drizzle-kit push` to enable pgvector and apply schema
+- New for v1.1: X_BEARER_TOKEN env var needed in Phase 9
 
 ### Blockers/Concerns
 
 - Resend free tier (100 emails/day) may require Pro plan once clients onboard
 - SPF/DKIM/DMARC DNS records for mail.aisanomat.fi need 2-4 weeks of monitoring before client sends
-- Finnish language embedding quality for text-embedding-3-small is unverified (Phase 8 concern)
+- Finnish language embedding quality for text-embedding-3-small is unverified (monitor via admin dedup page, adjust 0.85 threshold if needed)
 - X API pay-per-use pricing details may have evolved since Feb 2026 launch (Phase 9 concern)
 
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed 07-01-PLAN.md (Phase 7 complete)
-Resume file: .planning/phases/08-semantic-deduplication/08-01-PLAN.md
+Stopped at: Completed 08-01-PLAN.md (Phase 8 complete)
+Resume file: .planning/phases/09-x-monitoring/09-01-PLAN.md

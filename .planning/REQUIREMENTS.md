@@ -84,10 +84,10 @@ Requirements for Smart Sourcing & Polish milestone. Each maps to roadmap phases 
 
 ### Semantic Deduplication
 
-- [ ] **DEDUP-01**: System generates embeddings for news items using OpenAI text-embedding-3-small
-- [ ] **DEDUP-02**: System detects semantically similar news items across sources using cosine similarity
-- [ ] **DEDUP-03**: Near-duplicate items are flagged (not silently deleted) with link to canonical item
-- [ ] **DEDUP-04**: Admin can view deduplication decisions and override false positives
+- [x] **DEDUP-01**: System generates embeddings for news items using OpenAI text-embedding-3-small
+- [x] **DEDUP-02**: System detects semantically similar news items across sources using cosine similarity
+- [x] **DEDUP-03**: Near-duplicate items are flagged (not silently deleted) with link to canonical item
+- [x] **DEDUP-04**: Admin can view deduplication decisions and override false positives
 
 ### Source Health
 
@@ -212,10 +212,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SRC-05 | Phase 6 | Complete |
 | SRC-06 | Phase 9 | Pending |
 | SRC-07 | Phase 9 | Pending |
-| DEDUP-01 | Phase 8 | Pending |
-| DEDUP-02 | Phase 8 | Pending |
-| DEDUP-03 | Phase 8 | Pending |
-| DEDUP-04 | Phase 8 | Pending |
+| DEDUP-01 | Phase 8 | Complete |
+| DEDUP-02 | Phase 8 | Complete |
+| DEDUP-03 | Phase 8 | Complete |
+| DEDUP-04 | Phase 8 | Complete |
 | HEALTH-01 | Phase 5 | Complete |
 | HEALTH-02 | Phase 5 | Complete |
 | HEALTH-03 | Phase 5 | Complete |
