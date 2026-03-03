@@ -1,527 +1,1147 @@
-# Architecture Patterns
+# Architecture Research: v1.1 Feature Integration
 
-**Domain:** Enterprise AI-curated newsletter platform
-**Researched:** 2026-03-02
-**Confidence:** HIGH
+**Domain:** Enterprise AI-curated newsletter platform -- extending existing Fastify/Next.js monorepo
+**Researched:** 2026-03-03
+**Confidence:** HIGH (existing codebase is well-understood; external API docs verified)
 
-## Recommended Architecture
+## Existing Architecture Baseline
 
-**Pattern: Separated API + Frontend with shared types (no Redis for MVP)**
-
-```
-                    +-----------------------+
-                    |    Next.js 16 App     |
-                    |   (Admin + Portal)    |
-                    |  Role-based routing   |
-                    +-----------+-----------+
-                                |
-                          HTTP/REST
-                                |
-                    +-----------+-----------+
-                    |    Fastify 5 API      |
-                    |  (Business logic +    |
-                    |   cron scheduling)    |
-                    +-----------+-----------+
-                         |     |     |
-              +----------+     |     +----------+
-              |                |                |
-     +--------+-----+  +------+------+  +------+------+
-     | PostgreSQL   |  | Claude API  |  | Gemini API  |
-     | (Railway)    |  | (Anthropic) |  | (Google)    |
-     +--------------+  +-------------+  +-------------+
-              |
-     +--------+-----+
-     | Resend API   |
-     | (Email)      |
-     +--------------+
-```
-
-**Why no Redis/BullMQ for MVP:** At 5-10 enterprise clients, the system processes fewer than 10 digests/week and fewer than 500 emails/month. node-cron handles scheduling, and async operations run as in-process background tasks with status tracking in PostgreSQL. Adding Redis doubles Railway infrastructure cost and operational complexity for zero tangible benefit at this scale. BullMQ is the natural upgrade path when client count exceeds 50.
-
-### Component Boundaries
-
-| Component | Responsibility | Communicates With |
-|-----------|---------------|-------------------|
-| **Next.js 16 Frontend** | Admin panel + company portal in one app, role-based routing via proxy (Next.js 16 renamed middleware to proxy) | Fastify API (HTTP) |
-| **Fastify 5 API** | All business logic, REST endpoints, webhook receivers, cron scheduling, background task execution | PostgreSQL, Claude API, Gemini API, Resend API |
-| **PostgreSQL** | All persistent state: companies, digests, news, templates, tracking events, job status | Fastify API (via Drizzle ORM + postgres.js) |
-| **Claude API** | Newsletter text generation (Finnish), fact validation | Fastify API (via @anthropic-ai/sdk) |
-| **Gemini API** | Newsletter image generation | Fastify API (via @google/genai) |
-| **Resend API** | Email delivery, bounce/open webhooks | Fastify API (via resend SDK) |
-
-### Data Flow
-
-**Newsletter Generation Pipeline (weekly):**
+Before describing changes, here is the current system as-built in v1.0:
 
 ```
-1. Cron trigger (node-cron, e.g., Monday 06:00 EET)
-   |
-2. Collect recent articles
-   |-- Fetch RSS feeds --> parse --> store new articles in DB
-   |-- Include manually added articles
-   |
-3. For each company with active subscription:
-   |
-   3a. Select relevant articles (by industry tags)
-   |
-   3b. Load prompt template + company context from DB
-   |
-   3c. Call Claude API --> generate newsletter content (Finnish)
-       (Store draft with status: "generating")
-   |
-   3d. [Phase 2] Call Claude API --> validate facts against source URLs
-   |
-   3e. [Phase 3] Call Gemini API --> generate hero + section images
-   |
-   3f. Store generated digest in DB (status: "draft")
-   |
-4. Admin reviews drafts in admin panel
-   |-- Preview rendered email
-   |-- Approve or request regeneration
-   |
-5. On approval:
-   |-- Render React Email template with digest content
-   |-- Send via Resend to all active team members (rate-limited 2/sec)
-   |-- Insert tracking pixel reference with digest+member ID
-   |-- Update digest status to "sent"
-   |
-6. Post-send:
-   |-- Resend webhook --> log bounces, update member status
-   |-- Open tracking events --> logged via Resend webhook
+┌─────────────────────────────────────────────────────────────────────┐
+│                        Web (Next.js 15)                             │
+│  ┌──────────────┐  ┌──────────────┐                                │
+│  │ Admin Panel   │  │ Portal       │                                │
+│  │ /admin/*      │  │ /portal/*    │                                │
+│  └──────┬───────┘  └──────┬───────┘                                │
+│         └─────────┬───────┘                                        │
+├───────────────────┼────────────────────────────────────────────────┤
+│                   │  API (Fastify)                                  │
+│  ┌────────────────┴────────────────┐                               │
+│  │         Route Layer             │                               │
+│  │  /api/admin/*  /api/portal/*    │                               │
+│  │  /api/auth/*   /api/webhooks/*  │                               │
+│  └────────────────┬────────────────┘                               │
+│  ┌────────────────┴────────────────┐                               │
+│  │         Service Layer           │                               │
+│  │  newsCollector  newsletter      │                               │
+│  │  emailService   imageService    │                               │
+│  │  sources  clients  templates    │                               │
+│  └────────────────┬────────────────┘                               │
+│  ┌────────────────┴────────────────┐                               │
+│  │      Integration Layer          │                               │
+│  │  rssCollector  beehiivClient    │                               │
+│  │  claudeClient  geminiClient     │                               │
+│  │  resendClient                   │                               │
+│  └────────────────┬────────────────┘                               │
+│  ┌────────────────┴────────────────┐                               │
+│  │      Scheduler (node-cron)      │                               │
+│  │  daily collection 06:00 EET     │                               │
+│  └─────────────────────────────────┘                               │
+├─────────────────────────────────────────────────────────────────────┤
+│                    PostgreSQL (Railway)                              │
+│  clients  members  newsSources  newsItems                          │
+│  issues  deliveryStats  promptTemplates                            │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-**Background Task Pattern (without BullMQ):**
+### Current Data Flow: News Collection to Delivery
+
+```
+[node-cron 06:00]
+    |
+    v
+[newsCollectorService.collectAllNews()]
+    |-- iterates active newsSources
+    |-- for each source: fetchRssFeed() or fetchBeehiivPosts()
+    |-- inserts into newsItems (URL-based dedup via UNIQUE constraint)
+    v
+[Admin triggers /digests/generate]
+    |
+    v
+[newsletterService.generateClientDigest(clientId)]
+    |-- fetches recent 30 newsItems (no client filtering)
+    |-- fills prompt templates with client.industry + client.name
+    |-- Claude: generate digest -> validate -> image prompts
+    |-- Gemini: generate images
+    |-- saves to issues table (status: generating -> validating -> ready)
+    v
+[Admin reviews, approves, sends]
+    |
+    v
+[emailService.sendDigestToClient(issueId)]
+    |-- renders React Email template
+    |-- sends via Resend batch API
+    |-- creates deliveryStats records
+    v
+[Resend webhooks -> deliveryStats updates]
+```
+
+### Key Observations from Existing Code
+
+1. **Source types are enum-constrained**: `sourceTypeEnum` = `['rss', 'beehiiv', 'manual']` -- must be extended
+2. **Deduplication is URL-only**: `newsItems.url` has a UNIQUE constraint, `onConflictDoNothing()`
+3. **News collection is source-agnostic but hardcoded**: `collectAllNews()` switches on `source.type`
+4. **Digest generation ignores source type**: Takes latest 30 newsItems regardless of origin
+5. **No client-specific news**: All clients see the same pool of newsItems
+6. **Scheduler is single-purpose**: One cron job for daily collection, no per-client scheduling
+7. **Email template is functional but basic**: Inline CSS styles, no brand assets, no feedback mechanism
+8. **No source health tracking**: Failed collections log to console and increment an error counter, nothing persisted
+
+---
+
+## v1.1 Architecture: New Components & Modified Components
+
+### System Overview After v1.1
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        Web (Next.js 15)                             │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐         │
+│  │ Admin Panel   │  │ Portal       │  │ Feedback          │         │
+│  │ /admin/*      │  │ /portal/*    │  │ /feedback/:token  │  [NEW]  │
+│  │ + source      │  │              │  │ (public, no auth) │         │
+│  │   health UI   │  │              │  └──────────────────┘         │
+│  │ + schedule UI │  │              │                                │
+│  └──────┬───────┘  └──────┬───────┘                                │
+│         └─────────┬───────┘                                        │
+├───────────────────┼────────────────────────────────────────────────┤
+│                   │  API (Fastify)                                  │
+│  ┌────────────────┴────────────────────────────────────────┐       │
+│  │                    Route Layer                           │       │
+│  │  /api/admin/*  /api/portal/*                            │       │
+│  │  /api/auth/*   /api/webhooks/*                          │       │
+│  │  /api/feedback/:token/vote          [NEW]               │       │
+│  │  /api/admin/schedules/*             [NEW]               │       │
+│  │  /api/admin/source-health/*         [NEW]               │       │
+│  └────────────────┬────────────────────────────────────────┘       │
+│  ┌────────────────┴────────────────────────────────────────┐       │
+│  │                  Service Layer                           │       │
+│  │  newsCollector [MODIFIED]  newsletter [MODIFIED]         │       │
+│  │  emailService  [MODIFIED]  imageService                  │       │
+│  │  sources  clients  templates                             │       │
+│  │  deduplicationService      [NEW]                         │       │
+│  │  sourceHealthService       [NEW]                         │       │
+│  │  feedbackService           [NEW]                         │       │
+│  │  scheduleService           [NEW]                         │       │
+│  └────────────────┬────────────────────────────────────────┘       │
+│  ┌────────────────┴────────────────────────────────────────┐       │
+│  │                Integration Layer                         │       │
+│  │  rssCollector      beehiivClient                         │       │
+│  │  claudeClient      geminiClient                          │       │
+│  │  resendClient                                            │       │
+│  │  xClient           [NEW]                                 │       │
+│  │  webSearchClient   [NEW]  (Tavily)                       │       │
+│  │  embeddingClient   [NEW]  (OpenAI text-embedding-3-small)│       │
+│  └────────────────┬────────────────────────────────────────┘       │
+│  ┌────────────────┴────────────────────────────────────────┐       │
+│  │              Scheduler (node-cron) [MODIFIED]            │       │
+│  │  daily collection 06:00 EET                              │       │
+│  │  per-client digest generation (configurable schedule)    │       │
+│  │  source health check (daily)                             │       │
+│  └─────────────────────────────────────────────────────────┘       │
+├─────────────────────────────────────────────────────────────────────┤
+│                 PostgreSQL (Railway) + pgvector                     │
+│  [existing]  clients  members  newsSources  newsItems              │
+│             issues  deliveryStats  promptTemplates                  │
+│  [modified] newsSources (+ healthMetrics cols)                     │
+│             newsItems (+ embedding col, + sourceMetadata)           │
+│             clients (+ schedule cols, + searchPrompt)               │
+│             issues (+ feedbackToken col)                            │
+│  [new]      sourceHealthLogs  feedbackVotes                        │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Component Responsibilities
+
+### New Components
+
+| Component | Location | Responsibility |
+|-----------|----------|----------------|
+| `xClient` | `api/src/integrations/xClient.ts` | Fetch tweets from X API v2 (user timeline + search recent) |
+| `webSearchClient` | `api/src/integrations/webSearchClient.ts` | Search web via Tavily API for AI news |
+| `embeddingClient` | `api/src/integrations/embeddingClient.ts` | Generate text embeddings via OpenAI for dedup |
+| `deduplicationService` | `api/src/services/deduplicationService.ts` | Semantic dedup using pgvector cosine similarity |
+| `sourceHealthService` | `api/src/services/sourceHealthService.ts` | Track source reliability, staleness, quality scoring |
+| `feedbackService` | `api/src/services/feedbackService.ts` | Handle thumbs up/down from email recipients |
+| `scheduleService` | `api/src/services/scheduleService.ts` | Manage per-client digest generation schedules |
+| Feedback routes | `api/src/routes/feedback.ts` | Public endpoint for email vote links |
+
+### Modified Components
+
+| Component | What Changes |
+|-----------|-------------|
+| `newsCollectorService` | Add X and web search collection alongside RSS/Beehiiv; call dedup after each batch insert |
+| `newsletterService` | Filter newsItems by client relevance (industry search prompt); include aisanomat.fi featured section |
+| `emailService` | Inject feedback links per recipient; use new premium template |
+| `DigestEmail.tsx` | Redesign with co-branding, AI-Sanomat brand frame, feedback buttons |
+| `scheduler.ts` | Add per-client digest generation crons; add source health check cron |
+| `db/schema.ts` | New tables + column additions + pgvector extension |
+| `sourceTypeEnum` | Extend to include `'x_account'`, `'x_search'`, `'web_search'` |
+| Shared schemas | New Zod schemas for schedule, feedback, source health |
+
+---
+
+## Database Schema Changes
+
+### Extensions Required
+
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;  -- pgvector for semantic dedup
+```
+
+pgvector is available on Railway PostgreSQL as a one-click deploy template. Confidence: HIGH -- verified via Railway deployment templates.
+
+### Modified Tables
+
+#### `newsSources` -- add health tracking columns
 
 ```typescript
-// Simple in-process task runner for MVP
-// Status tracked in PostgreSQL, not Redis
+// Add to existing newsSources table:
+lastSuccessAt: timestamp('last_success_at'),
+lastFailureAt: timestamp('last_failure_at'),
+consecutiveFailures: integer('consecutive_failures').notNull().default(0),
+totalCollections: integer('total_collections').notNull().default(0),
+totalItemsCollected: integer('total_items_collected').notNull().default(0),
+qualityScore: integer('quality_score'),  // 0-100, null = unscored
+```
 
-interface Task {
-  id: string
-  type: 'generate-digest' | 'collect-news' | 'send-digest'
-  status: 'pending' | 'running' | 'completed' | 'failed'
-  companyId?: string
-  error?: string
-  startedAt?: Date
-  completedAt?: Date
+#### `sourceTypeEnum` -- extend
+
+```typescript
+export const sourceTypeEnum = pgEnum('source_type', [
+  'rss', 'beehiiv', 'manual', 'x_account', 'x_search', 'web_search'
+]);
+```
+
+Note: Drizzle ORM does not support adding values to existing enums via schema push. This requires a manual SQL migration: `ALTER TYPE source_type ADD VALUE 'x_account';` etc.
+
+#### `newsItems` -- add embedding + metadata
+
+```typescript
+// Add to existing newsItems table:
+embedding: vector('embedding', { dimensions: 512 }),  // OpenAI text-embedding-3-small (truncated)
+sourceMetadata: text('source_metadata'),  // JSON: tweet ID, search query, clientId etc.
+isDuplicate: boolean('is_duplicate').notNull().default(false),
+```
+
+Plus an HNSW index for fast cosine similarity:
+
+```typescript
+// In table definition's third argument:
+(table) => [
+  index('newsItemsEmbeddingIdx')
+    .using('hnsw', table.embedding.op('vector_cosine_ops')),
+]
+```
+
+#### `clients` -- add scheduling + search config
+
+```typescript
+// Add to existing clients table:
+sendFrequency: varchar('send_frequency', { length: 20 }).notNull().default('weekly'),
+  // 'weekly' | 'biweekly' | 'monthly'
+sendDayOfWeek: integer('send_day_of_week').notNull().default(1),  // 1=Monday
+sendHour: integer('send_hour').notNull().default(9),  // Local hour (Europe/Helsinki)
+searchPrompt: text('search_prompt'),  // Per-client industry-specific search terms
+autoGenerateEnabled: boolean('auto_generate_enabled').notNull().default(false),
+lastAutoGeneratedAt: timestamp('last_auto_generated_at'),
+```
+
+#### `issues` -- add feedback tracking
+
+```typescript
+// Add to existing issues table:
+feedbackToken: varchar('feedback_token', { length: 64 }).unique(),
+  // crypto.randomBytes(32).toString('hex'), unique per issue
+```
+
+### New Tables
+
+#### `sourceHealthLogs` -- per-collection-run metrics
+
+```typescript
+export const sourceHealthLogs = pgTable('source_health_logs', {
+  id: serial('id').primaryKey(),
+  sourceId: integer('source_id').notNull().references(() => newsSources.id),
+  collectedAt: timestamp('collected_at').notNull().defaultNow(),
+  success: boolean('success').notNull(),
+  itemsCollected: integer('items_collected').notNull().default(0),
+  durationMs: integer('duration_ms'),
+  errorMessage: text('error_message'),
+});
+```
+
+#### `feedbackVotes` -- per-recipient per-issue votes
+
+```typescript
+export const feedbackVoteEnum = pgEnum('feedback_vote', ['up', 'down']);
+
+export const feedbackVotes = pgTable('feedback_votes', {
+  id: serial('id').primaryKey(),
+  issueId: integer('issue_id').notNull().references(() => issues.id),
+  memberId: integer('member_id').notNull().references(() => members.id),
+  vote: feedbackVoteEnum('vote').notNull(),
+  votedAt: timestamp('voted_at').notNull().defaultNow(),
+});
+```
+
+---
+
+## Detailed Integration Architecture per Feature
+
+### 1. X (Twitter) Monitoring
+
+**API Choice: Official X API v2 Basic tier ($200/month)**
+
+The official API is the only legally sustainable option. Third-party scraping APIs (twitterapi.io, etc.) violate X ToS and risk shutdown at any time. At Basic tier:
+- 10,000 tweet reads/month (adequate for 10-20 influencer accounts + occasional keyword searches)
+- Recent search endpoint (last 7 days) -- sufficient for weekly newsletter cadence
+- User tweet timeline endpoint for curated accounts
+
+**Library:** `twitter-api-v2` (npm) -- strongly typed, maintained, supports v2 endpoints. Confidence: HIGH.
+
+**Data Flow:**
+
+```
+[scheduler: daily 06:00]
+    |
+    v
+[newsCollectorService]
+    |-- for each source WHERE type = 'x_account':
+    |     xClient.fetchUserTweets(config.userId, since lastSuccessAt)
+    |     -> filter: engagement threshold, AI-relevance heuristic
+    |     -> map to CollectedItem format
+    |     -> insert newsItems
+    |
+    |-- for each source WHERE type = 'x_search':
+    |     xClient.searchRecentTweets(config.query)
+    |     -> filter: engagement threshold
+    |     -> map to CollectedItem format
+    |     -> insert newsItems
+    v
+[deduplicationService.deduplicateRecent()]
+```
+
+**`xClient.ts` structure:**
+
+```typescript
+// api/src/integrations/xClient.ts
+import { TwitterApi } from 'twitter-api-v2';
+
+const client = new TwitterApi(process.env.X_BEARER_TOKEN!);
+
+export interface XCollectedItem {
+  title: string;       // tweet text (truncated to ~200 chars)
+  url: string;         // https://x.com/{user}/status/{id}
+  summary: string;     // full tweet text
+  publishedAt: Date;
+  sourceMetadata: {
+    tweetId: string;
+    authorUsername: string;
+    metrics: { likes: number; retweets: number; replies: number };
+  };
 }
 
-// API endpoint starts task, returns immediately
-fastify.post('/admin/digests/generate', async (request) => {
-  const task = await taskRepository.create({
-    type: 'generate-digest',
-    companyId: request.body.companyId,
-    status: 'pending',
-  })
+export async function fetchUserTweets(
+  userId: string,
+  sinceId?: string
+): Promise<XCollectedItem[]> { /* ... */ }
 
-  // Fire and forget -- runs in background
-  generateDigestInBackground(task.id).catch(err => {
-    taskRepository.markFailed(task.id, err.message)
-  })
-
-  return { taskId: task.id, status: 'pending' }
-})
-
-// Frontend polls for status
-fastify.get('/admin/tasks/:id', async (request) => {
-  return taskRepository.getById(request.params.id)
-})
+export async function searchRecentTweets(
+  query: string,
+  maxResults?: number
+): Promise<XCollectedItem[]> { /* ... */ }
 ```
 
-**Authentication Flows:**
+**Source configuration (in `newsSources.config` JSON):**
 
-```
-Admin Auth (simple):
-  Login page --> POST email+password to API --> verify against
-  hardcoded env vars --> sign JWT with jose --> set httpOnly cookie
-  --> redirect to /admin/dashboard
+```json
+// x_account source:
+{ "userId": "123456789", "username": "sama", "minLikes": 50 }
 
-Company Portal Auth (magic link):
-  Portal login --> POST email to API --> lookup in team_members -->
-  generate short-lived JWT with jose --> send magic link via Resend -->
-  user clicks link --> verify token --> set session cookie -->
-  redirect to /portal/dashboard
+// x_search source:
+{ "query": "AI regulation OR artificial intelligence policy", "maxResults": 20 }
 ```
 
-## Patterns to Follow
+**Rate limit considerations:** Basic tier has 10,000 reads/month. With daily collection and ~15 accounts + 3 keyword searches, this consumes roughly: 15 accounts * 30 days = 450 requests + 3 searches * 30 = 90 = ~540 requests/month. Well within limits.
 
-### Pattern 1: Fastify Plugin Architecture for Module Boundaries
+### 2. Web Search (Tavily)
 
-**What:** Each business domain is a Fastify plugin with its own routes, hooks, and encapsulated scope. Modules communicate through service functions, not direct imports of each other's internals.
+**API Choice: Tavily over Serper**
 
-**When:** All feature modules in the API.
+Use Tavily because:
+- Purpose-built for AI/RAG pipelines (returns clean, structured content, not raw SERP HTML)
+- 1,000 free credits/month (1,000 basic searches or 500 advanced)
+- Simple REST API with official Node.js SDK (`@tavily/core`)
+- Topic filtering and domain whitelisting built-in
+- Serper returns raw Google SERP data requiring more parsing
 
-**Example:**
+**Pricing path:** Start on free tier (1,000 credits). Move to $30/month (4,000 credits) when scaling to 5+ clients. Confidence: HIGH -- verified via Tavily official docs.
+
+**Data Flow:**
+
+```
+[scheduler: daily 06:00, after RSS/X collection]
+    |
+    v
+[newsCollectorService]
+    |-- for each source WHERE type = 'web_search':
+    |     webSearchClient.search(config.query, config.options)
+    |     -> map results to CollectedItem format
+    |     -> insert newsItems
+    |
+    |-- for each client WHERE searchPrompt IS NOT NULL:
+    |     webSearchClient.search(client.searchPrompt)
+    |     -> tag results with clientId in sourceMetadata
+    |     -> insert newsItems
+    v
+[deduplicationService.deduplicateRecent()]
+```
+
+**`webSearchClient.ts` structure:**
+
 ```typescript
-// src/plugins/admin/index.ts
-import { FastifyPluginAsync } from 'fastify'
+// api/src/integrations/webSearchClient.ts
+import { tavily } from '@tavily/core';
 
-const adminPlugin: FastifyPluginAsync = async (fastify) => {
-  // Auth hook applies to all routes in this plugin
-  fastify.addHook('onRequest', async (request) => {
-    await request.verifyAdmin()
-  })
+const tvly = tavily({ apiKey: process.env.TAVILY_API_KEY! });
 
-  // Register sub-routes
-  await fastify.register(import('./routes/companies'), { prefix: '/companies' })
-  await fastify.register(import('./routes/digests'), { prefix: '/digests' })
-  await fastify.register(import('./routes/sources'), { prefix: '/sources' })
-  await fastify.register(import('./routes/templates'), { prefix: '/templates' })
+export interface WebSearchResult {
+  title: string;
+  url: string;
+  content: string;  // AI-optimized snippet from Tavily
+  score: number;    // Tavily relevance score 0-1
+  publishedDate: string | null;
 }
 
-export default adminPlugin
-
-// src/server.ts -- main app
-const app = fastify()
-app.register(adminPlugin, { prefix: '/api/admin' })
-app.register(portalPlugin, { prefix: '/api/portal' })
-app.register(webhookPlugin, { prefix: '/api/webhooks' })
-app.register(publicPlugin, { prefix: '/api/public' })
+export async function searchAiNews(
+  query: string,
+  options?: {
+    maxResults?: number;    // default 10
+    searchDepth?: 'basic' | 'advanced';
+    includeDomains?: string[];
+    excludeDomains?: string[];
+    topic?: 'general' | 'news';
+  }
+): Promise<WebSearchResult[]> {
+  const response = await tvly.search(query, {
+    maxResults: options?.maxResults ?? 10,
+    searchDepth: options?.searchDepth ?? 'basic',
+    topic: options?.topic ?? 'news',
+    includeDomains: options?.includeDomains,
+    excludeDomains: options?.excludeDomains,
+  });
+  return response.results;
+}
 ```
 
-### Pattern 2: Repository Pattern for Data Access
+**Two-level search strategy:**
+1. **General AI news** (global, shared): `web_search` type sources with broad queries like "artificial intelligence news this week"
+2. **Client-specific** (per-client): Uses `clients.searchPrompt` field, e.g. "AI in healthcare diagnostics 2026" for a healthcare client. Results tagged with `sourceMetadata.clientId`.
 
-**What:** Wrap Drizzle ORM queries in repository functions per entity. Route handlers call repositories, never construct queries directly.
+### 3. Semantic Deduplication
 
-**When:** All database access.
+**Approach: pgvector + OpenAI text-embedding-3-small**
 
-**Example:**
+Use pgvector because:
+- Already available on Railway PostgreSQL
+- Native Drizzle ORM support (`drizzle-orm/pg-core` has `vector` type)
+- Cosine similarity via `<=>` operator with HNSW index
+- No separate vector DB needed (keeps architecture simple)
+- OpenAI embeddings are cheap ($0.02/1M tokens) and high quality
+
+Use 512 dimensions (not full 1536) because:
+- text-embedding-3-small supports Matryoshka truncation to 512 dims
+- 512 dims provides 95%+ of accuracy at 1/3 the storage
+- HNSW index is faster and smaller with fewer dimensions
+
+**Data Flow:**
+
+```
+[After batch insert of newsItems]
+    |
+    v
+[deduplicationService.embedAndDedup()]
+    |-- SELECT * FROM newsItems WHERE embedding IS NULL
+    |-- for each batch of unembedded items:
+    |     text = item.title + ' ' + (item.summary || '')
+    |     embedding = embeddingClient.embed(texts)  // batch call
+    |     UPDATE newsItems SET embedding = embedding
+    |
+    |-- for each newly embedded item:
+    |     SELECT * FROM newsItems
+    |       WHERE cosineDistance(embedding, newItem.embedding) < 0.15
+    |       AND id != newItem.id
+    |       AND collectedAt > (now - 7 days)
+    |     if duplicates found:
+    |       keep item with earliest collectedAt
+    |       mark others as isDuplicate = true
+```
+
+**`embeddingClient.ts` structure:**
+
 ```typescript
-// src/repositories/companies.ts
-import { db } from '../db'
-import { companies, teamMembers } from '../db/schema'
-import { eq } from 'drizzle-orm'
+// api/src/integrations/embeddingClient.ts
+import OpenAI from 'openai';
 
-export const companiesRepository = {
-  async findAll() {
-    return db.query.companies.findMany({
-      with: { industry: true, _count: { teamMembers: true } },
-    })
+const openai = new OpenAI();
+
+export async function generateEmbeddings(
+  texts: string[]
+): Promise<number[][]> {
+  const response = await openai.embeddings.create({
+    model: 'text-embedding-3-small',
+    input: texts,
+    dimensions: 512,  // Matryoshka truncation
+  });
+  return response.data.map((d) => d.embedding);
+}
+
+export async function generateEmbedding(
+  text: string
+): Promise<number[]> {
+  const [embedding] = await generateEmbeddings([text]);
+  return embedding;
+}
+```
+
+**`deduplicationService.ts` key logic:**
+
+```typescript
+// api/src/services/deduplicationService.ts
+import { cosineDistance, desc, gt, sql, and, gte, eq } from 'drizzle-orm';
+import { db } from '../db/index.js';
+import { newsItems } from '../db/schema.js';
+import { generateEmbeddings } from '../integrations/embeddingClient.js';
+
+const SIMILARITY_THRESHOLD = 0.85;  // cosineDistance < 0.15 means >85% similar
+const DEDUP_WINDOW_DAYS = 7;
+
+export async function embedNewItems(): Promise<number> {
+  const unembedded = await db
+    .select()
+    .from(newsItems)
+    .where(sql`${newsItems.embedding} IS NULL`)
+    .limit(100);  // batch to respect API limits
+
+  if (unembedded.length === 0) return 0;
+
+  const texts = unembedded.map(
+    (item) => `${item.title} ${item.summary || ''}`
+  );
+  const embeddings = await generateEmbeddings(texts);
+
+  for (let i = 0; i < unembedded.length; i++) {
+    await db
+      .update(newsItems)
+      .set({ embedding: embeddings[i] })
+      .where(eq(newsItems.id, unembedded[i].id));
+  }
+
+  return unembedded.length;
+}
+
+export async function markDuplicates(): Promise<number> {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - DEDUP_WINDOW_DAYS);
+
+  // Get recently embedded, non-duplicate items
+  const recent = await db
+    .select()
+    .from(newsItems)
+    .where(
+      and(
+        sql`${newsItems.embedding} IS NOT NULL`,
+        eq(newsItems.isDuplicate, false),
+        gte(newsItems.collectedAt, cutoff)
+      )
+    )
+    .orderBy(newsItems.collectedAt);
+
+  let marked = 0;
+  const seenIds = new Set<number>();
+
+  for (const item of recent) {
+    if (seenIds.has(item.id)) continue;
+
+    const similarity = sql<number>`1 - (${cosineDistance(newsItems.embedding, item.embedding!)})`;
+    const dupes = await db
+      .select({ id: newsItems.id, similarity })
+      .from(newsItems)
+      .where(
+        and(
+          gt(similarity, SIMILARITY_THRESHOLD),
+          sql`${newsItems.id} != ${item.id}`,
+          sql`${newsItems.id} > ${item.id}`,  // only flag newer dupes
+          eq(newsItems.isDuplicate, false),
+          gte(newsItems.collectedAt, cutoff)
+        )
+      );
+
+    for (const dupe of dupes) {
+      await db
+        .update(newsItems)
+        .set({ isDuplicate: true })
+        .where(eq(newsItems.id, dupe.id));
+      seenIds.add(dupe.id);
+      marked++;
+    }
+  }
+
+  return marked;
+}
+```
+
+**Cost estimate:** At ~50 news items/day, 30 days = 1,500 items/month. Average 50 tokens/item = 75,000 tokens/month = $0.0015/month. Negligible.
+
+### 4. Auto-Scheduled Digest Generation
+
+**Approach: Database-driven schedules with node-cron master clock**
+
+Do NOT create one cron job per client. Instead, run a single "scheduler tick" every hour that checks which clients are due for digest generation.
+
+**Why this approach:**
+- node-cron jobs are in-memory; server restart loses dynamically created jobs
+- Database-driven scheduling survives restarts
+- Simple to query: "which clients need a digest generated right now?"
+- Avoids the complexity of dynamic cron expression management
+
+**Data Flow:**
+
+```
+[node-cron: hourly check, every hour at :00]
+    |
+    v
+[scheduleService.checkDueClients()]
+    |-- SELECT * FROM clients
+    |     WHERE autoGenerateEnabled = true
+    |     AND isActive = true
+    |     AND isDue(sendFrequency, sendDayOfWeek, sendHour, lastAutoGeneratedAt)
+    |
+    |-- for each due client:
+    |     newsletterService.generateClientDigest(client.id)
+    |     UPDATE clients SET lastAutoGeneratedAt = now()
+    |     (digest lands in status 'ready', admin still reviews/approves)
+```
+
+**`scheduleService.ts` key logic:**
+
+```typescript
+// api/src/services/scheduleService.ts
+
+function isDue(client: {
+  sendFrequency: string;
+  sendDayOfWeek: number;
+  sendHour: number;
+  lastAutoGeneratedAt: Date | null;
+}): boolean {
+  const now = new Date();
+  // Convert to Helsinki timezone
+  const helsinkiHour = parseInt(
+    new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      hour12: false,
+      timeZone: 'Europe/Helsinki',
+    }).format(now)
+  );
+  const helsinkiDay = parseInt(
+    new Intl.DateTimeFormat('en-US', {
+      weekday: 'short',
+      timeZone: 'Europe/Helsinki',
+    }).format(now)
+  );
+  // Map weekday string to number (0=Sun, 1=Mon, ..., 6=Sat)
+
+  // Check if it is the right hour
+  if (helsinkiHour !== client.sendHour) return false;
+
+  // Check if it is the right day of week
+  if (helsinkiDay !== client.sendDayOfWeek) return false;
+
+  // Check frequency window since last generation
+  if (client.lastAutoGeneratedAt) {
+    const daysSince = Math.floor(
+      (now.getTime() - client.lastAutoGeneratedAt.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    switch (client.sendFrequency) {
+      case 'weekly': if (daysSince < 6) return false; break;
+      case 'biweekly': if (daysSince < 13) return false; break;
+      case 'monthly': if (daysSince < 27) return false; break;
+    }
+  }
+
+  return true;
+}
+```
+
+**Scheduler modification:**
+
+```typescript
+// Updated scheduler.ts
+export function startScheduler() {
+  // Existing: daily news collection at 06:00
+  cron.schedule('0 6 * * *', collectAllNews, { timezone: 'Europe/Helsinki' });
+
+  // NEW: hourly schedule check for auto-generation
+  cron.schedule('0 * * * *', checkDueClientsAndGenerate, { timezone: 'Europe/Helsinki' });
+
+  // NEW: daily source health check at 07:00 (after collection)
+  cron.schedule('0 7 * * *', runSourceHealthCheck, { timezone: 'Europe/Helsinki' });
+}
+```
+
+### 5. Source Health Monitoring
+
+**Approach: Instrument existing collection loop + daily health report**
+
+Wrap each source collection in timing/success tracking. Store per-run logs. Compute aggregate health metrics on the source record.
+
+**Data Flow:**
+
+```
+[newsCollectorService.collectAllNews() -- modified]
+    |-- for each source:
+    |     startTime = Date.now()
+    |     try { collect items }
+    |     finally {
+    |       insert sourceHealthLog(sourceId, success, items, duration, error)
+    |       update newsSources health columns
+    |     }
+    v
+[sourceHealthService.runDailyCheck() -- daily at 07:00]
+    |-- for each source:
+    |     compute qualityScore based on:
+    |       - success rate (last 7 days)
+    |       - items collected / total collections
+    |       - consecutive failures
+    |       - staleness (days since lastSuccessAt)
+    |     update newsSources.qualityScore
+    |
+    |-- if any source has consecutiveFailures >= 3:
+    |     log warning (future: notify admin)
+```
+
+**Quality score formula (0-100):**
+
+```
+qualityScore =
+  (successRate * 40) +            // 40 points for reliability
+  (freshnessScore * 30) +         // 30 points for recency
+  (volumeScore * 30)              // 30 points for item volume
+
+Where:
+  successRate   = successful runs / total runs (last 7 days), scaled 0-1
+  freshnessScore = 1.0 if last success < 24h, 0.5 if < 72h, 0 if older
+  volumeScore   = min(avgItemsPerRun / expectedItems, 1.0)
+```
+
+### 6. Email Feedback Loop
+
+**Approach: Token-based public endpoint with thumbs up/down**
+
+Each issue gets a unique `feedbackToken`. Email includes two links:
+- `https://app.aisanomat.fi/api/feedback/{token}/vote?v=up&m={memberId}`
+- `https://app.aisanomat.fi/api/feedback/{token}/vote?v=down&m={memberId}`
+
+These are GET requests (email clients do not support POST from emails) that record the vote and redirect to a thank-you page.
+
+**Data Flow:**
+
+```
+[emailService.sendDigestToClient() -- modified]
+    |-- generate feedbackToken for issue (if not exists)
+    |-- for each member:
+    |     inject personalized feedback URLs into email template
+    v
+[Recipient clicks thumbs up/down in email]
+    |
+    v
+[GET /api/feedback/:token/vote?v=up&m=123]
+    |-- validate token (lookup issue)
+    |-- validate member belongs to issue's client
+    |-- upsert feedbackVotes (one vote per member per issue)
+    |-- redirect to /feedback/thanks page (static)
+    v
+[Admin dashboard -- aggregate stats]
+    |-- per issue: count(up), count(down), total voters / total recipients
+    |-- per client: trend over time
+```
+
+**Route implementation:**
+
+```typescript
+// api/src/routes/feedback.ts -- PUBLIC, no auth required
+fastify.route({
+  method: 'GET',
+  url: '/feedback/:token/vote',
+  schema: {
+    params: z.object({ token: z.string() }),
+    querystring: z.object({
+      v: z.enum(['up', 'down']),
+      m: z.coerce.number(),
+    }),
   },
-
-  async findById(id: string) {
-    return db.query.companies.findFirst({
-      where: eq(companies.id, id),
-      with: { teamMembers: true, industry: true },
-    })
+  handler: async (request, reply) => {
+    const { token } = request.params;
+    const { v, m } = request.query;
+    await feedbackService.recordVote(token, m, v);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
+    return reply.redirect(`${frontendUrl}/feedback/thanks`);
   },
-
-  async create(data: NewCompany) {
-    return db.insert(companies).values(data).returning()
-  },
-}
+});
 ```
 
-### Pattern 3: Pipeline Pattern for Content Generation
+### 7. Premium Newsletter Template
 
-**What:** Chain processing steps with clear input/output contracts. Each step is independently testable and can be retried individually.
+**Approach: Extend existing React Email component**
 
-**When:** Newsletter content generation.
+The existing `DigestEmail.tsx` is a working foundation. Redesign adds:
+- AI-Sanomat brand header (logo image, brand colors, tagline)
+- Client co-branding (company name, industry badge)
+- aisanomat.fi featured section ("AI-Sanomat suosittelee")
+- Feedback buttons in footer (thumbs up/down emoji links)
+- Cleaner typography, more whitespace, modern card-based story layout
+- Week number and date in header
 
-**Example:**
+**Changes to `DigestEmailProps`:**
+
 ```typescript
-// src/pipelines/generate-digest.ts
-interface PipelineContext {
-  company: Company
-  articles: Article[]
-  promptTemplate: PromptTemplate
-  generatedContent?: DigestContent
-  validationResult?: ValidationResult
-  images?: GeneratedImage[]
-}
-
-export async function generateDigest(companyId: string): Promise<Digest> {
-  let ctx: PipelineContext = await prepareContext(companyId)
-  ctx = await selectRelevantArticles(ctx)
-  ctx = await generateContent(ctx)      // Claude API
-  // Phase 2:
-  // ctx = await validateFacts(ctx)     // Claude API #2
-  // Phase 3:
-  // ctx = await generateImages(ctx)    // Gemini API
-  return await saveDraft(ctx)
+export interface DigestEmailProps {
+  // Existing
+  clientName: string;
+  digest: DigestEmailDigest;
+  heroImageUrl: string | null;
+  unsubscribeUrl: string;
+  trackingPixelUrl?: string;
+  // New
+  clientIndustry: string;
+  weekNumber: number;
+  year: number;
+  feedbackUpUrl: string;
+  feedbackDownUrl: string;
+  aisanomatFeatured?: {
+    title: string;
+    url: string;
+    excerpt: string;
+  };
+  brandLogoUrl: string;  // AI-Sanomat logo hosted on server
 }
 ```
 
-### Pattern 4: Server Components for Data Fetching (Next.js 16)
+**aisanomat.fi featured section data source:**
+Add a news source of type `'rss'` pointing to aisanomat.fi's RSS feed (if available) or type `'manual'` where admin selects the featured article. The `newsletterService` pulls the latest aisanomat.fi-sourced item and passes it as `aisanomatFeatured` to the template.
 
-**What:** Use React Server Components for all data fetching. Client components handle interactivity only. Next.js 16's improved caching APIs (cacheLife, cacheTag) make this even more efficient.
+---
 
-**When:** All pages.
+## Modified Data Flow: End-to-End v1.1
 
-**Example:**
+```
+[Scheduler: 06:00 daily -- news collection]
+    |
+    v
+[newsCollectorService.collectAllNews()]  -- MODIFIED
+    |-- RSS sources (existing, unchanged)
+    |-- Beehiiv sources (existing, unchanged)
+    |-- X account sources (NEW: xClient.fetchUserTweets)
+    |-- X search sources (NEW: xClient.searchRecentTweets)
+    |-- Web search sources (NEW: webSearchClient.searchAiNews)
+    |-- Per-client web searches (NEW: client.searchPrompt -> webSearchClient)
+    |
+    |-- Each source wrapped in health tracking (sourceHealthLogs)
+    |-- Insert newsItems with URL dedup (existing)
+    v
+[deduplicationService.embedAndDedup()]  -- NEW, runs after collection
+    |-- Generate embeddings for new items (embeddingClient)
+    |-- Find semantic duplicates via pgvector cosine similarity
+    |-- Mark duplicates (isDuplicate = true)
+    v
+[Scheduler: 07:00 daily -- source health]
+    |
+    v
+[sourceHealthService.runDailyCheck()]
+    |-- Compute quality scores for all sources
+    |-- Flag unhealthy sources
+    v
+[Scheduler: hourly -- check auto-generation schedules]
+    |
+    v
+[scheduleService.checkDueClients()]
+    |-- For each due client: generateClientDigest()
+    v
+[newsletterService.generateClientDigest()]  -- MODIFIED
+    |-- Fetch newsItems with client-relevance:
+    |     1. Client-specific items (sourceMetadata.clientId = clientId)
+    |     2. General items (no clientId), ranked by relevance
+    |     3. aisanomat.fi featured item (latest from aisanomat.fi source)
+    |-- Exclude items WHERE isDuplicate = true
+    |-- Fill prompt templates (existing)
+    |-- Claude generation + validation (existing)
+    |-- Gemini images (existing)
+    |-- Generate feedbackToken for issue (NEW)
+    |-- Status: ready (admin reviews)
+    v
+[Admin approves, sends]
+    |
+    v
+[emailService.sendDigestToClient()]  -- MODIFIED
+    |-- Render with premium template (co-branding, feedback URLs, featured section)
+    |-- Per-member feedback URLs injected
+    |-- Send via Resend (existing)
+    v
+[Resend webhooks]  -- existing, unchanged
+[Feedback votes]   -- NEW public endpoint
+```
+
+---
+
+## Recommended Project Structure (New/Modified Files)
+
+```
+api/src/
+├── integrations/
+│   ├── rssCollector.ts          # existing, unchanged
+│   ├── beehiivClient.ts         # existing, unchanged
+│   ├── claudeClient.ts          # existing, unchanged
+│   ├── geminiClient.ts          # existing, unchanged
+│   ├── resendClient.ts          # existing, unchanged
+│   ├── xClient.ts               # NEW: X API v2 integration
+│   ├── webSearchClient.ts       # NEW: Tavily search integration
+│   └── embeddingClient.ts       # NEW: OpenAI embeddings
+├── services/
+│   ├── newsCollectorService.ts  # MODIFIED: add X, web search, health tracking
+│   ├── newsletterService.ts     # MODIFIED: client-relevant news, featured section
+│   ├── emailService.ts          # MODIFIED: feedback URLs, premium template
+│   ├── imageService.ts          # existing, unchanged
+│   ├── sources.ts               # existing, unchanged
+│   ├── clients.ts               # existing, unchanged
+│   ├── templates.ts             # existing, unchanged
+│   ├── portalAuth.ts            # existing, unchanged
+│   ├── deduplicationService.ts  # NEW: semantic dedup with pgvector
+│   ├── sourceHealthService.ts   # NEW: health monitoring + quality scoring
+│   ├── feedbackService.ts       # NEW: vote recording + aggregation
+│   └── scheduleService.ts       # NEW: per-client scheduling logic
+├── routes/
+│   ├── feedback.ts              # NEW: public feedback endpoint
+│   └── (existing routes -- minor additions for health/schedule admin endpoints)
+├── emails/
+│   ├── DigestEmail.tsx          # MODIFIED: premium redesign with co-branding
+│   └── MagicLinkEmail.tsx       # existing, unchanged
+├── db/
+│   ├── schema.ts                # MODIFIED: new tables + columns + pgvector
+│   └── (existing files)
+└── scheduler.ts                 # MODIFIED: add hourly + daily health crons
+```
+
+---
+
+## Architectural Patterns
+
+### Pattern 1: Source Type Polymorphism via Collector Map
+
+**What:** Each source type has a dedicated collector function. `newsCollectorService` dispatches based on `source.type` using a lookup map instead of the current if/else chain.
+
+**Why:** Current code uses `if (source.type === 'rss') ... else if (source.type === 'beehiiv')`. Adding 3 more types makes this unwieldy and error-prone.
+
+**Trade-offs:** Slightly more abstraction, but each collector is independently testable. New source types only require adding one entry to the map.
+
+**Implementation:**
+
 ```typescript
-// app/(admin)/companies/page.tsx -- Server Component
-import { getCompanies } from '@/lib/api'
-import { CompanyTable } from './company-table'
+type CollectorFn = (source: NewsSource) => Promise<CollectedItem[]>;
 
-export default async function CompaniesPage() {
-  const companies = await getCompanies()
-  return (
-    <div>
-      <h1>Yritykset</h1>
-      <CompanyTable companies={companies} />
-    </div>
-  )
-}
+const collectors: Record<string, CollectorFn> = {
+  rss: collectFromRss,
+  beehiiv: collectFromBeehiiv,
+  x_account: collectFromXAccount,
+  x_search: collectFromXSearch,
+  web_search: collectFromWebSearch,
+  manual: async () => [],  // no-op, manual items added via admin
+};
 
-// app/(admin)/companies/company-table.tsx -- Client Component
-'use client'
-import { useReactTable } from '@tanstack/react-table'
-
-export function CompanyTable({ companies }: { companies: Company[] }) {
-  // Interactive data table with sorting, actions
+// In collectAllNews:
+for (const source of sources) {
+  const collector = collectors[source.type];
+  if (!collector) {
+    console.warn(`Unknown source type: ${source.type}`);
+    continue;
+  }
+  const items = await collector(source);
+  // ... insert items
 }
 ```
 
-### Pattern 5: Shared Zod Schemas for API Contracts
+### Pattern 2: Database-Driven Scheduling (Polling, Not Dynamic Crons)
 
-**What:** Define validation schemas in a shared package used by both Fastify (server validation) and Next.js (client-side form validation).
+**What:** A single hourly cron checks the database for clients due for generation, rather than creating/destroying cron jobs dynamically.
 
-**When:** Every API endpoint.
+**Why:** Stateless, survives restarts, easy to reason about. The overhead of one DB query per hour is zero.
 
-**Example:**
-```typescript
-// packages/shared/src/schemas/company.ts
-import { z } from 'zod'
+**Trade-offs:** Minimum scheduling resolution is 1 hour. This is fine for weekly/biweekly/monthly newsletter generation.
 
-export const createCompanySchema = z.object({
-  name: z.string().min(1, 'Nimi vaaditaan'),
-  industry: z.string().min(1, 'Toimiala vaaditaan'),
-  contactEmail: z.string().email('Virheellinen sahkopostiosoite'),
-  contactName: z.string().min(1, 'Yhteyshenkilon nimi vaaditaan'),
-})
+### Pattern 3: Embed-Then-Compare Dedup Pipeline
 
-export type CreateCompanyInput = z.infer<typeof createCompanySchema>
+**What:** Run embedding generation as a separate step after all collection is complete, then compare new embeddings against the recent window.
 
-// Used in Fastify for request validation
-// Used in Next.js forms with react-hook-form + @hookform/resolvers/zod
-```
+**Why:** Batching embeddings is cheaper (one API call with 50-100 texts vs. 50 individual calls). Comparing against a window (7 days) keeps the search space small and HNSW index fast.
+
+**Trade-offs:** Slight delay between collection and dedup. Not an issue since digest generation happens hours later.
+
+---
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Synchronous AI Calls in Request Handlers
+### Anti-Pattern 1: Real-Time Embedding on Insert
 
-**What:** Calling Claude or Gemini API directly in a Fastify route handler and waiting for the HTTP response.
+**What people do:** Generate embedding for each newsItem immediately during collection.
+**Why it is wrong:** Collection already involves external API calls (RSS, X, Tavily). Adding OpenAI embedding calls inline slows down collection and makes failure handling complex. One OpenAI outage blocks all news collection.
+**Do this instead:** Collect first, embed in a batch second. If embedding fails, news items are still saved and can be embedded on retry.
 
-**Why bad:** These calls take 10-60+ seconds. HTTP connections timeout, UX suffers, and failed calls have no retry mechanism. The admin panel appears "frozen."
+### Anti-Pattern 2: One Cron Job Per Client
 
-**Instead:** Start the generation as a background task, return immediately with a task ID, and let the frontend poll for completion. Track status in PostgreSQL.
+**What people do:** Dynamically create `cron.schedule()` for each client.
+**Why it is wrong:** In-memory jobs are lost on server restart. Managing dynamic jobs is complex (add/remove/update as clients change). Race conditions when multiple jobs fire simultaneously.
+**Do this instead:** Single hourly tick, query database for due clients.
 
-### Anti-Pattern 2: Direct Database Access from Next.js
+### Anti-Pattern 3: Storing Embeddings in a Separate Vector DB
 
-**What:** Importing Drizzle ORM in Next.js server components and querying PostgreSQL directly.
+**What people do:** Spin up Pinecone/Qdrant/Weaviate alongside PostgreSQL.
+**Why it is wrong:** Adds operational complexity, another service to manage, data synchronization issues between two stores. At this scale (hundreds to low thousands of news items), a dedicated vector DB provides no benefit.
+**Do this instead:** pgvector in the same PostgreSQL instance. The scale does not justify a dedicated vector DB.
 
-**Why bad:** Bypasses API authentication, business logic, and validation. Creates two separate data access paths. Makes the frontend dependent on database schema internals.
+### Anti-Pattern 4: Feedback via POST in Email
 
-**Instead:** All data access goes through the Fastify API. Next.js server components use `fetch()` to call API endpoints.
+**What people do:** Add forms or POST buttons in email templates.
+**Why it is wrong:** Most email clients (Gmail, Outlook, Apple Mail) strip forms and do not support HTTP POST from emails.
+**Do this instead:** Use GET links with query parameters. The GET endpoint records the vote and redirects to a static thank-you page.
 
-### Anti-Pattern 3: Storing Images on Local Filesystem
+### Anti-Pattern 5: Client-Specific News via Separate Collection Runs
 
-**What:** Saving Gemini-generated images to the container filesystem or /public directory.
+**What people do:** Run separate collection pipelines per client, duplicating shared news items across client-specific tables.
+**Why it is wrong:** Multiplies API calls, storage, and complexity. An article about "GPT-5 release" is relevant to all clients -- collecting it once is sufficient.
+**Do this instead:** Collect all news into a shared pool. Tag client-specific search results with `sourceMetadata.clientId`. At digest generation time, combine shared pool + client-specific items. Let the Claude prompt handle industry-relevance filtering.
 
-**Why bad:** Railway containers are ephemeral -- files are lost on every redeploy. Cannot work with multiple instances.
+---
 
-**Instead:** Store generated images as base64 data in PostgreSQL (acceptable for newsletter images, typically < 500KB each), or use Resend's attachments API to inline images in emails directly. For larger scale, add a blob storage service (R2, S3) later.
+## Integration Points
 
-### Anti-Pattern 4: One Massive Prompt for Newsletter Generation
+### External Services
 
-**What:** Sending all 20+ articles, company context, style instructions, and formatting rules in a single Claude prompt.
+| Service | Integration Pattern | Monthly Cost | Rate Limits |
+|---------|---------------------|-------------|-------------|
+| X API v2 (Basic) | Bearer token auth, `twitter-api-v2` npm | $200 | 10K reads/month |
+| Tavily | API key auth, `@tavily/core` npm | Free (1,000 credits) | 1,000 basic searches/month |
+| OpenAI Embeddings | API key auth, `openai` npm | ~$0.002 | 3,500 RPM |
+| Claude (existing) | API key auth, `@anthropic-ai/sdk` | Per-token | Existing limits |
+| Resend (existing) | API key auth, `resend` npm | Existing plan | Existing limits |
+| Gemini (existing) | API key auth | Existing plan | Existing limits |
 
-**Why bad:** Exceeds context window efficiently, produces unpredictable output, makes debugging impossible, and each retry repeats the entire expensive call.
+### Internal Boundaries
 
-**Instead:** Break into steps: (1) summarize each article individually (small, predictable calls), (2) synthesize summaries into newsletter sections with industry context, (3) format with style instructions. Each step is independently testable and retry-able.
+| Boundary | Communication | Notes |
+|----------|---------------|-------|
+| Collector -> Dedup | Sequential: collect all, then embed+dedup | Batch processing, not inline |
+| Scheduler -> Newsletter | Scheduler calls service directly (same process) | No queue needed at this scale |
+| Email -> Feedback | GET link in email -> public API endpoint | Stateless, token-validated |
+| Admin UI -> Source Health | REST API call to admin endpoints | Read-only dashboard data |
 
-### Anti-Pattern 5: Next.js API Routes for Backend Logic
-
-**What:** Using Next.js Route Handlers (`app/api/`) for business logic, cron scheduling, or webhook processing.
-
-**Why bad:** Next.js API routes are serverless-oriented and stateless. They cannot run long-lived cron jobs (node-cron), maintain background task state, or reliably process webhook retries. You end up fighting the framework.
-
-**Instead:** All backend logic in Fastify. The only "API" in Next.js might be a thin rewrite/proxy rule to Fastify's endpoints.
-
-## Directory Structure
-
-```
-ai-sanomat-yrityksille/
-  api/                              # Fastify API server
-    src/
-      db/
-        schema.ts                   # Drizzle schema definitions (all tables)
-        index.ts                    # DB connection (postgres.js + drizzle)
-        migrations/                 # Generated by drizzle-kit
-      plugins/
-        admin/                      # Admin routes
-          routes/
-            companies.ts
-            digests.ts
-            sources.ts
-            templates.ts
-          index.ts                  # Plugin registration + admin auth hook
-        portal/                     # Company portal routes
-          routes/
-            dashboard.ts
-            team.ts
-          index.ts
-        webhooks/
-          resend.ts                 # Bounce/open webhook handler
-        public/
-          auth.ts                   # Login, magic link endpoints
-      services/
-        claude.ts                   # Claude API wrapper
-        gemini.ts                   # Gemini API wrapper
-        resend.ts                   # Resend email wrapper
-      pipelines/
-        collect-news.ts             # RSS fetch + store
-        generate-digest.ts          # Content generation pipeline
-        send-digest.ts              # Email delivery pipeline
-      repositories/
-        companies.ts
-        team-members.ts
-        news-items.ts
-        news-sources.ts
-        digests.ts
-        prompt-templates.ts
-        tasks.ts                    # Background task status tracking
-      cron/
-        scheduler.ts                # node-cron job definitions
-      config/
-        env.ts                      # Zod-validated env vars
-      server.ts                     # Fastify app setup + start
-    drizzle.config.ts
-    package.json
-    tsconfig.json
-
-  web/                              # Next.js 16 frontend
-    src/
-      app/
-        (admin)/                    # Admin panel route group
-          layout.tsx                # Admin sidebar layout
-          dashboard/page.tsx
-          companies/
-            page.tsx                # Company list
-            [id]/page.tsx           # Company detail
-          digests/
-            page.tsx                # Digest list with status
-            new/page.tsx            # Generate new digest
-            [id]/
-              page.tsx              # Preview digest
-              approve/page.tsx      # Approve and send
-          sources/page.tsx          # News source management
-          templates/page.tsx        # Prompt template editor
-        (portal)/                   # Company portal route group
-          layout.tsx                # Portal layout (simpler)
-          dashboard/page.tsx        # Open rate stats
-          team/page.tsx             # Team member management
-        auth/
-          login/page.tsx            # Admin login
-          magic/page.tsx            # Magic link entry
-          verify/page.tsx           # Magic link verification
-        layout.tsx                  # Root layout
-        page.tsx                    # Redirect to appropriate dashboard
-      components/
-        ui/                         # shadcn/ui components
-        admin/                      # Admin-specific components
-        portal/                     # Portal-specific components
-        email/                      # React Email template previews
-      lib/
-        api.ts                      # API client for Fastify backend
-        auth.ts                     # Auth helpers
-    proxy.ts                        # Next.js 16 proxy (was middleware.ts)
-    next.config.ts
-    package.json
-    tsconfig.json
-
-  packages/
-    emails/                         # React Email templates
-      src/
-        digest.tsx                  # Weekly digest email template
-        magic-link.tsx              # Magic link auth email
-        components/                 # Reusable email components
-      package.json
-    shared/                         # Shared types and schemas
-      src/
-        schemas/                    # Zod validation schemas
-          company.ts
-          digest.ts
-          source.ts
-          auth.ts
-        types/                      # TypeScript type definitions
-          index.ts
-      package.json
-      tsconfig.json
-
-  package.json                      # npm workspace root
-  tsconfig.base.json               # Shared TypeScript config
-```
-
-### Structure Rationale
-
-- **`api/` + `web/` split:** Fastify handles background tasks, cron jobs, and webhook processing that Next.js serverless functions cannot reliably do. Railway deploys them independently.
-- **`plugins/` in API:** Fastify plugin pattern -- each domain is an isolated scope with its own auth hooks and routes. Admin and portal have different auth requirements.
-- **`pipelines/` separate from `plugins/`:** Pipeline functions are called by both cron jobs and API routes. They contain the business logic; routes just orchestrate.
-- **`repositories/`:** Single data access layer. Never import Drizzle schema directly in routes -- always go through repositories.
-- **`packages/emails/`:** React Email templates are shared between API (renders and sends) and potentially web (email preview in admin panel).
-- **Route groups `(admin)` and `(portal)`:** Different layouts without URL prefix. Admin gets management sidebar; portal gets simple company-focused layout. `proxy.ts` enforces auth at the routing layer.
-- **`proxy.ts` (not middleware.ts):** Next.js 16 renamed `middleware.ts` to `proxy.ts` with the function name `proxy` instead of `middleware`.
-
-## Key Data Relationships
-
-```
-industries (lookup table)
-    |
-    +-- 1:N --> companies (each company has an industry)
-    |              |
-    |              +-- 1:N --> team_members (people who receive emails)
-    |              +-- 1:N --> digests (generated content per company)
-    |              |              |
-    |              |              +-- 1:N --> email_sends (one per member per digest)
-    |              |
-    |              +-- N:1 --> prompt_templates (which template to use)
-    |
-news_sources (RSS feeds, manual)
-    |
-    +-- 1:N --> news_items (collected articles)
-                    |
-                    +-- N:N --> digests (which items used in which digest)
-
-tasks (background job status tracking)
-    +-- type, status, companyId, error, timestamps
-```
+---
 
 ## Scaling Considerations
 
-| Concern | At 5 clients (MVP) | At 50 clients | At 500 clients |
-|---------|---------------------|----------------|-----------------|
-| Content generation | Sequential, ~5 min total | Parallel with rate limiting, ~30 min | BullMQ + Redis workers |
-| Job scheduling | node-cron in-process | node-cron still fine | BullMQ for distributed jobs |
-| Database load | Single connection fine | Connection pool (5-10) | PgBouncer / Railway pooling |
-| Email volume | ~50 emails/week (free tier) | ~500/week (Resend Pro $20/mo) | ~5,000/week (batch API) |
-| Image generation | ~10 images/week | ~100/week (monitor quota) | May need paid tier |
-| Background tasks | In-process with status in PostgreSQL | Still fine | Separate worker process |
+| Scale | Architecture Adjustments |
+|-------|--------------------------|
+| 1-10 clients | Current approach is fine. Single-process scheduler, direct service calls. |
+| 10-50 clients | Consider running digest generation in a job queue (BullMQ) to avoid blocking the API process during long Claude/Gemini calls. |
+| 50+ clients | Move scheduler to a separate worker process. Upgrade Tavily/X API tiers. pgvector HNSW handles 100K+ vectors well. |
 
-## Build Order (Dependency-Driven)
+### First Bottleneck
 
-1. **Database schema + Drizzle setup** -- Everything depends on this
-2. **Fastify API skeleton + env config + admin auth** -- Shell for everything
-3. **Company management CRUD** -- Need companies before digests
-4. **News collection pipeline** -- Need news before content generation
-5. **Claude content generation** -- Core value proposition
-6. **React Email templates + Resend delivery** -- Must send emails
-7. **Admin panel (Next.js)** -- UI for the above workflow
-8. **Open tracking + bounce handling** -- Prove value to clients
-9. **Company portal** -- Build when first client onboards
-10. **Fact validation (second Claude pass)** -- After text quality is proven
-11. **Image generation (Gemini)** -- After text pipeline is solid
+**Digest generation time.** Each digest requires 3-4 Claude calls + Gemini image generation. At ~30-60 seconds per digest, 10 clients due at the same hour would take 5-10 minutes sequentially. Acceptable for the hourly scheduler, but could be improved with parallel generation limited by API rate limits.
+
+### Second Bottleneck
+
+**X API read limits.** 10,000 reads/month at Basic tier. With 20+ influencer accounts and growing keyword searches, this could hit the ceiling. Solution: upgrade to Pro ($5,000/month -- steep) or use the pay-per-use option when it becomes generally available, or reduce collection frequency for X sources to every-other-day.
+
+---
+
+## Suggested Build Order (Dependencies-Aware)
+
+The following order accounts for technical dependencies between features:
+
+### Phase 1: Foundation (schema changes + collector refactor)
+1. **Database schema migration** -- add pgvector extension, new tables, modified columns, extended enum
+2. **Source type collector map** -- refactor `newsCollectorService` to use strategy map instead of if/else
+3. **Source health instrumentation** -- wrap collection loop with timing/logging, sourceHealthLogs table
+
+*Rationale: Everything else builds on the schema. Strategy pattern makes adding new source types clean.*
+
+### Phase 2: New Collection Sources
+4. **X API integration** -- `xClient.ts` + `x_account` and `x_search` collectors
+5. **Tavily web search** -- `webSearchClient.ts` + `web_search` collector + per-client search
+6. **Expanded RSS** -- add more RSS sources via admin UI (no code change needed, just data)
+
+*Rationale: Each collector is independent. X and Tavily can be built in parallel.*
+
+### Phase 3: Semantic Deduplication
+7. **Embedding client** -- `embeddingClient.ts` (OpenAI text-embedding-3-small)
+8. **Deduplication service** -- embed-then-compare pipeline, duplicate flagging
+9. **Newsletter service update** -- exclude duplicates when selecting news for digest
+
+*Rationale: Dedup depends on having multiple sources producing overlapping content (Phase 2).*
+
+### Phase 4: Auto-Scheduling
+10. **Schedule service** -- `isDue()` logic, client schedule fields
+11. **Scheduler update** -- hourly tick calling `checkDueClients()`
+12. **Admin UI for schedules** -- configure frequency/day/hour per client
+
+*Rationale: Depends on reliable news collection (Phase 2) and clean data (Phase 3).*
+
+### Phase 5: Email Redesign + Feedback
+13. **Premium email template** -- redesign `DigestEmail.tsx` with brand frame + co-branding
+14. **aisanomat.fi featured section** -- data flow from source to template
+15. **Feedback system** -- `feedbackService`, public endpoint, vote URLs in email
+
+*Rationale: Template redesign is cosmetic (no backend deps). Feedback requires template changes, so they ship together.*
+
+### Phase 6: Source Health Dashboard
+16. **Source health service** -- quality scoring algorithm, daily check cron
+17. **Admin health UI** -- source health dashboard, alerts for failing sources
+
+*Rationale: Needs accumulated health data from Phase 1 instrumentation. Lower priority than user-facing features.*
+
+---
+
+## Environment Variables Required (New)
+
+```bash
+# X API
+X_BEARER_TOKEN=            # X API v2 Bearer token (Basic tier, $200/mo)
+
+# Tavily
+TAVILY_API_KEY=            # Tavily search API key (free tier: 1,000 credits/mo)
+
+# OpenAI (for embeddings only, not for text generation)
+OPENAI_API_KEY=            # OpenAI API key for text-embedding-3-small
+```
+
+---
 
 ## Sources
 
-- [Fastify plugin architecture](https://fastify.dev/docs/latest/Reference/Plugins/) -- Official docs (HIGH)
-- [Next.js 16 upgrade guide](https://nextjs.org/docs/app/guides/upgrading/version-16) -- proxy.ts rename (HIGH)
-- [Drizzle ORM PostgreSQL](https://orm.drizzle.team/docs/get-started-postgresql) -- Official docs (HIGH)
-- [React Email + Resend](https://resend.com/docs/send-with-nodejs) -- Official docs (HIGH)
-- [Railway PostgreSQL](https://docs.railway.com/databases/postgresql) -- Deployment patterns (HIGH)
-- [Resend webhooks](https://resend.com/docs/webhooks/introduction) -- Webhook architecture (HIGH)
+- [Drizzle ORM pgvector guide](https://orm.drizzle.team/docs/guides/vector-similarity-search) -- schema definition, cosineDistance, HNSW index (HIGH)
+- [pgvector on Railway](https://railway.com/deploy/pgvector-latest) -- confirms availability (HIGH)
+- [pgvector-node on GitHub](https://github.com/pgvector/pgvector-node) -- Node.js/Drizzle support (HIGH)
+- [twitter-api-v2 npm](https://www.npmjs.com/package/twitter-api-v2) -- Node.js X API client docs (HIGH)
+- [Tavily API credits & pricing](https://docs.tavily.com/documentation/api-credits) -- credit costs, plan tiers (HIGH)
+- [OpenAI text-embedding-3-small](https://platform.openai.com/docs/models/text-embedding-3-small) -- $0.02/1M tokens, 512-dim Matryoshka support (HIGH)
+- [X API pricing tiers](https://twitterapi.io/blog/twitter-api-pricing-2025) -- Basic $200/month, 10K reads (MEDIUM)
+- [React Email templates](https://react.email/templates) -- component library (HIGH)
+- [node-cron npm](https://www.npmjs.com/package/node-cron) -- scheduler features, setTime, waitForCompletion (HIGH)
 
 ---
-*Architecture research for: AI-Sanomat Yrityksille (Enterprise AI Newsletter Platform)*
-*Researched: 2026-03-02*
+*Architecture research for: AI-Sanomat Yrityksille v1.1 feature integration*
+*Researched: 2026-03-03*

@@ -1,222 +1,354 @@
-# Stack Research
+# Stack Research: v1.1 Smart Sourcing & Polish
 
-**Domain:** Enterprise AI-curated newsletter platform with admin panel and company portal
-**Researched:** 2026-03-02
-**Confidence:** HIGH
+**Domain:** Enterprise AI-curated newsletter platform -- new feature additions
+**Researched:** 2026-03-03
+**Confidence:** HIGH (most libraries verified via npm/official docs)
 
-## Critical Recommendation: Upgrade to Next.js 16
+## Scope
 
-The PROJECT.md specifies Next.js 15, but Next.js 16 was released in late 2025 and is now the active stable version (16.1.6 as of February 2026). Since this is a greenfield project, there is no reason to start on a version that is already in maintenance mode. Next.js 16 brings Turbopack as default (2-5x faster builds), stable React Compiler support, improved routing/navigation, and stable caching APIs -- all directly beneficial.
+This covers ONLY new dependencies needed for v1.1 features. The existing validated stack (Fastify 5.7, Next.js 16.1, PostgreSQL 16, Drizzle ORM 0.45, Claude Sonnet 4.6 via @anthropic-ai/sdk, Gemini via @google/genai, Resend 6.9, React Email 1.0.8, node-cron 4.2, Zod 3.25, Svix 1.86) is NOT re-researched. See v1.0 research archive for those decisions.
 
-## Recommended Stack
+---
 
-### Core Technologies
+## Recommended New Dependencies
 
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| Node.js | 22.x LTS (22.22.0) | Runtime | Current LTS ("Jod"), supported until 2027-04-30. Next.js 16 requires >= 20.9.0, Fastify 5 targets >= 20. Node 22 gives ES modules, V8 v12.4 |
-| TypeScript | 5.9.x | Type safety | Latest stable. TS 6.0 is in beta (transition release before Go rewrite), not production-ready yet |
-| Next.js | 16.1.x | Frontend (admin + portal) | Current stable. Turbopack default, React Compiler stable, improved caching APIs, React 19.2 features. No migration cost since greenfield |
-| Fastify | 5.7.x | API server | Fastest Node.js framework, built-in schema validation via JSON Schema, excellent TypeScript support, plugin architecture |
-| PostgreSQL | 16.x | Database | Railway's default PostgreSQL. Mature, reliable, JSON support for flexible fields like prompt templates |
-| Drizzle ORM | 0.45.x | Database ORM | Type-safe SQL-like queries, excellent TypeScript inference, lightweight (no query engine binary unlike Prisma), SQL-first philosophy matches Fastify's "close to metal" ethos |
-| React Email | 5.x (@react-email/components 1.0.8) | Email templates | JSX-based email components, Tailwind 4 support, built by Resend team -- perfect synergy with Resend delivery |
-| Resend | 6.9.x (SDK) | Email delivery | Already chosen. Best DX for transactional email, React Email integration built-in, webhook support for bounces |
-| Tailwind CSS | 4.2.x | Styling | v4 is current standard. Zero-config setup, 5x faster builds, CSS-first configuration. Works with both Next.js and React Email |
-
-### AI & Image Generation
+### 1. X (Twitter) Monitoring: `twitter-api-v2`
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| @anthropic-ai/sdk | 0.78.x | Claude API (text generation + validation) | Official Anthropic SDK. Direct API access for Sonnet 4.6 content generation and fact validation passes |
-| @google/genai | 1.43.x | Gemini image generation | Official Google GenAI SDK. Supports Nano Banana models (gemini-2.5-flash-image). Replaces older @google/generative-ai package |
+| `twitter-api-v2` | ^1.29.0 | X API v2 client for influencer timelines and keyword search | Only actively maintained, strongly-typed Node.js client for X API v2. Full TypeScript support, automatic pagination with async iterators, built-in rate-limit handling. Officially listed on X developer platform. |
 
-**Gemini Model Note (MEDIUM confidence):** The project references "Gemini Nano Banana 2". Current Nano Banana models as of March 2026 include:
-- `gemini-2.5-flash-image` -- optimized for high-volume, free tier (500 images/day)
-- `gemini-3.1-flash-image-preview` -- newer, faster
-- `gemini-3-pro-image-preview` -- higher quality for professional assets
+**X API Access Tier: Pay-Per-Use (recommended)**
 
-Recommend starting with `gemini-2.5-flash-image` for cost control, with option to upgrade to newer models. Verify exact model access with API key.
+X launched consumption-based pricing in February 2026. This is the right fit because:
+- No $200/month minimum commitment (old Basic tier required this even for light use)
+- Credits purchased upfront, deducted per request: single-item lookups = 1 credit, paginated (20 items) = 5 credits, batch (100 items) = 25 credits
+- Spending caps prevent surprise bills, auto-top-up optional
+- Monthly cap of 2M post reads -- far above newsletter needs
+- For ~20 influencer timelines + keyword searches weekly, expect very low monthly cost
 
-### Database Layer
+**Alternative considered: Third-party X data APIs** (TwitterAPI.io at $0.15/1K tweets, SocialData, SociaVault). These are 90% cheaper but introduce ToS violation risk, vendor instability, and a dependency on scraping infrastructure. For a legitimate B2B product sold to enterprises, the official API is the only defensible choice.
+
+**Integration with existing codebase:**
+```typescript
+// New file: api/src/integrations/xClient.ts
+import { TwitterApi } from 'twitter-api-v2';
+
+const client = new TwitterApi(process.env.X_BEARER_TOKEN!);
+const readOnly = client.readOnly;
+
+// Keyword search (last 7 days) -- fits existing CollectedItem interface
+export async function searchXPosts(query: string): Promise<CollectedItem[]> {
+  const results = await readOnly.v2.search(query, {
+    max_results: 100,
+    'tweet.fields': ['created_at', 'public_metrics', 'entities'],
+  });
+  return results.data.data.map(tweet => ({
+    title: tweet.text.slice(0, 200),
+    url: `https://x.com/i/status/${tweet.id}`,
+    summary: tweet.text,
+    publishedAt: tweet.created_at ? new Date(tweet.created_at) : null,
+  }));
+}
+
+// Influencer timeline monitoring
+export async function fetchUserTimeline(userId: string): Promise<CollectedItem[]> {
+  const timeline = await readOnly.v2.userTimeline(userId, {
+    max_results: 10,
+    'tweet.fields': ['created_at', 'public_metrics'],
+  });
+  // ... same mapping pattern
+}
+```
+
+**Extends `newsCollectorService.ts`:** Add `'x_search'` and `'x_user'` to `sourceTypeEnum`. The existing sequential collection loop and try/catch per source pattern works unchanged.
+
+---
+
+### 2. Web Search: `@tavily/core`
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| postgres (postgres.js) | 3.4.x | PostgreSQL driver | Fastest JS PostgreSQL client. Works with Drizzle ORM. Better performance than node-postgres (pg) for typical workloads |
-| drizzle-orm | 0.45.x | ORM | Type-safe schema definitions, SQL-like query builder, migrations via drizzle-kit. No binary dependencies (unlike Prisma) -- important for Railway deployment |
-| drizzle-kit | latest (match drizzle-orm) | Migrations CLI | Schema push/migration generation. Pairs with drizzle-orm |
+| `@tavily/core` | ^0.7.2 | AI-optimized web search for industry-specific news discovery | Returns LLM-ready extracted content in a single API call (search + scrape + extract). No separate scraping pipeline needed. Purpose-built for feeding results into AI models. |
 
-### Supporting Libraries
+**Why Tavily over Serper:**
 
-| Library | Version | Purpose | When to Use |
-|---------|---------|---------|-------------|
-| zod | 4.3.x | Schema validation | API input validation, environment variable validation, form validation. Integrates with Fastify via fastify-type-provider-zod |
-| jose | 6.1.x | JWT tokens | Magic link token generation/verification for company portal auth. Zero dependencies, Web Crypto API based |
-| rss-parser | 3.13.x | RSS feed parsing | Collecting AI news from RSS sources. Stable, widely used, TypeScript types included |
-| @fastify/cors | 11.2.x | CORS handling | Required for Next.js frontend calling Fastify API on different port/domain |
-| @fastify/cookie | 11.0.x | Cookie handling | Session/auth cookie management for admin and portal |
-| @fastify/rate-limit | 10.3.x | Rate limiting | Protect API endpoints, especially Claude/Gemini proxy routes |
-| @fastify/swagger | 9.7.x | API documentation | Auto-generate OpenAPI spec from Fastify schemas. Useful for development/debugging |
-| @fastify/swagger-ui | latest | Swagger UI | Browse API docs visually during development |
-| node-cron | 3.x | Scheduled tasks | Weekly digest generation trigger, RSS feed polling schedule. Simpler than BullMQ for MVP scope |
-| shadcn/ui | latest (CLI-based) | UI components | Admin panel and portal UI. Not an npm package -- CLI copies components. Works with Next.js 16 + Tailwind 4 + React 19 |
-| react-hook-form | latest | Form handling | Admin panel forms (prompt editing, client management). Works with zod via @hookform/resolvers |
-| @tanstack/react-table | latest | Data tables | Admin panel: client lists, news source management, digest history |
+| Factor | Tavily | Serper |
+|--------|--------|--------|
+| Output format | Clean extracted content per result | Raw SERP data (titles, URLs, snippets only) |
+| Content extraction | Included -- aggregates from up to 20 sources | Not included -- requires separate scraping of each URL |
+| Architecture impact | Single API call | Search API call + Puppeteer/fetch per URL + HTML cleaning |
+| Free tier | 1,000 credits/month | 2,500 queries but each needs scraping |
+| Paid pricing | ~$0.008/credit ($8/1K searches) | ~$1/1K queries + scraping infra cost |
+| AI optimization | Built for LLM/RAG workflows | General SERP wrapper |
 
-### Development Tools
+The decisive factor: Serper returns Google search snippets. To get actual article content for Claude to summarize, you would need to fetch and parse each URL separately, adding Puppeteer or a scraping service. Tavily eliminates this entire layer. For a newsletter platform that feeds search results into Claude, Tavily's single-call approach removes significant complexity.
 
-| Tool | Purpose | Notes |
-|------|---------|-------|
-| drizzle-kit | DB migrations | `npx drizzle-kit push` for development, `npx drizzle-kit generate` + `migrate` for production |
-| tsx | TypeScript execution | Run TS directly without build step for scripts and development |
-| dotenv | Environment variables | Load .env files in development. Use `dotenv-cli` for running drizzle-kit with env vars |
-| eslint + eslint-config-next | Linting | Next.js 16 removed `next lint` CLI -- use ESLint directly with flat config |
-| prettier | Formatting | Standard code formatting |
-| prettier-plugin-tailwindcss | Tailwind class sorting | Auto-sort Tailwind classes in JSX |
+**Pricing estimate:** Basic search = 1 credit, advanced search = 2 credits. For 10 clients with weekly industry-specific searches (2 searches each), that's ~80 credits/month -- well within the free 1,000 credits/month tier.
 
-## Installation
+**Integration pattern:**
+```typescript
+// New file: api/src/integrations/tavilyClient.ts
+import { tavily } from '@tavily/core';
+
+const client = tavily({ apiKey: process.env.TAVILY_API_KEY! });
+
+export async function searchWeb(query: string): Promise<CollectedItem[]> {
+  const results = await client.search(query, {
+    searchDepth: 'advanced',
+    maxResults: 10,
+    includeAnswer: false,
+    topic: 'news',
+  });
+  return results.results.map(r => ({
+    title: r.title,
+    url: r.url,
+    summary: r.content, // Already extracted, clean text
+    publishedAt: null, // Tavily doesn't return publish dates
+  }));
+}
+```
+
+---
+
+### 3. Semantic Deduplication: `openai` + `pgvector`
+
+| Technology | Version | Purpose | Why Recommended |
+|------------|---------|---------|-----------------|
+| `openai` | ^6.25.0 | OpenAI Embeddings API (`text-embedding-3-small`) for generating vector embeddings of news items | Cheapest quality embeddings: $0.02/1M tokens. 1536 dimensions. Anthropic does not offer an embeddings API (they partner with Voyage AI, which adds unnecessary vendor complexity). |
+| pgvector (PostgreSQL extension) | 0.7+ | Vector column storage and cosine similarity search in existing PostgreSQL | No separate vector DB needed. Railway has one-click pgvector deployment templates. Drizzle ORM has built-in pgvector support (vector column type, cosineDistance function, HNSW indexes). |
+
+**Why this approach:**
+
+1. **Why not Claude for embeddings?** Anthropic explicitly does not offer an embeddings model. Their docs recommend Voyage AI, but adding a third AI vendor for a simple embedding task is unnecessary complexity.
+
+2. **Why not a dedicated vector database (Pinecone, Qdrant, Weaviate)?** The dataset is tiny: ~100-500 news items per week. pgvector in the existing PostgreSQL handles this with zero operational overhead. A separate vector DB adds another service to manage on Railway for no benefit at this scale.
+
+3. **Why not fuzzy string matching?** URL deduplication (already in v1.0 via `newsItems.url` UNIQUE constraint) catches exact duplicates. Semantic dedup catches "same story, different source" -- e.g., TechCrunch and The Verge both covering an OpenAI announcement with completely different titles and URLs. This requires understanding meaning, not string similarity.
+
+4. **Why not local/on-device embeddings (transformers.js, ONNX)?** Adds CPU/memory overhead on Railway containers. The API approach is simpler and costs essentially nothing ($0.02/1M tokens -- 500 articles/week at ~100 tokens each = $0.001/week).
+
+**Drizzle ORM pgvector integration (verified in official docs):**
+
+```typescript
+// Schema addition to newsItems table
+import { vector, index } from 'drizzle-orm/pg-core';
+import { cosineDistance, gt, desc, sql } from 'drizzle-orm';
+
+export const newsItems = pgTable('news_items', {
+  // ... existing columns unchanged
+  embedding: vector('embedding', { dimensions: 1536 }),
+}, (table) => [
+  index('news_embedding_idx').using('hnsw', table.embedding.op('vector_cosine_ops')),
+]);
+
+// Deduplication query
+const similarity = sql<number>`1 - (${cosineDistance(newsItems.embedding, queryEmbedding)})`;
+const duplicates = await db
+  .select({ id: newsItems.id, title: newsItems.title, similarity })
+  .from(newsItems)
+  .where(gt(similarity, 0.85)) // Threshold: 85% similarity = likely duplicate
+  .orderBy(desc(similarity))
+  .limit(5);
+```
+
+**Railway pgvector setup:** Railway offers PostgreSQL 16/17/18 templates with pgvector pre-installed. If the current instance doesn't have it, run `CREATE EXTENSION IF NOT EXISTS vector;` (requires superuser, which Railway grants). Alternatively, spin up a new PostgreSQL from the pgvector template and migrate.
+
+---
+
+## Features Requiring NO New Dependencies
+
+### 4. Email Feedback (Thumbs Up/Down)
+
+**Zero new libraries.** Implemented with existing stack:
+
+- **Signed feedback URLs:** Use existing `@fastify/jwt` to create per-member, per-issue tokens containing `{ issueId, memberId, rating }` with long expiry. Embed as links in email template.
+- **New API endpoint:** `GET /api/feedback?token=<jwt>` validates token, records feedback, redirects to a simple "Thank you" HTML page.
+- **New database table:** `issue_feedback` with `issueId`, `memberId`, `rating` (enum: 'positive' | 'negative'), `createdAt`.
+- **Email template change:** Add two button-style links in `DigestEmail.tsx` footer with thumbs-up/thumbs-down labels.
+
+Why not an external survey service (Typeform, etc.)? Inline email buttons have far higher response rates. A single-click action directly in the email is the highest-conversion approach for satisfaction tracking.
+
+### 5. Source Health Monitoring
+
+**Zero new libraries.** Extends existing `newsCollectorService.ts`:
+
+- **New columns on `news_sources`:** `lastSuccessAt` (timestamp), `lastErrorAt` (timestamp), `consecutiveErrors` (integer), `healthScore` (integer 0-100), `lastItemCount` (integer).
+- **Collection wrapper:** Already has try/catch per source in the sequential loop. Add health metric updates on success/failure.
+- **Staleness detection:** Add a `node-cron` job (already used) that flags sources with no new items for 7+ days.
+- **Quality scoring:** Track how often items from each source are selected for final digests (used/collected ratio).
+
+### 6. Premium Newsletter Design
+
+**Zero new libraries.** Redesign `DigestEmail.tsx` using existing `@react-email/components`:
+
+- Add AI-Sanomat logo image (static asset served via `@fastify/static`)
+- Add client co-branding section with company name and industry tag
+- Add "AI-Sanomat suosittelee" featured section for aisanomat.fi content
+- Add feedback buttons in footer (see item 4)
+- Improve spacing, typography, visual hierarchy
+- Keep single-column 600px width for email client compatibility (mandatory best practice)
+
+All necessary React Email primitives (`Button`, `Column`, `Row`, `Section`, `Img`, `Link`, `Hr`, `Text`, `Container`) are in `@react-email/components` 1.0.8, already installed.
+
+### 7. Auto-Scheduled Digest Generation
+
+**Zero new libraries.** Extends existing `node-cron` scheduler:
+
+- **New columns on `clients`:** `sendFrequency` ('weekly' | 'biweekly' | 'monthly'), `preferredSendDay` (0-6), `preferredSendHour` (integer), `nextScheduledAt` (timestamp).
+- **Scheduler enhancement:** Add cron job that checks `clients.nextScheduledAt <= NOW()` and triggers draft generation for matching clients.
+- **Admin review gate:** Auto-generation creates digests in "ready" status. Admin reviews and explicitly approves before sending. This matches existing `issueStatusEnum` workflow.
+
+---
+
+## Complete Installation
+
+### New Production Dependencies
 
 ```bash
-# === API Server (Fastify) ===
-
-# Core
-npm install fastify @fastify/cors @fastify/cookie @fastify/rate-limit @fastify/swagger @fastify/swagger-ui
-
-# Database
-npm install drizzle-orm postgres
-
-# Validation
-npm install zod fastify-type-provider-zod
-
-# AI
-npm install @anthropic-ai/sdk @google/genai
-
-# Email
-npm install resend @react-email/components @react-email/render
-
-# Auth & Scheduling
-npm install jose node-cron
-
-# News Collection
-npm install rss-parser
-
-# Dev dependencies
-npm install -D drizzle-kit typescript tsx @types/node dotenv-cli
-
-# === Frontend (Next.js) ===
-
-# Core
-npx create-next-app@latest --typescript --tailwind --app --src-dir
-
-# UI (shadcn/ui is installed via CLI, not npm)
-npx shadcn@latest init
-npx shadcn@latest add button card dialog form input label table tabs textarea toast
-
-# Forms & Tables
-npm install react-hook-form @hookform/resolvers @tanstack/react-table
-
-# Dev dependencies
-npm install -D @types/react @types/react-dom eslint prettier prettier-plugin-tailwindcss
+npm install -w api twitter-api-v2@^1.29.0 @tavily/core@^0.7.2 openai@^6.25.0
 ```
 
-## Monorepo vs Separate Projects
+### Database Extension
 
-**Recommendation: Single repository, two package.json directories (monorepo-lite)**
-
-```
-ai-sanomat-yrityksille/
-  api/              # Fastify API server
-    package.json
-    src/
-  web/              # Next.js frontend
-    package.json
-    src/
-  packages/
-    shared/         # Shared types, validation schemas
-      package.json
-  package.json      # Workspace root (npm workspaces)
+```sql
+-- Run once on Railway PostgreSQL instance
+CREATE EXTENSION IF NOT EXISTS vector;
 ```
 
-Use npm workspaces (built into npm, no extra tool needed). Share TypeScript types and Zod schemas between API and frontend via `packages/shared`. Both deploy independently on Railway.
+### New Environment Variables
 
-**Why not a single package.json:** Fastify and Next.js have different dependency trees, build processes, and deployment targets. Mixing them creates dependency conflicts and bloated deployments.
+```env
+# X API (pay-per-use account)
+X_BEARER_TOKEN=
+
+# Tavily (from tavily.com dashboard)
+TAVILY_API_KEY=
+
+# OpenAI (for embeddings only -- not for text generation)
+OPENAI_API_KEY=
+```
+
+### No New Dev Dependencies
+
+All existing dev tooling (tsx, drizzle-kit, TypeScript, ESLint) handles the new code.
+
+---
 
 ## Alternatives Considered
 
 | Recommended | Alternative | Why Not |
 |-------------|-------------|---------|
-| Next.js 16 | Next.js 15 | 15 is in maintenance. 16 is stable with significant improvements. No migration cost for greenfield |
-| Fastify 5 | Express 4/5 | Fastify is 2-3x faster, has built-in schema validation, better TypeScript support, and plugin architecture |
-| Drizzle ORM | Prisma | Prisma requires binary engine (deployment complexity on Railway), slower cold starts, heavier bundle. Drizzle is SQL-first which gives more control |
-| postgres.js | node-postgres (pg) | postgres.js is faster, cleaner API, better prepared statement handling. pg has larger ecosystem but we don't need it |
-| Zod 4 | Joi, Yup | Zod is TypeScript-first, works natively with Fastify type providers, and integrates with Drizzle for schema validation |
-| node-cron | BullMQ | BullMQ requires Redis (extra Railway service cost). node-cron is sufficient for weekly cron + hourly RSS polling. Upgrade to BullMQ later if needed |
-| jose | jsonwebtoken | jose has zero dependencies, uses Web Crypto API (future-proof), better security. jsonwebtoken is legacy |
-| shadcn/ui | Material UI, Chakra UI | shadcn/ui gives you the source code (no dependency lock-in), works perfectly with Tailwind 4, most popular choice in Next.js ecosystem 2025-2026 |
-| Tailwind 4 | Tailwind 3 | Tailwind 4 is current, React Email 5 supports it, Next.js 16 starters use it. No reason to use v3 |
-| React Email | MJML, email-templates | React Email uses JSX (consistent with frontend), built by Resend team (perfect integration), supports Tailwind. MJML has its own templating language |
+| `twitter-api-v2` (official) | TwitterAPI.io, SocialData, SociaVault | Third-party scraping services pose ToS risk for enterprise B2B product |
+| `@tavily/core` | `serper` npm package | Serper returns raw SERP data requiring separate content scraping per URL |
+| `@tavily/core` | Perplexity Search API | Chat-oriented API, harder to get structured results, more expensive |
+| `@tavily/core` | Exa Search | More expensive, focused on similarity search rather than news discovery |
+| OpenAI `text-embedding-3-small` | Voyage AI | Anthropic's recommended partner, but adds another vendor for a simple task |
+| OpenAI `text-embedding-3-small` | Cohere Embed v3 | Good alternative, but OpenAI's pricing is lower and the SDK is simpler |
+| OpenAI `text-embedding-3-small` | transformers.js (local) | CPU/memory overhead on Railway, API is simpler and effectively free at this scale |
+| pgvector (in PostgreSQL) | Pinecone, Qdrant, Weaviate | Separate vector DB is overkill for <1K items/week; pgvector uses existing infra |
+| JWT-signed feedback URLs | SurveyMonkey, Typeform | External tools add friction; inline email buttons have highest conversion |
+| JWT-signed feedback URLs | Resend click tracking | Click tracking is deferred to v2.0 per scope; feedback needs explicit rating, not just click data |
+| node-cron for scheduling | BullMQ + Redis | Adds Redis service on Railway ($5/mo); unnecessary for <50 clients with weekly batches |
 
-## What NOT to Use
+---
+
+## What NOT to Add
 
 | Avoid | Why | Use Instead |
-|-------|-----|-------------|
-| Prisma | Binary engine complicates Railway deployment, slower cold starts, heavy bundle | Drizzle ORM |
-| Express | Slower, weaker TypeScript support, no built-in validation | Fastify 5 |
-| NextAuth.js / Auth.js | Over-engineered for this use case (1 admin + magic links). Adds massive complexity | jose for JWT magic links, hardcoded admin auth |
-| BullMQ + Redis | Unnecessary infrastructure cost for MVP. Only ~10 companies, weekly sends | node-cron |
-| @google/generative-ai | Old/deprecated Google AI SDK | @google/genai (new unified SDK) |
-| Nodemailer | Low-level SMTP, no analytics, no React Email integration | Resend SDK |
-| Mongoose | MongoDB ORM, wrong database | Drizzle ORM with PostgreSQL |
-| tRPC | Adds coupling between frontend and API. Fastify's JSON Schema validation + TypeScript provides similar type safety without the tight coupling | Fastify typed routes + shared Zod schemas |
-| Next.js API routes (for backend) | Limited to serverless function patterns, no long-running processes, harder to manage cron jobs and background tasks | Separate Fastify server |
+|-------|-----|---------------------|
+| Separate vector database (Pinecone, Qdrant) | Under 1K items/week; another service to manage on Railway | pgvector in existing PostgreSQL |
+| Puppeteer / Playwright | Heavy browser automation, complex Railway deployment, unnecessary with Tavily | `@tavily/core` handles content extraction |
+| Redis | Premature; no job queue or caching need at current scale | Node.js in-memory for caching, node-cron for scheduling |
+| BullMQ | Over-engineering for weekly batch processing with <50 clients | node-cron + async functions |
+| `@tavily/ai-sdk` | Vercel AI SDK v5/v6 integration wrapper; we don't use Vercel AI SDK | `@tavily/core` directly |
+| `serper` npm package | Would need separate scraping layer to get article content | `@tavily/core` does search + extraction |
+| Click tracking library | Explicitly deferred to v2.0 in PROJECT.md | Resend's built-in open tracking + feedback buttons |
+| Multiple embedding models | text-embedding-3-small is more than sufficient for title/summary dedup | Single model, single vendor |
+| Voyage AI SDK | Adds third AI vendor (after Anthropic and Google) for no clear benefit | OpenAI embeddings are simpler and cheaper |
+| `@anthropic-ai/sdk` for embeddings | Anthropic does not offer embeddings | OpenAI `text-embedding-3-small` |
 
-## Stack Patterns by Variant
+---
 
-**If scaling beyond 50 companies:**
-- Replace node-cron with BullMQ + Redis for job queuing
-- Add connection pooling (PgBouncer or Railway's built-in)
-- Consider splitting digest generation into background workers
+## Version Compatibility Matrix
 
-**If adding real-time features later:**
-- Fastify has native WebSocket support via @fastify/websocket
-- No architecture change needed
+| New Package | Compatible With | Notes |
+|-------------|-----------------|-------|
+| `twitter-api-v2@^1.29.0` | Node.js 16+, TypeScript 4.5+ | Uses native fetch in Node 18+; project already on Node 22+ |
+| `@tavily/core@^0.7.2` | Node.js >= 18 | ESM compatible, matches project's `"type": "module"` |
+| `openai@^6.25.0` | Node.js >= 18, TypeScript 4.7+ | ESM compatible; only using `client.embeddings.create()`, no streaming needed |
+| `drizzle-orm@^0.45.0` + pgvector | pgvector extension 0.5+, PostgreSQL 12+ | Vector type, cosineDistance, HNSW index support added in drizzle-orm 0.30+; project is already on 0.45 |
+| pgvector extension | PostgreSQL 12+ | Railway supports PG 16/17/18 with pgvector; `CREATE EXTENSION vector` is all that's needed |
 
-**If email volume exceeds Resend free tier (3000/month):**
-- Resend Pro at $20/month covers up to 50,000 emails
-- At 10 companies x 50 members x 4 weeks = 2,000 emails/month -- free tier may suffice initially
+---
 
-## Version Compatibility
+## Integration Map (How New Libraries Touch Existing Code)
 
-| Package A | Compatible With | Notes |
-|-----------|-----------------|-------|
-| Next.js 16.1.x | React 19.2.x, Node.js >= 20.9.0, TypeScript >= 5.1.0 | React 19.2 is bundled with Next.js 16 |
-| Fastify 5.7.x | Node.js >= 20.x | Dropped Node 18 support |
-| Drizzle ORM 0.45.x | postgres.js 3.x, pg 8.x | Both drivers supported |
-| React Email 5.x | React 19.x, Tailwind CSS 4.x | Full Tailwind 4 support added in v5 |
-| Resend SDK 6.9.x | React Email 5.x | Same company, guaranteed compatibility |
-| Tailwind CSS 4.2.x | Next.js 16.x | Both use modern CSS features, same browser targets |
-| shadcn/ui | Next.js 16.x, React 19.x, Tailwind 4.x | CLI-based, always generates compatible code |
-| Zod 4.3.x | fastify-type-provider-zod | Verify type provider supports Zod 4 -- may need Zod 3.x if not updated yet |
+### New Files to Create
 
-**Zod Version Warning (LOW confidence):** Zod 4.x was released July 2025. Some ecosystem libraries (fastify-type-provider-zod, @hookform/resolvers) may still target Zod 3.x. Check compatibility at integration time. Zod 4 has a backwards-compatible import path `zod/v3` for this scenario.
+| File | Purpose | Dependencies |
+|------|---------|-------------|
+| `api/src/integrations/xClient.ts` | X API search + timeline functions | `twitter-api-v2` |
+| `api/src/integrations/tavilyClient.ts` | Web search via Tavily | `@tavily/core` |
+| `api/src/integrations/embeddingClient.ts` | Generate embeddings via OpenAI | `openai` |
+| `api/src/services/deduplicationService.ts` | Semantic dedup logic using embeddings + pgvector | `embeddingClient`, `drizzle-orm` |
+
+### Existing Files to Modify
+
+| File | Change | Why |
+|------|--------|-----|
+| `api/src/db/schema.ts` | Add new source types to enum, vector column to newsItems, new tables (issue_feedback), new columns on clients and news_sources | Support new features |
+| `api/src/services/newsCollectorService.ts` | Add X and Tavily source type handlers in the collection loop | New source types |
+| `api/src/scheduler.ts` | Add auto-generation cron job, source health check job | Scheduled generation, health monitoring |
+| `api/src/emails/DigestEmail.tsx` | Add branding, co-branding, featured section, feedback buttons | Premium design + feedback |
+| `api/src/services/emailService.ts` | Generate per-member feedback URLs, pass to template | Feedback tokens |
+
+### Files That Stay Unchanged
+
+| File | Why |
+|------|-----|
+| `api/src/integrations/claudeClient.ts` | Content generation/validation unchanged |
+| `api/src/integrations/geminiClient.ts` | Image generation unchanged |
+| `api/src/integrations/resendClient.ts` | Email sending unchanged |
+| `api/src/integrations/rssCollector.ts` | RSS collection unchanged, just gets more sources |
+| `api/src/routes/webhooks.ts` | Resend webhook handling unchanged |
+
+---
+
+## Cost Summary (Monthly Estimates at 10 Clients)
+
+| Service | Expected Usage | Monthly Cost |
+|---------|---------------|-------------|
+| X API (pay-per-use) | ~200 timeline reads + ~50 searches/week | ~$5-15 |
+| Tavily | ~80 advanced searches/month | Free (1,000 credit tier) |
+| OpenAI Embeddings | ~2K articles x 100 tokens = 200K tokens/month | ~$0.004 (effectively free) |
+| pgvector | Runs in existing PostgreSQL | $0 |
+
+**Total new API costs: ~$5-15/month** (dominated by X API)
+
+---
 
 ## Sources
 
-- [Next.js 16 upgrade guide](https://nextjs.org/docs/app/guides/upgrading/version-16) -- Official docs, verified Feb 2026
-- [Next.js 16 blog post](https://nextjs.org/blog/next-16) -- Official announcement
-- [Fastify releases](https://github.com/fastify/fastify/releases) -- GitHub, v5.7.4 confirmed
-- [Drizzle ORM PostgreSQL docs](https://orm.drizzle.team/docs/get-started-postgresql) -- Official docs
-- [Resend Node.js SDK](https://www.npmjs.com/package/resend) -- npm, v6.9.3 confirmed
-- [React Email 5.0 announcement](https://resend.com/blog/react-email-5) -- Official blog
-- [@google/genai npm](https://www.npmjs.com/package/@google/genai) -- npm, v1.43.0 confirmed
-- [Gemini image generation docs](https://ai.google.dev/gemini-api/docs/image-generation) -- Official Google docs
-- [@anthropic-ai/sdk npm](https://www.npmjs.com/package/@anthropic-ai/sdk) -- npm, v0.78.0 confirmed
-- [Railway PostgreSQL docs](https://docs.railway.com/databases/postgresql) -- Official Railway docs
-- [Node.js 22 LTS](https://nodejs.org/en/blog/release/v22.22.0) -- Official Node.js
-- [Tailwind CSS v4](https://tailwindcss.com/blog/tailwindcss-v4) -- Official announcement
-- [TypeScript releases](https://github.com/microsoft/typescript/releases) -- GitHub, v5.9 stable confirmed
-- [jose npm](https://www.npmjs.com/package/jose) -- npm, v6.1.3 confirmed
+- [twitter-api-v2 npm](https://www.npmjs.com/package/twitter-api-v2) -- v1.29.0 confirmed, HIGH confidence
+- [twitter-api-v2 GitHub docs](https://github.com/plhery/node-twitter-api-v2/blob/master/doc/v2.md) -- API reference, HIGH confidence
+- [X API pay-per-use announcement](https://devcommunity.x.com/t/announcing-the-x-api-pay-per-use-pricing-pilot/250253) -- February 2026, MEDIUM confidence (pricing details evolving)
+- [X API pricing overview](https://www.wearefounders.uk/the-x-api-price-hike-a-blow-to-indie-hackers/) -- tier breakdown, MEDIUM confidence
+- [@tavily/core npm](https://www.npmjs.com/package/@tavily/core) -- v0.7.2 confirmed, HIGH confidence
+- [Tavily JS quickstart](https://docs.tavily.com/sdk/javascript/quick-start) -- official docs, HIGH confidence
+- [Tavily pricing/credits](https://docs.tavily.com/documentation/api-credits) -- credit model, HIGH confidence
+- [Tavily vs Serper comparison](https://searchmcp.io/blog/tavily-vs-serper-search-api) -- output format differences, MEDIUM confidence
+- [openai npm](https://www.npmjs.com/package/openai) -- v6.25.0 confirmed, HIGH confidence
+- [OpenAI text-embedding-3-small](https://platform.openai.com/docs/models/text-embedding-3-small) -- $0.02/1M tokens, HIGH confidence
+- [Anthropic embeddings page](https://platform.claude.com/docs/en/build-with-claude/embeddings) -- confirms no native embeddings, HIGH confidence
+- [Drizzle ORM pgvector guide](https://orm.drizzle.team/docs/guides/vector-similarity-search) -- schema + query examples, HIGH confidence
+- [Drizzle ORM PostgreSQL extensions](https://orm.drizzle.team/docs/extensions/pg) -- pgvector support, HIGH confidence
+- [Railway pgvector deployment](https://railway.com/deploy/pgvector-latest) -- one-click template, HIGH confidence
+- [Railway pgvector blog](https://blog.railway.com/p/hosting-postgres-with-pgvector) -- hosting details, HIGH confidence
+- [Resend webhooks docs](https://resend.com/docs/webhooks/introduction) -- event types, HIGH confidence
+- [Resend open/click tracking](https://resend.com/blog/open-and-click-tracking) -- tracking mechanism, HIGH confidence
+- [pgvector GitHub](https://github.com/pgvector/pgvector) -- extension docs, HIGH confidence
 
 ---
-*Stack research for: AI-Sanomat Yrityksille -- Enterprise AI Newsletter Platform*
-*Researched: 2026-03-02*
+*Stack research for: AI-Sanomat Yrityksille v1.1 Smart Sourcing & Polish*
+*Researched: 2026-03-03*
