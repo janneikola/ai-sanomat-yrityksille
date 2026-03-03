@@ -3,7 +3,7 @@
 ## Milestones
 
 - v1.0 Full Platform - Phases 1-4 (shipped 2026-03-03)
-- v1.1 Smart Sourcing & Polish - Phases 5-9 (in progress)
+- v1.1 Smart Sourcing & Polish - Phases 5-9 (shipped 2026-03-03)
 
 ## Phases
 
@@ -63,7 +63,7 @@ Plans:
 
 </details>
 
-### v1.1 Smart Sourcing & Polish (In Progress)
+### v1.1 Smart Sourcing & Polish (SHIPPED 2026-03-03)
 
 **Milestone Goal:** Transform news collection into comprehensive multi-source intelligence, automate digest scheduling, redesign newsletter visuals, and add source health monitoring with engagement feedback.
 
