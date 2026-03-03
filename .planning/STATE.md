@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-03)
 
 **Core value:** The AI-generated weekly digest must be genuinely useful and industry-relevant -- content quality is the entire selling point.
-**Current focus:** v1.1 Smart Sourcing & Polish -- Phase 5: Foundation Automation
+**Current focus:** v1.1 Smart Sourcing & Polish -- Phase 6: Premium Email Experience
 
 ## Current Position
 
-Phase: 5 of 9 (Foundation Automation)
+Phase: 6 of 9 (Premium Email Experience)
 Plan: 1 of 2 in current phase
-Status: Executing
-Last activity: 2026-03-03 -- Plan 05-01 complete (scheduling + health services)
+Status: Ready
+Last activity: 2026-03-03 -- Plan 05-02 complete (admin UI for schedule, health, scheduler history)
 
-Progress: [#########.........] 60% (9/15 total plans across all milestones)
+Progress: [##########........] 67% (10/15 total plans across all milestones)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
+- Total plans completed: 10
 - Average duration: ~10 min
-- Total execution time: ~1.5 hours
+- Total execution time: ~1.6 hours
 
 **By Phase:**
 
@@ -31,11 +31,11 @@ Progress: [#########.........] 60% (9/15 total plans across all milestones)
 | 02-content-pipeline | 2 | 9min | ~5min |
 | 03-email-delivery-send-workflow | 2 | 8min | 4min |
 | 04-company-portal | 2 | 7min | ~4min |
-| 05-foundation-automation | 1 | 8min | 8min |
+| 05-foundation-automation | 2 | 13min | ~7min |
 
 **Recent Trend:**
-- Last 5 plans: 3min, 4min, 3min, 8min
-- Trend: consistent execution, slightly longer for TDD + schema-heavy plan
+- Last 5 plans: 4min, 3min, 8min, 5min
+- Trend: consistent fast execution
 
 *Updated after each plan completion*
 
@@ -51,6 +51,9 @@ Recent decisions affecting current work:
 - 05-01: Dynamic import for generateClientDigest avoids circular dependency in scheduleService
 - 05-01: Admin notification errors silently caught to never block scheduling pipeline
 - 05-01: Source health columns co-located on newsSources (not separate table) for query simplicity
+- 05-02: Health filtering via API query param (compute in service, filter in route handler) for clean separation
+- 05-02: Expandable table rows for health logs keeps source list as single page view
+- 05-02: Inline schedule config on client detail page (not dialog) for direct editing
 - Research: Database-driven scheduling is non-negotiable (Railway deploys destroy in-memory cron state)
 - Research: Tavily over Serper (returns extracted content in one call, no separate scraping needed)
 - Research: OpenAI text-embedding-3-small for embeddings (Anthropic has no embeddings model)
@@ -75,5 +78,5 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-03-03
-Stopped at: Completed 05-01-PLAN.md -- scheduling + health services done, ready for 05-02
+Stopped at: Completed 05-02-PLAN.md -- Phase 5 complete, ready for Phase 6
 Resume file: None

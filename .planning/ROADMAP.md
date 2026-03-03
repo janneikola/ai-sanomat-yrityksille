@@ -67,7 +67,7 @@ Plans:
 
 **Milestone Goal:** Transform news collection into comprehensive multi-source intelligence, automate digest scheduling, redesign newsletter visuals, and add source health monitoring with engagement feedback.
 
-- [ ] **Phase 5: Foundation Automation** - Database-driven scheduling, per-client frequency, source health monitoring
+- [x] **Phase 5: Foundation Automation** - Database-driven scheduling, per-client frequency, source health monitoring
 - [ ] **Phase 6: Premium Email Experience** - Newsletter template redesign, co-branding, dark mode, aisanomat.fi section, email feedback loop
 - [ ] **Phase 7: Web Search Integration** - Tavily industry-specific search with per-client prompts, search caching
 - [ ] **Phase 8: Semantic Deduplication** - Embedding-based near-duplicate detection across all sources
@@ -89,7 +89,7 @@ Plans:
 
 Plans:
 - [x] 05-01: Database schema changes (client schedule columns, source health columns, sourceHealthLogs table), schedule service, daily cron that checks DB for due clients
-- [ ] 05-02: Source health service (tracking, thresholds, auto-disable), admin UI for schedule config and source health display
+- [x] 05-02: Admin UI for schedule config, source health dots with filtering, expandable health logs, scheduler run history on dashboard
 
 ### Phase 6: Premium Email Experience
 **Goal**: Newsletters look premium with AI-Sanomat branding and client co-branding, include an aisanomat.fi featured section, and readers can give one-click feedback
@@ -158,7 +158,7 @@ Phases execute in numeric order: 5 -> 6 -> 7 -> 8 -> 9
 | 2. Content Pipeline | v1.0 | 2/2 | Complete | 2026-03-02 |
 | 3. Email Delivery and Send Workflow | v1.0 | 2/2 | Complete | 2026-03-02 |
 | 4. Company Portal | v1.0 | 2/2 | Complete | 2026-03-03 |
-| 5. Foundation Automation | v1.1 | 1/2 | In progress | - |
+| 5. Foundation Automation | v1.1 | 2/2 | Complete | 2026-03-03 |
 | 6. Premium Email Experience | v1.1 | 0/2 | Not started | - |
 | 7. Web Search Integration | v1.1 | 0/1 | Not started | - |
 | 8. Semantic Deduplication | v1.1 | 0/1 | Not started | - |

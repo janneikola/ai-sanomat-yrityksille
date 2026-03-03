@@ -93,7 +93,7 @@ Requirements for Smart Sourcing & Polish milestone. Each maps to roadmap phases 
 
 - [x] **HEALTH-01**: System tracks per-source health metrics (last success, consecutive failures, items per fetch)
 - [x] **HEALTH-02**: Stale and failing sources are detected automatically with configurable thresholds
-- [ ] **HEALTH-03**: Admin panel shows source health status (green/yellow/red) on source list
+- [x] **HEALTH-03**: Admin panel shows source health status (green/yellow/red) on source list
 - [x] **HEALTH-04**: Persistently failing sources are auto-disabled with admin notification
 
 ### Engagement
@@ -218,7 +218,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DEDUP-04 | Phase 8 | Pending |
 | HEALTH-01 | Phase 5 | Complete |
 | HEALTH-02 | Phase 5 | Complete |
-| HEALTH-03 | Phase 5 | Pending |
+| HEALTH-03 | Phase 5 | Complete |
 | HEALTH-04 | Phase 5 | Complete |
 | FEED-01 | Phase 6 | Pending |
 | FEED-02 | Phase 6 | Pending |
