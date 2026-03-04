@@ -55,8 +55,13 @@ Progress: [##################] 100% (16/16 total plans across all milestones)
 - Finnish language embedding quality for text-embedding-3-small is unverified
 - X monitoring uses Apify ($0.40/1K tweets) -- monitor estimated vs actual Apify billing
 
+### Decisions
+
+- Admin member endpoints reuse portal member route patterns with admin auth (quick-001)
+- Admin sees all members including inactive for full visibility (quick-001)
+
 ## Session Continuity
 
 Last session: 2026-03-04
-Stopped at: v1.1 milestone archived
+Stopped at: Completed quick-001 (admin member management)
 Resume file: N/A
