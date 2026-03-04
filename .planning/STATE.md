@@ -1,14 +1,14 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: Smart Sourcing & Polish
-status: archived
+milestone: v1.2
+milestone_name: Newsletter Quality & Design
+status: active
 last_updated: "2026-03-04"
 progress:
-  total_phases: 9
-  completed_phases: 9
-  total_plans: 16
-  completed_plans: 16
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -18,20 +18,19 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-04)
 
 **Core value:** The AI-generated weekly digest must be genuinely useful and industry-relevant -- content quality is the entire selling point.
-**Current focus:** Planning next milestone
+**Current focus:** v1.2 Newsletter Quality & Design
 
 ## Current Position
 
-Phase: All complete (v1.0 + v1.1 shipped)
-Status: Between milestones
-Last activity: 2026-03-04 - Completed quick task 001: Add user management to customer where admin user for the company can add recipients for the newsletter
-
-Progress: [##################] 100% (16/16 total plans across all milestones)
+Phase: Not started (defining requirements)
+Status: Defining requirements
+Last activity: 2026-03-04 — Milestone v1.2 started
 
 ## Milestones
 
 - ✅ v1.0 Full Platform — Phases 1-4 (shipped 2026-03-03)
 - ✅ v1.1 Smart Sourcing & Polish — Phases 5-9 (shipped 2026-03-04)
+- ◆ v1.2 Newsletter Quality & Design — Phases 10+ (active)
 
 ## Accumulated Context
 

@@ -32,8 +32,17 @@ The AI-generated weekly digest must be genuinely useful and industry-relevant �
 
 ### Active
 
-- [ ] Railway deployment (API + DB + frontend)
-- [ ] SPF/DKIM/DMARC DNS records for mail.aisanomat.fi
+## Current Milestone: v1.2 Newsletter Quality & Design
+
+**Goal:** Make the HTML newsletter significantly better — structured content, relevant images, proper branding.
+
+**Target features:**
+- Structured article content with subheadings, lists, bold, highlights (not single text blocks)
+- Relevant images from source OG metadata, with AI infographic fallback
+- AI-Sanomat branded header with real logo icon + text
+
+### Carry-over
+
 - [ ] Fix health dot key mismatch in X monitoring page (INT-01)
 - [ ] Filter isDuplicate items from digest generation (INT-02)
 
@@ -68,7 +77,7 @@ Environment setup needed: TAVILY_API_KEY, OPENAI_API_KEY, APIFY_TOKEN, ADMIN_EMA
 
 - **Tech stack**: Node.js + Fastify (API), Next.js 16 (single app, role-based views), PostgreSQL (Railway), React Email
 - **AI models**: Claude Sonnet 4.6 (text), Gemini Nano Banana 2 (images), OpenAI text-embedding-3-small (embeddings)
-- **Email**: Resend with own sending domain (mail.aisanomat.fi)
+- **Email**: Resend with own sending domain (aisanomat.fi)
 - **Deployment**: Railway (API + DB + frontend)
 - **Auth**: Hardcoded admin credentials (MVP), magic links for company contacts
 - **Frontend**: One Next.js app with role-based routing (admin + portal)
@@ -98,4 +107,4 @@ Environment setup needed: TAVILY_API_KEY, OPENAI_API_KEY, APIFY_TOKEN, ADMIN_EMA
 | Per-member email rendering | Unique feedback URLs per recipient | ✓ Good |
 
 ---
-*Last updated: 2026-03-04 after v1.1 milestone*
+*Last updated: 2026-03-04 after v1.2 milestone start*
