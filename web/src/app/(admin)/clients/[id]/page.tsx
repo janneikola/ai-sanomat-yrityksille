@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft, Loader2, Send, RefreshCw, CheckCircle, AlertCircle, Calendar, Pause, Play, Users, Trash2, Plus, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -434,7 +435,18 @@ export default function ClientDetailPage() {
         </div>
       </div>
 
-      {/* Digest generation section */}
+      {/* Tabbed sections */}
+      <Tabs defaultValue="digest" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="digest">Viikkokatsaus</TabsTrigger>
+          <TabsTrigger value="schedule">Aikataulu</TabsTrigger>
+          <TabsTrigger value="members">
+            Vastaanottajat
+            <Badge variant="secondary" className="ml-2">{membersList.filter((m) => m.isActive).length}</Badge>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="digest">
       <Card>
         <CardHeader>
           <CardTitle>Viikkokatsaus</CardTitle>
@@ -597,7 +609,9 @@ export default function ClientDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Schedule config section */}
+        </TabsContent>
+
+        <TabsContent value="schedule">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -701,14 +715,15 @@ export default function ClientDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Members (Vastaanottajat) section */}
+        </TabsContent>
+
+        <TabsContent value="members">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
               Vastaanottajat
-              <Badge variant="secondary">{membersList.filter((m) => m.isActive).length}</Badge>
             </CardTitle>
             <div className="flex gap-2">
               {/* Add single member dialog */}
@@ -854,6 +869,9 @@ export default function ClientDetailPage() {
           )}
         </CardContent>
       </Card>
+
+        </TabsContent>
+      </Tabs>
 
       {/* Remove member confirmation dialog */}
       <Dialog
