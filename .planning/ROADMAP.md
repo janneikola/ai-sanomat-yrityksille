@@ -114,4 +114,4 @@ Plans:
 | 10. Foundation & Branding | v1.2 | Complete    | 2026-03-04 | 2026-03-04 |
 | 11. OG Image Extraction | v1.2 | Complete    | 2026-03-04 | 2026-03-04 |
 | 12. Structured Article Content | v1.2 | 1/1 | Complete | 2026-03-04 |
-| 13. AI Infographic Fallback | v1.2 | 1/1 | Complete | 2026-03-04 |
+| 13. AI Infographic Fallback | v1.2 | Complete    | 2026-03-04 | 2026-03-04 |
