@@ -33,7 +33,7 @@
 
 **Milestone Goal:** Make the HTML newsletter significantly better — structured content, relevant images, proper branding.
 
-- [ ] **Phase 10: Foundation & Branding** - DB schema extension, TypeScript types, and logo in email header
+- [x] **Phase 10: Foundation & Branding** - DB schema extension, TypeScript types, and logo in email header
 - [ ] **Phase 11: OG Image Extraction** - Fetch og:image from source articles at collection time
 - [ ] **Phase 12: Structured Article Content** - Lead sentence, bullets, and rich formatting in newsletter stories
 - [ ] **Phase 13: AI Infographic Fallback** - Conditional Gemini generation for stories without OG images
@@ -53,7 +53,7 @@
 **Plans:** 1 plan
 
 Plans:
-- [ ] 10-01-PLAN.md — Extend DB schema + types, add logo to email header with dark mode protection
+- [x] 10-01-PLAN.md — Extend DB schema + types, add logo to email header with dark mode protection
 
 ### Phase 11: OG Image Extraction
 **Goal**: Newly collected news articles have their source OG images stored in the database, ready to be used in newsletter generation.
@@ -111,7 +111,7 @@ Plans:
 | 7. Web Search Integration | v1.1 | 1/1 | Complete | 2026-03-03 |
 | 8. Semantic Deduplication | v1.1 | 1/1 | Complete | 2026-03-03 |
 | 9. X/Twitter Monitoring | v1.1 | 2/2 | Complete | 2026-03-03 |
-| 10. Foundation & Branding | v1.2 | 0/1 | Planning complete | - |
+| 10. Foundation & Branding | v1.2 | 1/1 | Complete | 2026-03-04 |
 | 11. OG Image Extraction | v1.2 | 0/1 | Not started | - |
 | 12. Structured Article Content | v1.2 | 0/1 | Not started | - |
 | 13. AI Infographic Fallback | v1.2 | 0/1 | Not started | - |

@@ -23,8 +23,8 @@ Requirements for v1.2 Newsletter Quality & Design. Each maps to roadmap phases.
 
 ### Brändäys (Branding)
 
-- [ ] **BRAND-01**: Uutiskirjeen header sisältää AI-Sanomat logo-ikonin ja "AI-Sanomat" tekstin
-- [ ] **BRAND-02**: Logo on hosted PNG-kuva (ei base64, ei SVG) sähköpostiyhteensopivuuden vuoksi
+- [x] **BRAND-01**: Uutiskirjeen header sisältää AI-Sanomat logo-ikonin ja "AI-Sanomat" tekstin
+- [x] **BRAND-02**: Logo on hosted PNG-kuva (ei base64, ei SVG) sähköpostiyhteensopivuuden vuoksi
 
 ## Future Requirements
 
@@ -46,8 +46,8 @@ Requirements for v1.2 Newsletter Quality & Design. Each maps to roadmap phases.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BRAND-01 | Phase 10 | Pending |
-| BRAND-02 | Phase 10 | Pending |
+| BRAND-01 | Phase 10 | Complete |
+| BRAND-02 | Phase 10 | Complete |
 | IMAGE-01 | Phase 11 | Pending |
 | IMAGE-02 | Phase 11 | Pending |
 | CONTENT-01 | Phase 12 | Pending |
