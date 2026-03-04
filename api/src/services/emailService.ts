@@ -9,6 +9,21 @@ import { getFeaturedPosts } from './featuredPostsService.js';
 import { generateFeedbackUrls } from './feedbackService.js';
 
 /**
+ * Muodosta absoluuttinen kuva-URL.
+ * Absoluuttiset URL:t (OG-kuvat) palautetaan sellaisenaan.
+ * Suhteelliset polut (Gemini-kuvat) saavat API-pohja-URL:n etuliitteen.
+ */
+export function toImageUrl(imgPath: string, baseUrl: string): string {
+  // Remote OG images: pass through absolute URLs unchanged
+  if (imgPath.startsWith('http://') || imgPath.startsWith('https://')) {
+    return imgPath;
+  }
+  // Local Gemini-generated images: prefix with API base URL
+  const path = imgPath.startsWith('/') ? imgPath : `/${imgPath}`;
+  return `${baseUrl}/api${path}`;
+}
+
+/**
  * Renderoi React Email -pohjan HTML- ja tekstiversioiksi.
  */
 export async function renderDigestEmail(
@@ -26,24 +41,16 @@ export async function renderDigestEmail(
   const digest = JSON.parse(issue.generatedContent) as DigestEmailDigest;
   const baseUrl = process.env.PUBLIC_URL || 'http://localhost:3000';
 
-  // Muodosta absoluuttiset kuva-URL:t
-  // Kuvat tallennetaan polkuun /images/{uuid}.png, mutta staattinen palvelin
-  // tarjoilee ne osoitteessa /api/images/{uuid}.png (web-proxy valittaa /api/*)
-  const toImageUrl = (imgPath: string) => {
-    const path = imgPath.startsWith('/') ? imgPath : `/${imgPath}`;
-    return `${baseUrl}/api${path}`;
-  };
-
   const heroImageUrl = issue.heroImageUrl
-    ? toImageUrl(issue.heroImageUrl)
+    ? toImageUrl(issue.heroImageUrl, baseUrl)
     : null;
 
-  const logoUrl = toImageUrl('/images/logo.png');
+  const logoUrl = toImageUrl('/images/logo.png', baseUrl);
 
   const storiesWithAbsoluteUrls = digest.stories.map((story) => ({
     ...story,
     imageUrl: story.imageUrl
-      ? toImageUrl(story.imageUrl)
+      ? toImageUrl(story.imageUrl, baseUrl)
       : undefined,
   }));
 

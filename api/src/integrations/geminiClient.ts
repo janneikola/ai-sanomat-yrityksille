@@ -7,8 +7,6 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
 const IMAGE_STORAGE_PATH = process.env.IMAGE_STORAGE_PATH || './uploads';
 
-export const PLACEHOLDER_IMAGE_URL = '/images/placeholder.png';
-
 /**
  * Generoi kuva Gemini 2.5 Flash Image -mallilla ja tallenna tiedostojarjestelmaan.
  * Palauttaa julkisen URL-polun tai null jos kuvaa ei saatu.
