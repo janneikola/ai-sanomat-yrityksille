@@ -27,14 +27,21 @@ export async function renderDigestEmail(
   const baseUrl = process.env.PUBLIC_URL || 'http://localhost:3000';
 
   // Muodosta absoluuttiset kuva-URL:t
+  // Kuvat tallennetaan polkuun /images/{uuid}.png, mutta staattinen palvelin
+  // tarjoilee ne osoitteessa /api/images/{uuid}.png (web-proxy valittaa /api/*)
+  const toImageUrl = (imgPath: string) => {
+    const path = imgPath.startsWith('/') ? imgPath : `/${imgPath}`;
+    return `${baseUrl}/api${path}`;
+  };
+
   const heroImageUrl = issue.heroImageUrl
-    ? `${baseUrl}${issue.heroImageUrl.startsWith('/') ? '' : '/'}${issue.heroImageUrl}`
+    ? toImageUrl(issue.heroImageUrl)
     : null;
 
   const storiesWithAbsoluteUrls = digest.stories.map((story) => ({
     ...story,
     imageUrl: story.imageUrl
-      ? `${baseUrl}${story.imageUrl.startsWith('/') ? '' : '/'}${story.imageUrl}`
+      ? toImageUrl(story.imageUrl)
       : undefined,
   }));
 

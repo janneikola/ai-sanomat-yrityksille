@@ -36,8 +36,10 @@ export async function buildApp() {
   await app.register(rawBody, { global: false });
 
   // Staattisten tiedostojen tarjoilu (ladatut kuvat sahkoposteja varten)
+  // Gemini tallentaa kuvat: {IMAGE_STORAGE_PATH}/images/{uuid}.png
+  // URL: /api/images/{uuid}.png -> {IMAGE_STORAGE_PATH}/images/{uuid}.png
   await app.register(fastifyStatic, {
-    root: path.resolve(process.env.IMAGE_STORAGE_PATH || './uploads'),
+    root: path.resolve(process.env.IMAGE_STORAGE_PATH || './uploads', 'images'),
     prefix: '/api/images/',
     decorateReply: false,
   });
