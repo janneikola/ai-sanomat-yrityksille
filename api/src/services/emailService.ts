@@ -131,7 +131,7 @@ export async function sendDigestToClient(
       );
 
       return {
-        from: 'AI-Sanomat <noreply@mail.aisanomat.fi>',
+        from: 'AI-Sanomat <noreply@aisanomat.fi>',
         to: member.email,
         subject: `AI-Sanomat viikkokatsaus: ${client.name}`,
         html,
@@ -178,7 +178,7 @@ export async function sendAdminNotification(
   htmlBody: string
 ): Promise<void> {
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@aisanomat.fi';
-  const from = 'AI-Sanomat <noreply@mail.aisanomat.fi>';
+  const from = 'AI-Sanomat <noreply@aisanomat.fi>';
 
   // Yksinkertainen HTML-pohja
   const html = `<!DOCTYPE html>

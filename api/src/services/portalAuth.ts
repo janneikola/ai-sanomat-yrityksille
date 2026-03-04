@@ -49,7 +49,7 @@ export async function generateMagicLink(
   // Laheta magic link sahkoposti
   try {
     await sendSingleEmail({
-      from: 'AI-Sanomat <katsaus@mail.aisanomat.fi>',
+      from: 'AI-Sanomat <katsaus@aisanomat.fi>',
       to: contactEmail,
       subject: 'Kirjaudu AI-Sanomat-portaaliin',
       html,
