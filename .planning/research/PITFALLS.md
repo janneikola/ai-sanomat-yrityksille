@@ -1,367 +1,430 @@
 # Pitfalls Research
 
-**Domain:** Adding multi-source intelligence, auto-scheduling, semantic deduplication, premium email design, and feedback loops to an existing Node.js newsletter platform (AI-Sanomat Yrityksille v1.1)
-**Researched:** 2026-03-03
-**Confidence:** MEDIUM-HIGH (verified against official docs, API pricing pages, and community discussions)
+**Domain:** Adding OG image extraction, AI infographic fallback, structured HTML email content, and logo branding to an existing Node.js newsletter platform (AI-Sanomat Yrityksille v1.2)
+**Researched:** 2026-03-04
+**Confidence:** HIGH (multiple independent sources verified; official React Email, Resend, and Google AI documentation cross-referenced)
+
+---
 
 ## Critical Pitfalls
 
-### Pitfall 1: X API Cost Shock from the Basic-to-Pro Pricing Cliff
+### Pitfall 1: OG Image Fetch Blocks Newsletter Generation When Source Sites Are Slow
 
 **What goes wrong:**
-The X API Basic tier costs $200/month but only allows 15,000 tweet reads per month. If you monitor 20 influencer accounts and run keyword searches daily, you can burn through 15,000 reads in under a week. The next tier (Pro) is $5,000/month -- a 25x price jump with nothing in between. Teams discover this mid-development or, worse, mid-production and face either crippling the feature or an unexpected $5,000/month bill.
+The digest generation pipeline calls out to third-party news sites to fetch OG metadata (og:image, og:title). News sites run behind CDNs, paywalls, anti-bot WAFs, and rate limiters. A single slow or unresponsive site can add 10-30 seconds to the pipeline per article. With 10-20 articles per digest, total added latency can be 3-10 minutes. Worse, if the fetch is synchronous and the site returns an HTTP 503 or hangs, the entire newsletter generation call can time out.
 
 **Why it happens:**
-Developers estimate API usage based on a single test run, not sustained production use. Monitoring 20 accounts x 30 tweets each x daily = 600 reads/day = 18,000/month -- already over the Basic limit. Adding keyword search queries compounds this rapidly.
+Developers write `await fetch(articleUrl)` directly in the generation pipeline without a timeout guard. They test against fast, well-behaved news sites during development, then discover production sources (paywalled Finnish tech blogs, corporate PR sites) behave differently.
 
-**How to avoid:**
-- Calculate exact monthly read budget before writing any X integration code: `(accounts x avg_tweets_per_check x checks_per_day x 30) + (keyword_searches_per_day x results_per_search x 30)`
-- Design the X collector with a hard daily budget cap in code (e.g., max 400 reads/day = 12,000/month, leaving 3,000 buffer)
-- Cache aggressively: store the latest tweet ID per account and use `since_id` to only fetch new tweets
-- Consider the new pay-as-you-go pricing (launched Feb 2026) as an alternative to the fixed Basic tier
-- Evaluate third-party X data providers which may offer better read-per-dollar ratios
-- Run influencer account checks once daily (not hourly) to minimize read consumption
+**Consequences:**
+- Newsletter generation becomes unreliable and slow
+- Failed OG fetches cause incomplete template data (undefined `ogImage`) crashing the email renderer
+- Railway function timeouts kill long-running digest jobs
 
-**Warning signs:**
-- No budget calculation document exists before X integration starts
-- X collector makes more than 500 API calls per day on Basic tier
-- Monthly tweet read count approaches 10,000 by mid-month
+**Prevention:**
+- Set a hard timeout per OG fetch: 3 seconds maximum. Use `AbortController` with a 3s timeout signal
+- Never await OG fetches sequentially — run them in parallel with `Promise.allSettled()`, never `Promise.all()` (one failure should not abort all others)
+- Treat OG image as optional enrichment, not required data: always have the AI infographic fallback ready before attempting OG extraction
+- Cache OG results in the database keyed by article URL with a 24-hour TTL — the same article URL should never be fetched twice in a single day
+- Log failed fetches at WARN level, not ERROR — a missing image is not a pipeline failure
 
-**Phase to address:**
-Phase 1 (X Monitoring) -- budget calculation must be a prerequisite before any code is written
+**Detection (warning signs):**
+- Newsletter generation consistently takes longer than 60 seconds
+- Admin logs show uncaught errors referencing `undefined` on template rendering
+- OG fetch code uses `Promise.all()` without try/catch
+
+**Phase to address:** OG Image Extraction phase — timeout and parallel fetch strategy must be architectural decisions before any extraction code is written.
 
 ---
 
-### Pitfall 2: Dual Rate Limit System on X API Causes Silent Data Loss
+### Pitfall 2: JavaScript-Rendered OG Tags Are Invisible to Server-Side Fetch
 
 **What goes wrong:**
-The X API enforces TWO separate limit types: per-15-minute request rate limits (e.g., 450 requests/15min for recent search) AND monthly post consumption limits (15,000 reads on Basic). Developers handle the 429 rate-limit response (request limit) but never track the monthly consumption quota. The app hits the monthly limit mid-month and silently stops receiving new tweets, causing newsletters to miss important AI news for the remainder of the month.
+Many modern news sites (Axios, The Verge, TechCrunch) use Next.js or React with client-side meta tag injection. When your backend does a plain `fetch(url)` or uses a library like `open-graph-scraper`, it receives the raw HTML shell — before JavaScript executes. The og:image tag is either missing or points to a generic fallback. You parse empty OG data, get no image URL, and your fallback logic never triggers because you believe you have a valid (but wrong) generic og:image.
 
 **Why it happens:**
-HTTP 429 responses from per-15-minute limits are obvious and well-documented. Monthly quotas are tracked in the X developer dashboard, not in API error responses until you actually hit them. The error format differs from standard rate limiting.
+Developers test OG extraction against simple WordPress blogs where meta tags are in the static HTML. Client-rendered sites look fine when you open them in a browser (which executes JS), but the server sees different content.
 
-**How to avoid:**
-- Implement a `monthlyBudgetTracker` that counts consumed tweet reads in the database, independent of X API's own tracking
-- Set a daily budget ceiling: `Math.floor(monthlyLimit * 0.8 / 30)` -- use 80% of monthly limit spread evenly with 20% reserve
-- Log every X API read count and expose it in the admin dashboard
-- Set up alerts when 50% and 75% of monthly budget is consumed
-- When budget is exhausted, the system must still function using RSS and web search sources -- X is supplementary, not critical path
+**Consequences:**
+- Newsletters show wrong generic images (the site's default sharing image) instead of article-specific images
+- Fallback AI infographic logic never fires because a non-null og:image URL was returned
+- Hard to debug: the generic image URL is valid and loads, but it is content-irrelevant
 
-**Warning signs:**
-- No monthly consumption tracking in the codebase
-- Missing news items in the second half of the month
-- Admin has no visibility into API usage
+**Prevention:**
+- After extracting og:image, validate that the image URL contains path segments or filenames that suggest it is article-specific (not a generic `logo.png`, `default-og.jpg`, or `share.jpg`)
+- If og:image URL contains `default`, `logo`, `fallback`, `placeholder`, or `og-generic` in the path, treat it as missing and use the AI infographic fallback
+- Test OG extraction against the actual source URLs in the system (RSS, Tavily, Beehiiv), not hypothetical well-behaved sites
+- Use `open-graph-scraper` npm package as the base — it handles the most common edge cases including relative URL resolution to absolute URLs
 
-**Phase to address:**
-Phase 1 (X Monitoring) -- budget tracking must be baked into the X client from day one
+**Detection (warning signs):**
+- All articles from a particular source show the same og:image URL regardless of article content
+- og:image URL contains `default`, `logo`, or `share` in the path
+- Browser dev tools show og:image correctly but your extraction returns a different URL
+
+**Phase to address:** OG Image Extraction phase — add URL quality heuristics to the extraction logic from the start.
 
 ---
 
-### Pitfall 3: Semantic Deduplication Threshold Miscalibration Kills Either Recall or Precision
+### Pitfall 3: Gmail Clips Email at 102KB — Structured HTML Triggers the Limit
 
 **What goes wrong:**
-Setting the cosine similarity threshold wrong produces one of two disasters: too high (e.g., 0.95) and near-duplicates slip through, so newsletters contain essentially the same story twice with slightly different wording. Too low (e.g., 0.70) and genuinely different stories about the same topic get deduplicated, causing the newsletter to miss important coverage angles.
+The current v1.1 email template is a single text block per article. v1.2 adds subheadings, bullet lists, bold text, and highlighted sections per article. Each article's structured content adds HTML tags, inline styles, and wrapper elements. A newsletter with 10 articles x structured content can easily exceed 102KB of raw HTML. Gmail silently clips the email at 102KB, displaying "[Message clipped]" with a "View entire message" link. Recipients never see the bottom of the newsletter, including the footer, unsubscribe link, and feedback buttons — creating legal and UX problems.
 
 **Why it happens:**
-AI news articles about the same topic from different sources often have cosine similarity between 0.75-0.90. The "right" threshold varies by embedding model and content domain. Developers pick a threshold from a tutorial, never calibrate it against real data, and ship it.
+React Email compiles JSX to inline-styled HTML, which is verbose. A simple `<ul>` with 5 items in React Email compiles to a table structure with multiple rows, each with full inline styles repeated per element. Content that looks lightweight in JSX can compile to 3-5x the raw byte count.
 
-**How to avoid:**
-- Build a calibration dataset BEFORE choosing a threshold: collect 50 pairs of articles where you manually label "same story" vs "different story about same topic" vs "unrelated"
-- Test multiple thresholds (0.80, 0.85, 0.90) against this dataset and pick the one that matches human judgment
-- Use a two-tier system: similarity > 0.92 = auto-deduplicate, similarity 0.80-0.92 = flag for admin review, similarity < 0.80 = definitely different
-- Store the similarity score so you can retroactively adjust the threshold without re-processing
-- Always deduplicate by URL first (current system already does this via `onConflictDoNothing` on the URL unique constraint), then apply semantic deduplication as a second pass
-- Only compare articles within the same collection window (last 14 days), not the entire corpus
+**Consequences:**
+- Recipients miss footer content including the unsubscribe link (CAN-SPAM / EU email law violation risk)
+- Feedback buttons are clipped — satisfaction tracking breaks
+- Trust damage: clipped emails look broken and unprofessional
 
-**Warning signs:**
-- No calibration dataset exists
-- Threshold was chosen from a blog post without testing on actual AI news articles
-- Admin cannot see which articles were deduplicated and why
-- Newsletter still contains near-duplicate stories after dedup is "working"
+**Prevention:**
+- Instrument the compiled email HTML size after rendering, before sending: log `Buffer.byteLength(html, 'utf8')` and alert if it exceeds 80KB (leaving a 22KB buffer)
+- If HTML exceeds 80KB, truncate the article list to fit: render fewer articles with full structured content rather than all articles with truncated structure
+- Never repeat full inline style objects per element — extract repeated style patterns into template-level constants and reference them, rather than duplicating the same `font-family: Arial; font-size: 14px; line-height: 1.6;` string on every paragraph
+- Images in emails are hosted externally — their byte count does not add to the HTML size limit. Only inline base64 images count against the 102KB limit
+- Test compiled HTML size as part of the build process: the render-and-measure step should be automated, not manual
 
-**Phase to address:**
-Phase 3 (Semantic Deduplication) -- calibration dataset should be built from actual collected news during Phases 1-2
+**Detection (warning signs):**
+- Rendered HTML file is larger than 80KB
+- Gmail shows "[Message clipped]" in test sends
+- Recipients report not seeing the unsubscribe link
+- No HTML size logging exists in the send pipeline
+
+**Phase to address:** Structured HTML Content phase — add HTML size measurement to the email send function before adding any new structured content elements.
 
 ---
 
-### Pitfall 4: Premium Email Template Redesign Breaks in Outlook and Dark Mode
+### Pitfall 4: Outlook Ignores CSS on Structural Elements, Breaking Structured Content Layout
 
 **What goes wrong:**
-A beautiful premium template is designed with modern CSS (flexbox, grid, CSS variables, media queries), tested in Gmail/Apple Mail, looks great. Then it arrives in a corporate Outlook client (60%+ of enterprise email users) and the layout is completely broken: images overlap, columns collapse wrong, fonts revert, dark mode inverts brand colors making logos invisible.
+v1.2 adds structured HTML: subheadings, bullet lists, dividers, highlighted boxes. In Gmail and Apple Mail these look polished. In Outlook desktop (which uses the Word 2007 rendering engine) — the primary client for enterprise users, the target audience — the layout collapses. Flexbox is ignored. CSS `max-width` on div elements is ignored. List styles (`ul`, `li`) render with different default padding. Bordered "highlight" boxes disappear. The structured content that makes the newsletter more readable becomes a wall of unstyled text with broken indentation.
 
 **Why it happens:**
-Outlook uses Microsoft Word's rendering engine, not a browser engine. It ignores CSS flexbox, grid, media queries, and many standard properties. Dark mode handling varies wildly between email clients -- Gmail, Apple Mail, and Outlook all handle `prefers-color-scheme` differently or not at all. Enterprise clients (the target audience for AI-Sanomat) overwhelmingly use Outlook.
+React Email's JSX preview and browser-based preview use a real browser engine. Outlook uses Word's rendering engine. The gap between them is enormous and invisible during development.
 
-**How to avoid:**
-- Use table-based layout for ALL structural elements -- React Email's `<Section>`, `<Row>`, `<Column>` components compile to tables, which is correct behavior
-- Test every template change in Litmus or Email on Acid (90+ email client previews) before deploying
-- Provide a dark-mode version of the AI-Sanomat logo (light version for dark backgrounds)
-- Use transparent PNG logos with sufficient padding/contrast for both modes
-- Inline ALL CSS -- the current `DigestEmail.tsx` already uses inline styles (good), keep this pattern
-- Set explicit `width` attributes on all table cells, not just CSS width
-- Maximum email width: 600px (current template already does this correctly)
-- Test with actual enterprise Outlook desktop clients, not just Outlook.com webmail
-- Verify the compiled HTML output of React Email components before trusting the JSX preview
-- CSS `border` width cannot exceed 8px in Windows Outlook
-- `text-decoration` does not work in iOS/Android Gmail for non-Gmail accounts
-- Use dark gray backgrounds (#121212 or #222222) for dark mode, never pure black (#000000)
+**Consequences:**
+- Enterprise clients (Finnish B2B sector, heavily Outlook-dependent) see a broken newsletter
+- Content hierarchy is lost — subheadings look like body text, lists look like plain paragraphs
+- First impression of v1.2 improvement is negative, not positive
 
-**Warning signs:**
-- Template looks perfect in browser preview but was never tested in actual email clients
-- No Litmus/Email on Acid account set up
-- Template uses CSS properties not supported by Outlook (flexbox, grid, `max-width` on non-table elements)
-- No dark mode testing at all
-- Enterprise client complaints about broken layout after first send
+**Prevention:**
+- For ALL structural layout: use React Email's `<Section>`, `<Row>`, `<Column>` components which compile to `<table>`, `<tr>`, `<td>` — Outlook supports table layout reliably
+- For lists: do NOT use `<ul>` / `<li>` directly. Build pseudo-lists from table rows with a bullet character (•) in the first column. This is verbose but renders consistently
+- For highlighted boxes: use table cells with `bgcolor` attribute (not CSS `background-color`) for Outlook compatibility
+- For subheadings: use `<h2>` / `<h3>` tags with explicit inline `font-size`, `font-weight`, `color`, `margin` — do not rely on browser heading defaults
+- After implementing any new structured element, test it in Litmus or Email on Acid specifically against Outlook 2016, 2019, and 365 desktop — not Outlook.com webmail
+- Keep a "Outlook-safe CSS properties" reference: `color`, `font-family`, `font-size`, `font-weight`, `text-align`, `padding`, `border`, `width` on table cells — these work. `flexbox`, `grid`, `position`, `transform`, `max-width` on divs — these do not
 
-**Phase to address:**
-Phase 4 (Premium Email Design) -- email client testing tool must be set up before any redesign begins
+**Detection (warning signs):**
+- Structured content tested only in the browser or React Email preview, never in an actual email client
+- Email template uses `display: flex` anywhere
+- No Litmus/Email on Acid account exists for the project
+- `<ul>` or `<li>` tags appear in the compiled HTML output
+
+**Phase to address:** Structured HTML Content phase — Litmus or Email on Acid account must be set up before writing a single new structured content component.
 
 ---
 
-### Pitfall 5: In-Process node-cron Scheduling Loses Jobs on Railway Deploys
+### Pitfall 5: Base64-Encoded Logo in Email Header Contributes to Gmail Clipping
 
 **What goes wrong:**
-The current system uses `node-cron` for scheduling (`scheduler.ts` runs a single daily collection at 06:00 EET). Adding per-client configurable frequencies (weekly/bi-weekly/monthly) means creating multiple dynamic cron jobs at runtime. Every Railway deploy restarts the Node.js process, destroying all in-memory cron schedules. If a deploy happens at 05:59 and the 06:00 collection job was scheduled, it never fires. With per-client schedules, the system must re-register potentially dozens of schedules on every startup, and any bug in that startup code means ALL scheduling silently breaks.
+The natural instinct for adding a logo to the email header is to inline it as a base64-encoded data URI: `<img src="data:image/png;base64,..." />`. This embeds the image directly in the HTML without needing an external host. However, base64 encoding inflates file size by approximately 33%. A 15KB PNG logo becomes 20KB of base64 text in the HTML. Combined with the structured article content, this pushes the email past Gmail's 102KB clipping threshold faster.
 
 **Why it happens:**
-`node-cron` stores schedules in memory only -- there is no persistence layer. Railway deploys happen frequently (every git push). Railway also offers native cron jobs as an alternative, but those are designed for standalone tasks that exit after completion, not for augmenting a long-running API server.
+Developers reach for base64 encoding to avoid the complexity of setting up image hosting. It feels simpler, self-contained, and avoids 404 risks. The size penalty is not obvious until the email clips.
 
-**How to avoid:**
-- Store all schedule configurations in the database (add to clients table: `send_frequency`, `next_generation_at`, `last_generated_at`)
-- Use a single, simple cron job (keep current pattern: one daily cron at 06:00) that checks the database for "which clients need a digest generated today?"
-- The decision logic belongs in the database query, not in multiple cron expressions: `WHERE next_generation_at <= NOW() AND is_active = true`
-- After generating, compute and store `next_generation_at` based on the client's frequency setting
-- This approach is more resilient than dynamic cron registration and survives deploys naturally
-- Show each client's next scheduled generation date in the admin panel
-- Railway cron jobs (platform-level) have a minimum 5-minute interval and execute in UTC only -- not suitable for the Finland-timezone-aware scheduling needed here
+**Consequences:**
+- Gmail clips the newsletter, hiding the footer and feedback buttons
+- The base64 blob also increases email parse time and can trigger spam heuristics on some filters
+- Base64 images are blocked by many enterprise email security gateways that scan image content inline
 
-**Warning signs:**
-- Multiple `cron.schedule()` calls created dynamically per client
-- Schedule state stored only in memory (no database persistence)
-- Missed digest generations after deployments
-- No way for admin to see "when will this client's next digest be generated?"
+**Prevention:**
+- Host the AI-Sanomat logo on the aisanomat.fi domain itself (e.g., `https://aisanomat.fi/images/email-logo.png`) — this is a domain Resend already sends from, with established reputation
+- Use the existing domain for image hosting — no separate CDN infrastructure needed for a single logo file
+- Logo should be a small, optimized PNG or WebP: target under 10KB file size, 200px wide at 2x resolution for retina
+- Use `width` and `height` attributes on the `<img>` tag (not just CSS) to prevent layout shift when images are blocked
+- Provide a text fallback in the `alt` attribute: `alt="AI-Sanomat"` so the header is readable even with images off
+- Never use base64 for email images — use hosted URLs exclusively
 
-**Phase to address:**
-Phase 2 (Auto-Scheduling) -- architecture decision (database-driven vs dynamic cron) must be made upfront
+**Detection (warning signs):**
+- `src="data:image/..."` appears anywhere in the email template
+- Email HTML size exceeds 80KB before structured article content is added
+- Logo image file has not been optimized (check with `ls -lh`)
+
+**Phase to address:** Logo Branding phase — set up image hosting on aisanomat.fi before writing any logo component.
 
 ---
 
-### Pitfall 6: Web Search API Costs Spiral with Per-Client Industry Searches
+### Pitfall 6: Gemini Image Generation Has Zero Free-Tier Quota for Billing-Disabled Accounts
 
 **What goes wrong:**
-Tavily charges per search credit (1 credit for basic, 2 for advanced). With 10 clients each needing industry-specific searches, running 3 queries per client per day = 30 searches/day = 900/month. On the free tier (1,000 credits/month), you are nearly maxed out with just 10 clients. Scaling to 20 clients doubles it. Using "advanced" or "deep" search modes (2-5 credits each) multiplies costs 2-5x. The insidious part: costs feel negligible per-query ($0.008) but compound multiplicatively with client count.
+As of late 2025, the Gemini API free tier provides 0 IPM (Images Per Minute) for image generation. Billing must be enabled to generate any images. This is not clearly communicated in the main Gemini documentation landing page — developers discover it only when they hit a quota error during implementation. If the existing Gemini integration in v1.1 was set up without billing enabled (possible if only text generation was used previously), the AI infographic fallback will silently return empty results or throw 429 errors.
 
 **Why it happens:**
-Search API costs are small per-query, creating a false sense of cheapness. Product decisions ("let's add 3 more search queries per client for better coverage") each seem trivial but compound multiplicatively. Additionally, Tavily's cleaned output saves downstream LLM token costs (raw SERP data consumes 40% more LLM tokens than Tavily's cleaned output), but this secondary saving is invisible and easy to ignore.
+The Gemini API documentation groups image generation under the same API credentials as text generation. Developers assume that if their API key works for text (Gemini Nano Banana 2 for image generation in v1.1), it will also work at the same tier level for generating infographics via the image generation endpoints. The quota error only appears at runtime, not during setup.
 
-**How to avoid:**
-- Implement a daily search budget counter in the database from day one
-- Use Tavily basic search (1 credit) by default; only use advanced search for specific high-value queries
-- Cache search results aggressively: same industry keyword search within 24 hours should return cached results, not make a new API call
-- Share general AI news searches across clients (search once, distribute to all) -- only industry-specific searches should be per-client
-- Set hard limits: max N searches per client per day, configurable in admin
-- Log every search API call with cost and expose totals in admin dashboard
-- Tavily's free tier (1,000 credits/month) is sufficient for early development and a few clients
-- Start with Tavily over Serper because Tavily returns AI-ready cleaned content (less LLM token waste downstream)
+**Consequences:**
+- AI infographic fallback generates no images — newsletter articles have no images at all
+- Error surfaces as a runtime 429 or quota error in the generation pipeline, not a clear configuration error
+- If not caught gracefully, the error crashes the digest generation job
 
-**Warning signs:**
-- No search cost tracking in the system
-- Same general AI queries being made separately for each client
-- No caching layer for search results
-- Monthly Tavily bill higher than expected
+**Prevention:**
+- Verify billing is enabled on the Google Cloud project linked to the Gemini API key used in production before starting v1.2 implementation
+- Add an explicit startup health check: call the Gemini image generation endpoint with a minimal 1-pixel test request on server start, and log a clear error if it fails: "GEMINI_IMAGE: Billing not enabled or quota exceeded — AI infographic fallback will not work"
+- Implement the fallback chain: OG image → AI infographic → no image (graceful degradation). Even if AI infographic fails, the newsletter must still send without images rather than failing entirely
+- Add retry logic with exponential backoff for transient 429 errors (rate limits): wait 2s, 4s, 8s before giving up
+- Use a separate Gemini API key for image generation vs. text generation if the existing key's quota is shared
 
-**Phase to address:**
-Phase 1 (Web Search Integration) -- budget tracking and caching must be built alongside the search client
+**Detection (warning signs):**
+- Existing Gemini integration in v1.1 was used with billing disabled
+- No startup health check for image generation quota exists
+- Pipeline has no graceful fallback when AI image generation returns empty
+
+**Phase to address:** AI Infographic Fallback phase — billing verification and graceful fallback chain must be built before the AI infographic feature is considered "done".
 
 ---
 
-### Pitfall 7: Embedding Model Lock-In and Cross-Model Vector Incompatibility
+### Pitfall 7: AI-Generated Infographic Triggers Gemini Safety Filter for Business/Tech Content
 
 **What goes wrong:**
-You pick an embedding model (e.g., OpenAI text-embedding-3-small at $0.02/1M tokens), store vectors in the database, then need to switch models (price change, better model released, vendor discontinuation). ALL existing vectors must be re-generated because vectors from different models are incompatible -- you cannot compare a text-embedding-3-small vector with a Voyage AI vector. This means re-embedding your entire article corpus and paying for it again.
+Gemini's image safety classifier is overly conservative and context-blind for enterprise use cases. Community reports (Google AI Developers Forum, 2025) document production cases where entirely legitimate ecommerce, editorial, and business images receive `IMAGE_SAFETY` errors. For AI-industry infographic generation, prompts mentioning specific AI companies, competitive analysis, or topics like "data scraping" or "model jailbreaking" can trigger false positives from the safety classifier — even though the output would be a benign business infographic.
 
 **Why it happens:**
-Cosine similarity only works between vectors from the same model with the same dimensionality. This is a fundamental mathematical constraint, not a software limitation. Developers store vectors without model metadata and assume they are interchangeable.
+Gemini's safety filters use keyword and pattern matching in prompts, not just output image analysis. Certain industry terminology common in AI news (adversarial attacks, model exploitation, deepfakes) triggers the classifier regardless of the benign visual intent.
 
-**How to avoid:**
-- Store the embedding model name and version alongside every vector in the database
-- Choose OpenAI text-embedding-3-small ($0.02/1M tokens) -- best quality/price ratio for news deduplication in 2026
-- For ~30 articles/day x 365 days = ~11,000 articles/year, embedding cost is negligible (<$1/year at current rates), so model cost is less important than accuracy
-- Design the schema so vectors can be re-generated: keep the original text, not just the vector
-- Write a re-embedding migration script as part of the initial implementation
-- Normalize vectors before storage when using cosine similarity (prevents recall degradation from inconsistent vector magnitudes)
-- Consider pgvector extension on Railway PostgreSQL for native vector operations; if unavailable, store as JSON array and compute similarity in application code
+**Consequences:**
+- Infographic generation silently fails for certain article categories
+- The fallback to no-image mode activates, but the failure reason is opaque — looks like a quota error
+- If the safety filter is hit repeatedly, the API key can be temporarily rate-limited
 
-**Warning signs:**
-- Vectors stored without model metadata
-- Original article text not preserved alongside vectors
-- No re-embedding migration script exists
-- Vector normalization step is missing
+**Prevention:**
+- Design the infographic prompt to describe the visual output (charts, icons, abstract representations) rather than the article's subject matter: "Create a clean business infographic with icons representing artificial intelligence technology trends" rather than "Create an infographic about AI model vulnerabilities"
+- Use a whitelist of visual metaphors in the prompt that are clearly safe: bar charts, network diagrams, globe icons, computer screens, gear icons, upward-trending arrows
+- Log the specific safety filter response categories when they occur (Gemini returns structured safety ratings) so patterns can be identified
+- Test the infographic prompt against a sample of 20-30 article summaries from the existing news corpus before shipping — catch problematic prompt patterns early
+- Have a ready alternate prompt template that is more abstract if the primary prompt fails: fall back from article-specific prompts to generic "AI industry trends" visuals
 
-**Phase to address:**
-Phase 3 (Semantic Deduplication) -- schema design must include model metadata from the start
+**Detection (warning signs):**
+- Infographic prompt includes article body text or specific AI system names directly
+- No logging of safety filter response categories
+- No alternate prompt fallback when primary prompt is rejected
+
+**Phase to address:** AI Infographic Fallback phase — prompt design and safety filter handling must be tested against real article content before the feature ships.
 
 ---
 
-### Pitfall 8: Source Health Monitoring False Alarms from Normal RSS Feed Behavior
+## Moderate Pitfalls
+
+### Pitfall 8: OG Image URL Is Relative, Not Absolute
 
 **What goes wrong:**
-RSS feeds have wildly inconsistent publication patterns. A high-quality AI research blog might publish twice a month. A news aggregator publishes 50 items daily. A conference RSS feed is silent for 11 months then explodes during the event. The health monitor marks the research blog as "stale" and the admin wastes time investigating healthy sources, while actually broken feeds (HTTP 500 errors, certificate expiry) get lost in the noise of false alarms.
+Some older RSS sources and blog platforms set og:image to a relative URL (`/images/article-thumb.jpg` instead of `https://example.com/images/article-thumb.jpg`). When this relative URL is used directly as an `<img src>` in an email, it points to nothing — email clients have no base URL to resolve relative paths against.
 
-**Why it happens:**
-Developers set a single "stale threshold" (e.g., "no new items in 48 hours = stale") without accounting for each source's natural publication frequency. One threshold cannot fit a daily news site and a monthly blog.
+**Prevention:**
+- After extracting the og:image value, always resolve it against the article's origin URL using the `URL` constructor: `new URL(ogImage, articleUrl).toString()`
+- Validate that the resolved URL starts with `https://` — reject `http://` URLs as many email clients block mixed-content images
+- Validate URL format before storing: catch malformed URLs with a try/catch around the `URL` constructor
 
-**How to avoid:**
-- Track per-source historical publication frequency: calculate average days between posts over the last 90 days
-- Set the stale threshold per source as `avg_days_between_posts * 3` -- only alert when a source is 3x overdue from its normal cadence
-- Separate HTTP-level health (can we reach the feed? does it parse?) from content-level health (is it publishing?)
-- HTTP errors (404, 500, SSL errors, timeouts) are ALWAYS alerts regardless of content frequency
-- Add an `expectedFrequency` field to the `newsSources` table: `daily`, `weekly`, `monthly`, `irregular`
-- Show source health as a simple traffic light in the admin panel: green (healthy), yellow (overdue), red (HTTP error or extremely overdue)
-- Let the admin manually mark sources as "irregular" to suppress false stale alerts
-- The existing `rssCollector.ts` already has a 15-second timeout -- extend this to also track response status codes for health data
-
-**Warning signs:**
-- Single stale threshold applied to all sources
-- Admin ignoring health alerts because they are mostly false positives
-- Actually broken feeds not being detected because alerts are noisy
-- No distinction between "feed is unreachable" and "feed has no new content"
-
-**Phase to address:**
-Phase 5 (Source Health Monitoring) -- per-source frequency tracking needs historical data, so start collecting publication timestamps and HTTP response metadata in earlier phases
+**Phase to address:** OG Image Extraction phase.
 
 ---
 
-## Technical Debt Patterns
+### Pitfall 9: Dark Mode Inverts the Logo and Makes It Invisible
 
-| Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|----------------|-----------------|
-| Storing embeddings in PostgreSQL JSON array column without pgvector | No extension dependency, simpler setup | Manual cosine similarity calculation in app code, O(n) scan for every comparison | Acceptable for <10,000 articles (years of data at current collection rate) |
-| Single `config` JSON text field on `newsSources` for all source types (current design) | No schema migration per source type | Type safety lost, impossible to query by X account handle or search keywords | Never for v1.1 -- migrate to typed columns or JSONB with schema validation when adding X and web search source types |
-| Hardcoding embedding model in code | Quick to implement | Must redeploy to change model | Never -- store model name in env var from the start |
-| Using `node-cron` for multi-client scheduling | Quick per-client schedule setup | Loses state on deploy, complex to debug, no visibility | Never for per-client schedules; use database-driven approach instead |
-| Skipping email client testing (Litmus/Email on Acid) | Saves ~$100/month subscription cost | Enterprise clients see broken emails, erodes trust immediately | Never for enterprise product targeting Outlook users |
-| Caching search results in memory only | Simple implementation | Lost on restart, no sharing between collection runs | Only during development; use database cache with TTL in production |
-| Shared X API credentials across all source types | Only one OAuth app to manage | Cannot separately rate-limit influencer monitoring vs keyword search | Acceptable for MVP; separate if hitting budget issues |
+**What goes wrong:**
+The AI-Sanomat logo is designed for light backgrounds: dark text, dark icon on white or light grey. When enterprise email clients (Apple Mail, Outlook on macOS, iOS Mail) switch to dark mode, the email background becomes dark and the dark logo becomes invisible or near-invisible — effectively removing the brand header from the email.
 
-## Integration Gotchas
+**Prevention:**
+- Prepare two versions of the logo: one for light mode (dark icon, normal colors) and one for dark mode (white/light version of the icon)
+- Use CSS media query `prefers-color-scheme: dark` with `<style>` to swap logo src — Apple Mail respects this
+- For Outlook (which does not respect this media query), ensure the logo has a visible background color set on its container table cell: `bgcolor="#FFFFFF"` forces a white background even in Outlook dark mode
+- Wrap the logo `<img>` in a table cell with explicit `bgcolor` to create a light background island — the logo will always render on a white background regardless of the surrounding email background
+- Use transparent PNG with sufficient padding so the white background cell looks designed, not like a forced hack
 
-| Integration | Common Mistake | Correct Approach |
-|-------------|----------------|------------------|
-| X API v2 | Using Free tier for read operations (Free tier has 0 tweet reads) | Budget for Basic ($200/mo) minimum; Free is write-only |
-| X API v2 | Not using `since_id` pagination, re-fetching old tweets every run | Store `last_seen_tweet_id` per monitored account, always pass `since_id` |
-| X API v2 | Not distinguishing between user timeline reads and search reads consuming from the same monthly quota | Track all read operations against a single monthly budget counter |
-| X API v2 | Authenticating with user OAuth when app-only Bearer token suffices for read-only | Use app-only Bearer token for timeline/search reads; simpler auth, same rate limits |
-| Tavily | Using "advanced" search depth by default (2 credits vs 1) | Default to basic search; only use advanced for specific high-value queries |
-| Tavily | Not caching results -- same query 10 minutes later makes a new API call | Cache search results by query hash with 24-hour TTL in database |
-| Tavily | Sending raw Tavily output to Claude without trimming | Tavily returns cleaned content, but still trim to relevant snippets to save Claude input tokens |
-| OpenAI Embeddings | Sending raw HTML or very long article text for embedding | Clean text, truncate to model's context window (8191 tokens for text-embedding-3-small), embed title + summary, not full content |
-| OpenAI Embeddings | Not normalizing vectors before storage | Normalize to unit vectors on storage; cosine similarity assumes normalized inputs for consistent results |
-| React Email | Assuming JSX preview matches actual rendered HTML in email clients | Always check compiled HTML output; test in Litmus/Email on Acid before deploying |
-| React Email | Using `<style>` blocks for custom CSS | React Email inlines styles from components, but any custom CSS in `<style>` tags gets stripped by Gmail; use inline styles exclusively |
-| Resend (feedback links) | Building click tracking URLs that expose member IDs | Use HMAC-signed tokens in feedback URLs; predictable sequential IDs allow feedback forgery |
-| PostgreSQL / pgvector | Adding `vector` column assuming Railway PostgreSQL has pgvector installed | Verify Railway PostgreSQL supports pgvector extension; if not, use JSONB array and compute cosine similarity in Node.js |
-| `newsSources` schema | Adding X accounts and Tavily queries as source type `manual` with JSON config | Add proper enum values (`x_account`, `x_keyword`, `web_search`) to `sourceTypeEnum` -- the current enum only has `rss`, `beehiiv`, `manual` |
+**Phase to address:** Logo Branding phase.
 
-## Performance Traps
+---
 
-| Trap | Symptoms | Prevention | When It Breaks |
-|------|----------|------------|----------------|
-| Computing cosine similarity in a loop over all articles for every new article | Deduplication takes 10+ seconds as article count grows | Pre-filter by date range (only compare against last 14 days) and use pgvector index if available | >5,000 articles (~6 months of collection at expanded source volume) |
-| Fetching all news items for digest generation without date or industry filtering | `generateClientDigest` currently fetches 30 most recent items globally -- with 5x more sources this becomes stale or irrelevant | Filter by date range (last 7/14/30 days depending on frequency) AND tag items by relevance to client industry | When total news items exceed ~500 and clients span different industries |
-| Running X API calls, web searches, and RSS collection synchronously | Daily collection takes 10+ minutes, blocking the scheduler | Parallelize independent source types (RSS in parallel, X with rate limiting, web search with budget tracking) | When source count exceeds 30 total |
-| Re-embedding articles on every collection run instead of only new articles | Wasted embedding API calls and compute on already-processed articles | Only embed articles that lack an embedding vector; flag new articles for embedding on insert | When collecting >50 articles/day |
-| Generating digests for all due clients sequentially | With 20 clients, generation takes 20x longer; Claude API calls serialize | Process clients in parallel batches (3-5 concurrent), respecting Claude API rate limits | When client count exceeds 5 |
-| Email template re-rendering per recipient when content is identical | Slow batch sending | Render once per issue, personalize only member-specific fields (unsubscribe URL, tracking pixel, feedback links) at send time -- current code mostly does this | When >100 members per client |
+### Pitfall 10: Structured HTML Looks Broken When Images Are Blocked
 
-## Security Mistakes
+**What goes wrong:**
+Corporate email environments (Finnish enterprise, government, financial sector) often block remote images by default. When images are blocked, the article layout depends entirely on the image placeholder space and alt text. If the `<img>` tag has no `width` and `height` attributes and no `alt` text, the image slot collapses to zero height, which shifts the entire article layout and can make it look like the article has no separator from the next article.
 
-| Mistake | Risk | Prevention |
-|---------|------|------------|
-| Storing X API Bearer token in code or git | Token exposure leads to unauthorized API access, potential $5,000/month Pro tier charges | Store in Railway environment variables only; never commit tokens; rotate on suspected exposure |
-| Email feedback links with predictable member IDs (sequential integers from `serial` primary key) | Anyone can forge feedback by guessing member IDs | Use HMAC-signed tokens in feedback URLs: `HMAC(member_id + issue_id, secret)` -- verify signature on click |
-| Exposing Tavily/OpenAI API keys in client-side code or API responses | Keys stolen and used by others, running up your bill | All external API calls go through backend; never expose third-party keys to frontend |
-| Unvalidated webhook payloads from Resend | Attacker sends fake delivery/bounce events, corrupting tracking data | Validate Resend webhook signatures using their provided signing secret |
-| X API OAuth tokens stored in plaintext in database | Database breach exposes X API access | Encrypt tokens at rest or store in Railway environment variables; rotate periodically |
-| Feedback endpoint without rate limiting | Attacker floods fake feedback, skewing satisfaction metrics | Rate limit feedback endpoint: max 1 feedback per member per issue per minute |
+**Prevention:**
+- Always set `width` and `height` attributes (not CSS properties) on all `<img>` tags
+- Write meaningful `alt` text for OG images: use the article headline as the alt text (e.g., `alt="OpenAI julkistaa uuden mallin"`)
+- Style the alt text with inline CSS so it looks intentional when displayed as text: `style="font-size:12px; color:#666666; font-style:italic;"`
+- Never rely on an image to provide visual separation between articles — always use a structural divider (border-bottom on a table row) that renders even without images
 
-## UX Pitfalls
+**Phase to address:** Structured HTML Content phase, with review during OG Image Extraction phase.
 
-| Pitfall | User Impact | Better Approach |
-|---------|-------------|-----------------|
-| Thumbs up/down feedback requires portal login | Enterprise users will not log into a portal to rate a newsletter -- feedback rate drops to near zero | Embed feedback directly in the email as simple GET request links with HMAC-signed tokens; no login required |
-| No feedback confirmation after clicking thumbs up/down | User unsure if feedback was recorded, may click multiple times | Redirect to a simple "Kiitos palautteesta!" page; deduplicate clicks by member+issue |
-| Source health alerts only visible when admin logs in to the panel | Broken sources go unnoticed for days between admin sessions | Send email notification to Janne when critical sources fail (HTTP errors); dashboard is for detail, not primary alerting |
-| Auto-scheduled digests generate without enough recent news | System generates a digest from stale/insufficient news, producing low-quality thin content | Set a minimum news item threshold per client (e.g., at least 5 fresh articles); if insufficient, skip generation and notify admin |
-| Configurable frequency UI offers too many options or freeform input | Decision paralysis; clients pick "daily" and get thin, low-quality digests | Offer exactly three options: weekly, bi-weekly, monthly. No custom cron expressions. Weekly is the default. |
-| Admin has no preview of which X/web search sources contributed to a digest | Cannot debug why certain topics appear or are missing in newsletter content | Show source attribution in the admin digest preview: which articles came from RSS vs X vs web search |
-| Deduplication is invisible to admin | Cannot understand why an article was removed or kept | Show dedup decisions in admin: "Article X removed as duplicate of Article Y (similarity: 0.94)" |
+---
+
+### Pitfall 11: CDN Domain for Hosted Images Differs From Sending Domain, Triggering Spam Filters
+
+**What goes wrong:**
+If the AI-Sanomat logo and article images are hosted on a different domain than the sending domain (e.g., images on `cdn.someimagehost.com` while email is sent from `@aisanomat.fi`), some spam filters flag the domain mismatch as a phishing signal. Shared CDN domains may also have poor reputation if other tenants have used them for spam.
+
+**Prevention:**
+- Host all email images (logo, any static assets) on `aisanomat.fi` itself — a subdirectory (`/static/email/`) or subdomain (`images.aisanomat.fi`) that shares the root domain's reputation
+- Do NOT use free image hosting services (Imgur, Cloudinary free tier, generic S3 buckets) for email images — shared reputation risk
+- OG images from source articles use the source site's CDN, which is unavoidable — this is acceptable because the article URL domain is typically a legitimate news source
+- Verify image hosting domain is not on any blocklist before first send using MXToolbox or similar
+
+**Phase to address:** Logo Branding phase — image hosting infrastructure must be decided before any images are referenced in email templates.
+
+---
+
+### Pitfall 12: Tailwind Headings in React Email Require Native HTML Tags, Not `<Heading>` Component
+
+**What goes wrong:**
+React Email's `<Heading>` component does not work correctly with Tailwind CSS classes in certain configurations. The Tailwind styles either do not apply or compile to values that are overridden by email client default stylesheet. Developers spend significant time debugging why their `className="text-xl font-bold"` on a `<Heading>` produces no visible effect.
+
+**Why it happens:**
+React Email's `<Heading>` component adds its own default styles that conflict with Tailwind's utility class output. The issue is documented in open GitHub issues and community discussions.
+
+**Prevention:**
+- Use native HTML tags (`<h2>`, `<h3>`) with explicit inline styles, not the React Email `<Heading>` component
+- Do not rely on Tailwind for structural typography in email — inline `style` props on `<h2 style={{ fontSize: '18px', fontWeight: '700', color: '#1a1a1a' }}>` are more predictable
+- Tailwind is acceptable for spacing utilities (`px-4`, `py-2`) but should not be the primary mechanism for typographic styling in email context
+- The existing system already uses `pixelBasedPreset` (correct for email) — ensure all new components follow this same pattern and do not introduce rem-based Tailwind classes
+
+**Phase to address:** Structured HTML Content phase.
+
+---
+
+## Minor Pitfalls
+
+### Pitfall 13: OG Image Fetch Leaks Memory if AbortController Is Not Cleaned Up
+
+**What goes wrong:**
+Each OG fetch creates an `AbortController` and sets a `setTimeout` to trigger it. If the fetch resolves before the timeout, the `setTimeout` is never cleared, leaving a pending timer in the Node.js event loop. In batch processing (10-20 articles per digest), this creates 10-20 orphaned timers per generation run. Under Railway's long-running server model, these timers accumulate.
+
+**Prevention:**
+- Always call `clearTimeout(timeoutId)` in the `finally` block of the fetch wrapper
+- Use a battle-tested timeout wrapper utility rather than implementing manually:
+
+```typescript
+async function fetchWithTimeout(url: string, timeoutMs = 3000): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(id);
+  }
+}
+```
+
+**Phase to address:** OG Image Extraction phase.
+
+---
+
+### Pitfall 14: Image-to-Text Ratio Triggers Spam Filters If Too Many Images Are Added
+
+**What goes wrong:**
+Adding an image per article (OG or AI infographic) to a 10-article newsletter dramatically increases the image count. If each article also becomes shorter (more structured but less prose), the image-to-text ratio can tip past the 30-40% threshold where spam filters apply penalties.
+
+**Prevention:**
+- Target 60-70% text to 30-40% image ratio — structured HTML content naturally increases the text area, which helps
+- Ensure each article section has a minimum of 100 words of visible text to provide sufficient text weight relative to the image
+- All images must have descriptive `alt` text — this text is counted as email content by some filters, helping the ratio
+- If more than 8 articles are included in a single issue, consider not showing images for lower-priority articles to keep the image count reasonable
+
+**Phase to address:** OG Image Extraction phase — measure ratio before shipping.
+
+---
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **X Integration:** API reads work in testing -- but monthly quota tracking is not implemented, and the app will silently stop collecting tweets mid-month
-- [ ] **X Integration:** Influencer accounts are monitored -- but `since_id` pagination is missing, causing the same tweets to be re-fetched and re-counted against the monthly quota every run
-- [ ] **Semantic Dedup:** Cosine similarity code works -- but threshold was never calibrated against real AI news articles, so it either misses duplicates or removes unique stories
-- [ ] **Semantic Dedup:** Embeddings are stored -- but no model metadata is recorded, making future model migration impossible without re-processing everything
-- [ ] **Auto-Scheduling:** Cron job fires on schedule -- but deploying the app resets all schedules, and there is no recovery mechanism to detect and re-schedule missed generations
-- [ ] **Auto-Scheduling:** Multiple frequencies work -- but `next_generation_at` is not recalculated after admin manually triggers a digest, causing duplicate generation on the next scheduled run
-- [ ] **Email Template:** Template looks perfect in Gmail -- but was never tested in corporate Outlook desktop (the primary enterprise client environment), dark mode, or with images disabled
-- [ ] **Email Template:** Co-branding shows client name -- but long company names or Finnish special characters (a, o, a) break the layout or get garbled in certain email clients
-- [ ] **Feedback Loop:** Thumbs up/down links work -- but the links contain predictable sequential IDs allowing feedback forgery, and there is no deduplication of multiple clicks
-- [ ] **Feedback Loop:** Feedback is collected -- but no reporting view exists in admin to show aggregate satisfaction per client per issue
-- [ ] **Source Health:** Stale detection works -- but uses a single threshold for all sources, generating so many false alarms that the admin ignores all alerts
-- [ ] **Source Health:** HTTP errors are detected -- but no distinction between temporary (503 Service Unavailable) and permanent (404 Not Found, domain expired) failures
-- [ ] **Web Search:** Tavily integration returns results -- but there is no caching, so the same "artificial intelligence news" query runs (and costs credits) separately for every client every day
-- [ ] **Schema:** New source types work -- but the `sourceTypeEnum` was not updated from `['rss', 'beehiiv', 'manual']` to include `x_account`, `x_keyword`, `web_search` -- using `manual` type with JSON config is a tech debt trap
+- [ ] **OG Extraction:** Meta tags are being parsed — but the fetch has no timeout, so slow sites can hang the digest generation job for minutes
+- [ ] **OG Extraction:** og:image URL is returned — but it is a generic site-wide sharing image, not article-specific; the fallback AI infographic never fires because the URL is non-null
+- [ ] **OG Extraction:** Images appear in preview — but the URL is relative (`/images/thumb.jpg`) which resolves to nothing in an email client that has no base URL
+- [ ] **AI Infographic:** Gemini API key works for text generation — but billing was never verified for image generation, so the infographic fallback silently returns empty at runtime
+- [ ] **AI Infographic:** Infographic generates correctly for most articles — but certain AI industry terms in the prompt hit Gemini's safety classifier; no alternate prompt fallback exists
+- [ ] **Structured HTML:** Content looks correct in browser and React Email preview — but Outlook renders it as an unstyled text wall because CSS was used for layout instead of table structure
+- [ ] **Structured HTML:** Email looks great with 5 articles — but adding structured content per article pushed the compiled HTML past 102KB; Gmail clips it and the unsubscribe link is hidden
+- [ ] **Logo Branding:** Logo renders correctly in Gmail and Apple Mail — but dark mode on Apple Mail or iOS makes the dark logo invisible against the dark background
+- [ ] **Logo Branding:** Logo is embedded in the email — but it is base64-encoded, adding 20KB to the HTML size and potentially being blocked by enterprise email security gateways
+- [ ] **Image Hosting:** Logo URL is in the template — but it is hosted on a generic shared CDN domain unrelated to aisanomat.fi, triggering deliverability flags
+
+---
+
+## Phase-Specific Warnings
+
+| Phase Topic | Likely Pitfall | Mitigation |
+|-------------|----------------|------------|
+| OG Image Extraction | Fetch hangs on slow/blocked sites | AbortController with 3s timeout, `Promise.allSettled()` for parallel fetches |
+| OG Image Extraction | Generic site og:image treated as valid article image | URL heuristic check for `default`, `logo`, `placeholder` in path |
+| OG Image Extraction | Relative og:image URL sent as email img src | Resolve against article origin with `new URL()` |
+| AI Infographic Fallback | Gemini billing not enabled for image generation | Startup health check; verify billing before implementation |
+| AI Infographic Fallback | Safety filter rejects AI-topic prompts | Visual metaphor prompts, not topic prompts; alternate prompt fallback |
+| Structured HTML Content | Email HTML exceeds 102KB, Gmail clips it | Measure compiled HTML size in pipeline; alert at 80KB; truncate articles to fit |
+| Structured HTML Content | CSS layout ignored by Outlook | Table-only layout via React Email primitives; test in Litmus pre-ship |
+| Structured HTML Content | Tailwind `<Heading>` component styles don't apply | Use native `<h2>`, `<h3>` with explicit inline styles |
+| Logo Branding | Logo invisible in dark mode | Provide dark-mode logo variant; wrap in white `bgcolor` table cell |
+| Logo Branding | Base64 logo inflates HTML size | Host logo on aisanomat.fi; use hosted URL, never base64 |
+| Logo Branding | Image CDN domain differs from sending domain | Host all static assets on aisanomat.fi domain |
+
+---
+
+## Integration Gotchas (v1.2 Specific)
+
+| Integration | Common Mistake | Correct Approach |
+|-------------|----------------|------------------|
+| OG Scraping | `Promise.all()` for parallel fetches — one failure aborts all | Use `Promise.allSettled()` — treat each OG fetch as independent |
+| OG Scraping | Trusting og:image without validating it is article-specific | Check URL path for generic image indicators; validate image is reachable |
+| OG Scraping | Fetching OG on every digest generation | Cache by article URL with 24h TTL in the database |
+| React Email | Using `<Heading>` component with Tailwind classes | Use native `<h2>` / `<h3>` with inline `style` prop |
+| React Email | Not measuring compiled HTML size | Add `Buffer.byteLength(renderedHtml, 'utf8')` logging before every send |
+| React Email | Using CSS `background-color` for highlight boxes | Use `bgcolor` attribute on table cells for Outlook compatibility |
+| Gemini Image API | Assuming text generation key works for image generation | Verify billing enabled; add startup health check for image quota |
+| Gemini Image API | No retry logic for transient 429 errors | Exponential backoff: 2s, 4s, 8s; give up after 3 attempts |
+| Gemini Image API | Prompt contains article subject matter directly | Use visual metaphor prompts describing chart/icon style, not article topic |
+| Email Images | Hosting logo on shared CDN or free image host | Host on `aisanomat.fi` subdirectory or subdomain |
+| Email Images | Using base64 for logo | Always use hosted HTTPS URL |
+| Email Images | No `width`/`height` attributes on `<img>` | Set both HTML attributes (not CSS) on all images |
+
+---
 
 ## Recovery Strategies
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| X API monthly quota exhausted mid-month | LOW | Fall back to RSS + web search only for remaining month; no data loss, just reduced X coverage. Implement budget cap to prevent recurrence. |
-| Dedup threshold too aggressive (removed unique stories) | MEDIUM | Re-process affected digests from raw news items (originals preserved in DB). Adjust threshold. Admin reviews and re-generates affected issues. |
-| Dedup threshold too lenient (duplicates in newsletter) | LOW | No permanent damage. Adjust threshold. Regenerate affected draft issues before sending. |
-| Email template broken in Outlook for paying clients | HIGH | Emergency rollback to previous template version. Set up Litmus testing. Re-test and re-deploy. Apologize to affected clients -- trust damage is the real cost. |
-| Scheduled generation missed due to deploy | LOW | Database-driven approach allows immediate catch-up: check `next_generation_at < NOW()` on startup and process overdue clients. |
-| Embedding model discontinued or pricing changed | MEDIUM | Re-embed all articles using new model (cost: ~$1 for 10K articles using text-embedding-3-small). Requires migration script and model metadata in schema. |
-| Source health monitoring producing only false alarms | LOW | Disable alerting temporarily. Backfill per-source frequency data from `news_items.collected_at` history. Recalculate per-source thresholds. Re-enable. |
-| Tavily free tier credits exhausted mid-month | LOW | General AI news collection continues via RSS and X. Only industry-specific web search is affected. Implement caching and shared queries to prevent recurrence. |
-| Feedback links forged by malicious actor | LOW | Invalidate suspicious feedback data. Deploy HMAC-signed links. Re-request legitimate feedback in next issue. |
+| OG fetch hangs and times out in production | LOW | Timeouts self-resolve; add AbortController with 3s limit and redeploy |
+| Gmail clips newsletter (>102KB HTML) | MEDIUM | Revert to fewer articles or less structured content per article; measure and tune |
+| Outlook layout broken for enterprise client | HIGH | Emergency rollback to previous template; test with Litmus; fix table structure; trust damage is the real cost |
+| Gemini image API returns empty (billing issue) | LOW | Enable billing; articles render without images until next issue; no data loss |
+| Logo invisible in dark mode (client complaint) | MEDIUM | Prepare light-version logo PNG; deploy new template; send re-issue or include in next newsletter |
+| Safety filter blocking infographic prompts | LOW | Adjust prompt to visual metaphors only; redeploy; no existing data affected |
 
-## Pitfall-to-Phase Mapping
-
-| Pitfall | Prevention Phase | Verification |
-|---------|------------------|--------------|
-| X API cost shock (#1) | Phase 1 (X Monitoring) | Budget calculation document exists; daily cap implemented in code; admin dashboard shows API usage vs. monthly limit |
-| X dual rate limit data loss (#2) | Phase 1 (X Monitoring) | Monthly consumption counter in DB; admin can see remaining budget; system continues functioning when X budget exhausted |
-| Dedup threshold miscalibration (#3) | Phase 3 (Semantic Dedup) | Calibration dataset of 50+ manually-labeled pairs exists; threshold tested against dataset; admin review queue for borderline similarity scores |
-| Email template Outlook breakage (#4) | Phase 4 (Premium Email) | Litmus/Email on Acid account active; template tested in Outlook 365 desktop, Gmail, Apple Mail, dark mode; screenshot evidence saved |
-| node-cron schedule loss on deploy (#5) | Phase 2 (Auto-Scheduling) | All schedule state in database; single daily cron checks DB for due clients; system recovers missed jobs on startup; admin sees next scheduled date per client |
-| Web search cost spiral (#6) | Phase 1 (Web Search) | Daily budget counter in DB; shared general searches across clients; cache with 24h TTL; admin dashboard shows search credit spend |
-| Embedding model lock-in (#7) | Phase 3 (Semantic Dedup) | Schema includes model name/version per vector; original text preserved; re-embedding script exists and has been tested |
-| Source health false alarms (#8) | Phase 5 (Source Health) | Per-source frequency tracking active; HTTP errors separated from content staleness; admin confirms alerts are actionable not noisy |
+---
 
 ## Sources
 
-- [X API Rate Limits - Official Documentation](https://docs.x.com/x-api/fundamentals/rate-limits) -- HIGH confidence
-- [X/Twitter API Pricing 2026](https://getlate.dev/blog/twitter-api-pricing) -- MEDIUM confidence (aggregated from multiple sources)
-- [X API Pricing Tiers 2025](https://twitterapi.io/blog/twitter-api-pricing-2025) -- MEDIUM confidence
-- [X Pay-As-You-Go Pricing Announcement - TechCrunch](https://techcrunch.com/2025/10/21/x-is-testing-a-pay-per-use-pricing-model-for-its-api/) -- HIGH confidence
-- [Best SERP API Comparison 2025 - DEV Community](https://dev.to/ritza/best-serp-api-comparison-2025-serpapi-vs-exa-vs-tavily-vs-scrapingdog-vs-scrapingbee-2jci) -- MEDIUM confidence
-- [Tavily vs Serper API - SearchMCP Blog](https://searchmcp.io/blog/tavily-vs-serper-search-api) -- MEDIUM confidence
-- [NVIDIA Semantic Deduplication Documentation](https://docs.nvidia.com/nemo/curator/latest/curate-text/process-data/deduplication/semdedup.html) -- HIGH confidence
-- [Cosine Similarity Guide 2025](https://www.shadecoder.com/topics/cosine-similarity-a-comprehensive-guide-for-2025) -- MEDIUM confidence
-- [OpenAI Embedding Pricing](https://platform.openai.com/docs/pricing) -- HIGH confidence (official)
-- [13 Best Embedding Models in 2026](https://elephas.app/blog/best-embedding-models) -- MEDIUM confidence
-- [Railway Cron Jobs - Official Documentation](https://docs.railway.com/reference/cron-jobs) -- HIGH confidence (official)
-- [Railway Blog: Cron Jobs](https://blog.railway.com/p/cron-jobs) -- HIGH confidence (official)
-- [Dark Mode for Email - Litmus Ultimate Guide](https://www.litmus.com/blog/the-ultimate-guide-to-dark-mode-for-email-marketers) -- HIGH confidence
-- [HTML and CSS in Emails 2026 - Designmodo](https://designmodo.com/html-css-emails/) -- MEDIUM confidence
-- [Common Issues with Outlook Email Templates](https://help.designmodo.com/article/209-common-issues-outlook) -- MEDIUM confidence
-- [Email Feedback Loop Explained 2026 - Mailtrap](https://mailtrap.io/blog/email-feedback-loop/) -- MEDIUM confidence
-- [node-cron npm package documentation](https://www.npmjs.com/package/node-cron) -- HIGH confidence (official)
-- [Semantic Search in CAP Node.js - SAP Community](https://community.sap.com/t5/sap-cap-blog-posts/semantic-search-in-cap-node-js-vector-embeddings-and-cosine-similarity/ba-p/14287114) -- MEDIUM confidence
+- [React Email Headings with Tailwind — community discussion](https://www.tempmail.us.com/en/react/why-headings-don-t-work-with-tailwind-in-react-email) — MEDIUM confidence
+- [React Email Dark Mode — GitHub Discussion #591](https://github.com/resend/react-email/discussions/591) — HIGH confidence (official repo)
+- [React Email Dark Mode Tailwind Issue — GitHub #999](https://github.com/resend/react-email/issues/999) — HIGH confidence (official repo)
+- [Gmail Clipping at 102KB — Email Bug Tracker](https://github.com/hteumeuleu/email-bugs/issues/41) — HIGH confidence
+- [Gmail Clipping Explained — SpamResource](https://www.spamresource.com/2022/01/what-is-gmail-clipping-and-what-to-do.html) — HIGH confidence
+- [Email Client Rendering Differences 2026 — DEV Community](https://dev.to/aoifecarrigan/the-complete-guide-to-email-client-rendering-differences-in-2026-243f) — MEDIUM confidence
+- [Outlook HTML Email Rendering Issues — Email on Acid](https://www.emailonacid.com/blog/article/email-development/how-to-code-emails-for-outlook/) — HIGH confidence
+- [Email HTML Best Practices — WooCommerce Developer Docs](https://developer.woocommerce.com/docs/features/email/email-html-best-practices/) — MEDIUM confidence
+- [Image to Text Ratio 2025 — EmailConsul](https://emailconsul.com/blog/%F0%9F%93%AC-text-to-image-ratio-in-email-deliverability-why-it-still-matters-in-2025/) — MEDIUM confidence
+- [Image to Text Ratio — Email on Acid](https://www.emailonacid.com/blog/article/email-deliverability/does-text-to-image-ratio-affect-deliverability/) — HIGH confidence
+- [Base64 Images in Email — SendCheckIt](https://sendcheckit.com/blog/base64-encoding-images-emails) — MEDIUM confidence
+- [CDN Domain Reputation for Email — Suped](https://www.suped.com/knowledge/email-deliverability/sender-reputation/does-using-a-different-domain-for-cdn-hosted-images-in-emails-affect-deliverability) — MEDIUM confidence
+- [OG Meta Tags Common Issues — DEV Community](https://dev.to/riyanegi/solving-issues-with-og-meta-tags-a-comprehensive-guide-22c2) — MEDIUM confidence
+- [Open Graph Meta Tags — og-image.org](https://og-image.org/learn) — MEDIUM confidence
+- [OG Scraping JS SPAs Challenge — Prerender.io](https://prerender.io/blog/benefits-of-using-open-graph/) — MEDIUM confidence
+- [open-graph-scraper npm package](https://www.npmjs.com/package/open-graph-scraper) — HIGH confidence (official)
+- [Gemini API Rate Limits — Official Documentation](https://ai.google.dev/gemini-api/docs/rate-limits) — HIGH confidence (official)
+- [Gemini Free Tier 0 IPM for Image Generation — AI Free API](https://www.aifreeapi.com/en/posts/gemini-api-rate-limit) — MEDIUM confidence (corroborated by multiple sources)
+- [Gemini IMAGE_SAFETY false positives — Google AI Developers Forum](https://discuss.ai.google.dev/t/nano-banana-pro-suddenly-blocking-non-nsfw-ecommerce-underwear-images-with-image-safety-error/113109) — HIGH confidence (official forum)
+- [Gmail Gemini AI Impact on Deliverability 2026 — Folderly](https://folderly.com/blog/gmail-gemini-ai-email-deliverability-2026) — MEDIUM confidence
+- [Email Image Deliverability — GetVero](https://www.getvero.com/resources/email-image/) — MEDIUM confidence
 
 ---
-*Pitfalls research for: AI-Sanomat Yrityksille v1.1 -- Smart Sourcing & Polish*
-*Researched: 2026-03-03*
+*Pitfalls research for: AI-Sanomat Yrityksille v1.2 — Newsletter Quality and Design*
+*Researched: 2026-03-04*

@@ -1,203 +1,253 @@
-# Stack Research: v1.1 Smart Sourcing & Polish
+# Stack Research: v1.2 Newsletter Quality & Design
 
-**Domain:** Enterprise AI-curated newsletter platform -- new feature additions
-**Researched:** 2026-03-03
-**Confidence:** HIGH (most libraries verified via npm/official docs)
+**Domain:** Enterprise AI-curated newsletter platform — quality and design improvements
+**Researched:** 2026-03-04
+**Confidence:** HIGH (existing stack verified via codebase, new additions verified via npm/official docs)
 
 ## Scope
 
-This covers ONLY new dependencies needed for v1.1 features. The existing validated stack (Fastify 5.7, Next.js 16.1, PostgreSQL 16, Drizzle ORM 0.45, Claude Sonnet 4.6 via @anthropic-ai/sdk, Gemini via @google/genai, Resend 6.9, React Email 1.0.8, node-cron 4.2, Zod 3.25, Svix 1.86) is NOT re-researched. See v1.0 research archive for those decisions.
+This covers ONLY the new capabilities needed for v1.2. The existing validated stack is NOT re-researched:
+
+- Fastify 5.7, Next.js 16, PostgreSQL 16, Drizzle ORM 0.45
+- Claude Sonnet 4.5 via `@anthropic-ai/sdk` ^0.78.0
+- `@google/genai` ^1.43.0 with `gemini-2.5-flash-image` model
+- Resend 6.9, React Email 1.0.8, `@react-email/components` 1.0.8
+- node-cron 4.2, Zod 3.25, Svix 1.86, OpenAI 6.25.0
+
+The four new capabilities needed:
+1. OG image extraction from source URLs
+2. AI-generated infographic/chart images as fallback (using existing Gemini)
+3. Structured HTML content in emails (lists, bold, subheadings)
+4. Logo integration in email header
 
 ---
 
 ## Recommended New Dependencies
 
-### 1. X (Twitter) Monitoring: `twitter-api-v2`
+### 1. OG Image Extraction: `open-graph-scraper`
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| `twitter-api-v2` | ^1.29.0 | X API v2 client for influencer timelines and keyword search | Only actively maintained, strongly-typed Node.js client for X API v2. Full TypeScript support, automatic pagination with async iterators, built-in rate-limit handling. Officially listed on X developer platform. |
+| `open-graph-scraper` | ^6.11.0 | Extract `og:image` URLs from news article source pages | Only actively maintained, battle-tested OG scraper. Full TypeScript support, ESM-native (matches project `"type": "module"`), uses native Fetch API (no extra HTTP client), returns typed `ogImage[]` array with URL/dimensions. 81 dependent packages, last published 2 months ago (current). |
 
-**X API Access Tier: Pay-Per-Use (recommended)**
+**Why `open-graph-scraper` over alternatives:**
 
-X launched consumption-based pricing in February 2026. This is the right fit because:
-- No $200/month minimum commitment (old Basic tier required this even for light use)
-- Credits purchased upfront, deducted per request: single-item lookups = 1 credit, paginated (20 items) = 5 credits, batch (100 items) = 25 credits
-- Spending caps prevent surprise bills, auto-top-up optional
-- Monthly cap of 2M post reads -- far above newsletter needs
-- For ~20 influencer timelines + keyword searches weekly, expect very low monthly cost
+| Option | Version | Why Not |
+|--------|---------|---------|
+| `open-graph-scraper` | 6.11.0 | RECOMMENDED |
+| `@devmehq/open-graph-extractor` | — | Under-documented, less community trust |
+| `open-graph` (npm) | — | Unmaintained (last publish 2020) |
+| `metascraper` | — | Plugin architecture is overkill; 15+ plugins to install for basic OG extraction |
+| Rolling your own with `node-fetch` + HTML parsing | — | Would need cheerio for parsing, adding another dep; og-scraper is purpose-built |
 
-**Alternative considered: Third-party X data APIs** (TwitterAPI.io at $0.15/1K tweets, SocialData, SociaVault). These are 90% cheaper but introduce ToS violation risk, vendor instability, and a dependency on scraping infrastructure. For a legitimate B2B product sold to enterprises, the official API is the only defensible choice.
+**ESM compatibility (verified):** `open-graph-scraper` ships both CJS and ESM builds. The package.json `exports` field provides `/dist/esm/` for ESM consumers. Project is `"type": "module"` — confirmed compatible.
 
-**Integration with existing codebase:**
+**Key API for this use case:**
+
 ```typescript
-// New file: api/src/integrations/xClient.ts
-import { TwitterApi } from 'twitter-api-v2';
+// api/src/integrations/ogExtractor.ts
+import ogs from 'open-graph-scraper';
 
-const client = new TwitterApi(process.env.X_BEARER_TOKEN!);
-const readOnly = client.readOnly;
-
-// Keyword search (last 7 days) -- fits existing CollectedItem interface
-export async function searchXPosts(query: string): Promise<CollectedItem[]> {
-  const results = await readOnly.v2.search(query, {
-    max_results: 100,
-    'tweet.fields': ['created_at', 'public_metrics', 'entities'],
-  });
-  return results.data.data.map(tweet => ({
-    title: tweet.text.slice(0, 200),
-    url: `https://x.com/i/status/${tweet.id}`,
-    summary: tweet.text,
-    publishedAt: tweet.created_at ? new Date(tweet.created_at) : null,
-  }));
-}
-
-// Influencer timeline monitoring
-export async function fetchUserTimeline(userId: string): Promise<CollectedItem[]> {
-  const timeline = await readOnly.v2.userTimeline(userId, {
-    max_results: 10,
-    'tweet.fields': ['created_at', 'public_metrics'],
-  });
-  // ... same mapping pattern
+export async function extractOgImage(url: string): Promise<string | null> {
+  try {
+    const { result, error } = await ogs({
+      url,
+      fetchOptions: {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; AI-Sanomat/1.0; +https://aisanomat.fi)',
+        },
+        signal: AbortSignal.timeout(5000), // 5s timeout via native AbortSignal
+      },
+    });
+    if (error || !result.ogImage?.length) return null;
+    return result.ogImage[0].url ?? null;
+  } catch {
+    return null; // Always fall through to Gemini fallback
+  }
 }
 ```
 
-**Extends `newsCollectorService.ts`:** Add `'x_search'` and `'x_user'` to `sourceTypeEnum`. The existing sequential collection loop and try/catch per source pattern works unchanged.
-
----
-
-### 2. Web Search: `@tavily/core`
-
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| `@tavily/core` | ^0.7.2 | AI-optimized web search for industry-specific news discovery | Returns LLM-ready extracted content in a single API call (search + scrape + extract). No separate scraping pipeline needed. Purpose-built for feeding results into AI models. |
-
-**Why Tavily over Serper:**
-
-| Factor | Tavily | Serper |
-|--------|--------|--------|
-| Output format | Clean extracted content per result | Raw SERP data (titles, URLs, snippets only) |
-| Content extraction | Included -- aggregates from up to 20 sources | Not included -- requires separate scraping of each URL |
-| Architecture impact | Single API call | Search API call + Puppeteer/fetch per URL + HTML cleaning |
-| Free tier | 1,000 credits/month | 2,500 queries but each needs scraping |
-| Paid pricing | ~$0.008/credit ($8/1K searches) | ~$1/1K queries + scraping infra cost |
-| AI optimization | Built for LLM/RAG workflows | General SERP wrapper |
-
-The decisive factor: Serper returns Google search snippets. To get actual article content for Claude to summarize, you would need to fetch and parse each URL separately, adding Puppeteer or a scraping service. Tavily eliminates this entire layer. For a newsletter platform that feeds search results into Claude, Tavily's single-call approach removes significant complexity.
-
-**Pricing estimate:** Basic search = 1 credit, advanced search = 2 credits. For 10 clients with weekly industry-specific searches (2 searches each), that's ~80 credits/month -- well within the free 1,000 credits/month tier.
-
-**Integration pattern:**
+**Result shape for `ogImage`:**
 ```typescript
-// New file: api/src/integrations/tavilyClient.ts
-import { tavily } from '@tavily/core';
-
-const client = tavily({ apiKey: process.env.TAVILY_API_KEY! });
-
-export async function searchWeb(query: string): Promise<CollectedItem[]> {
-  const results = await client.search(query, {
-    searchDepth: 'advanced',
-    maxResults: 10,
-    includeAnswer: false,
-    topic: 'news',
-  });
-  return results.results.map(r => ({
-    title: r.title,
-    url: r.url,
-    summary: r.content, // Already extracted, clean text
-    publishedAt: null, // Tavily doesn't return publish dates
-  }));
-}
+// ogImage is: Array<{ url?: string; width?: string; height?: string; type?: string }>
+// Always check [0].url — may be empty even when array exists
 ```
 
----
+**Production notes:**
+- Some sites block scrapers regardless of user-agent (Cloudflare-protected sites, paywalls). Always treat OG extraction as best-effort with a silent fallback.
+- Use `AbortSignal.timeout()` (Node 18+ native) instead of the `timeout` option — avoids an open issue in older versions.
+- OG image URLs can be relative paths on some sites. `open-graph-scraper` resolves them to absolute URLs automatically.
+- Do NOT attempt OG extraction in parallel for all stories simultaneously — adds latency proportional to slowest site. Sequential with 5s timeout each is safe for newsletter generation (offline process, no user waiting).
 
-### 3. Semantic Deduplication: `openai` + `pgvector`
-
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| `openai` | ^6.25.0 | OpenAI Embeddings API (`text-embedding-3-small`) for generating vector embeddings of news items | Cheapest quality embeddings: $0.02/1M tokens. 1536 dimensions. Anthropic does not offer an embeddings API (they partner with Voyage AI, which adds unnecessary vendor complexity). |
-| pgvector (PostgreSQL extension) | 0.7+ | Vector column storage and cosine similarity search in existing PostgreSQL | No separate vector DB needed. Railway has one-click pgvector deployment templates. Drizzle ORM has built-in pgvector support (vector column type, cosineDistance function, HNSW indexes). |
-
-**Why this approach:**
-
-1. **Why not Claude for embeddings?** Anthropic explicitly does not offer an embeddings model. Their docs recommend Voyage AI, but adding a third AI vendor for a simple embedding task is unnecessary complexity.
-
-2. **Why not a dedicated vector database (Pinecone, Qdrant, Weaviate)?** The dataset is tiny: ~100-500 news items per week. pgvector in the existing PostgreSQL handles this with zero operational overhead. A separate vector DB adds another service to manage on Railway for no benefit at this scale.
-
-3. **Why not fuzzy string matching?** URL deduplication (already in v1.0 via `newsItems.url` UNIQUE constraint) catches exact duplicates. Semantic dedup catches "same story, different source" -- e.g., TechCrunch and The Verge both covering an OpenAI announcement with completely different titles and URLs. This requires understanding meaning, not string similarity.
-
-4. **Why not local/on-device embeddings (transformers.js, ONNX)?** Adds CPU/memory overhead on Railway containers. The API approach is simpler and costs essentially nothing ($0.02/1M tokens -- 500 articles/week at ~100 tokens each = $0.001/week).
-
-**Drizzle ORM pgvector integration (verified in official docs):**
-
-```typescript
-// Schema addition to newsItems table
-import { vector, index } from 'drizzle-orm/pg-core';
-import { cosineDistance, gt, desc, sql } from 'drizzle-orm';
-
-export const newsItems = pgTable('news_items', {
-  // ... existing columns unchanged
-  embedding: vector('embedding', { dimensions: 1536 }),
-}, (table) => [
-  index('news_embedding_idx').using('hnsw', table.embedding.op('vector_cosine_ops')),
-]);
-
-// Deduplication query
-const similarity = sql<number>`1 - (${cosineDistance(newsItems.embedding, queryEmbedding)})`;
-const duplicates = await db
-  .select({ id: newsItems.id, title: newsItems.title, similarity })
-  .from(newsItems)
-  .where(gt(similarity, 0.85)) // Threshold: 85% similarity = likely duplicate
-  .orderBy(desc(similarity))
-  .limit(5);
-```
-
-**Railway pgvector setup:** Railway offers PostgreSQL 16/17/18 templates with pgvector pre-installed. If the current instance doesn't have it, run `CREATE EXTENSION IF NOT EXISTS vector;` (requires superuser, which Railway grants). Alternatively, spin up a new PostgreSQL from the pgvector template and migrate.
+**Confidence:** HIGH — package is on npm, ESM-compatible, TypeScript-typed, actively maintained.
 
 ---
 
 ## Features Requiring NO New Dependencies
 
-### 4. Email Feedback (Thumbs Up/Down)
+### 2. Infographic/Chart Fallback: Existing Gemini Client
 
-**Zero new libraries.** Implemented with existing stack:
+**Zero new libraries.** The existing `geminiClient.ts` using `@google/genai` ^1.43.0 with `gemini-2.5-flash-image` already handles this. The only change is the **prompt strategy** passed to `generateImage()`.
 
-- **Signed feedback URLs:** Use existing `@fastify/jwt` to create per-member, per-issue tokens containing `{ issueId, memberId, rating }` with long expiry. Embed as links in email template.
-- **New API endpoint:** `GET /api/feedback?token=<jwt>` validates token, records feedback, redirects to a simple "Thank you" HTML page.
-- **New database table:** `issue_feedback` with `issueId`, `memberId`, `rating` (enum: 'positive' | 'negative'), `createdAt`.
-- **Email template change:** Add two button-style links in `DigestEmail.tsx` footer with thumbs-up/thumbs-down labels.
+**Current usage (in imageService.ts):** Generates a generic "hero image" for the whole digest plus one "section image" per story — both abstract/illustrative.
 
-Why not an external survey service (Typeform, etc.)? Inline email buttons have far higher response rates. A single-click action directly in the email is the highest-conversion approach for satisfaction tracking.
+**v1.2 change:** When OG extraction fails for a story, generate an infographic-style image using a more specific prompt that references concrete data points from the story content.
 
-### 5. Source Health Monitoring
+Gemini 2.5 Flash Image capabilities relevant here (MEDIUM confidence, from official docs + release notes):
+- Text rendering in images: legible text for infographics, diagrams, marketing assets
+- Data visualization: can generate chart-like visuals and structured diagrams from text descriptions
+- Format: returns inline `base64` PNG data, which existing code already writes to `/uploads/images/`
 
-**Zero new libraries.** Extends existing `newsCollectorService.ts`:
+**Prompt pattern for infographic fallback:**
 
-- **New columns on `news_sources`:** `lastSuccessAt` (timestamp), `lastErrorAt` (timestamp), `consecutiveErrors` (integer), `healthScore` (integer 0-100), `lastItemCount` (integer).
-- **Collection wrapper:** Already has try/catch per source in the sequential loop. Add health metric updates on success/failure.
-- **Staleness detection:** Add a `node-cron` job (already used) that flags sources with no new items for 7+ days.
-- **Quality scoring:** Track how often items from each source are selected for final digests (used/collected ratio).
+```typescript
+// In newsletterService.ts — modified generateDigestImages() logic
+async function getStoryImage(story: DigestStory, i: number): Promise<string> {
+  // 1. Try OG extraction first
+  const ogImage = await extractOgImage(story.sourceUrl);
+  if (ogImage) return ogImage;
 
-### 6. Premium Newsletter Design
+  // 2. Generate infographic via Gemini
+  const infographicPrompt = `
+    Create a clean, professional infographic-style image for a Finnish business newsletter.
+    Topic: ${story.title}
+    Key point: ${story.businessImpact.slice(0, 200)}
+    Style: minimal, corporate, teal (#0D9488) and white color palette.
+    Include a clear headline and 2-3 data points as icons or simple chart elements.
+    No photorealistic people. Text must be in Finnish.
+    Aspect ratio: 16:9, width 800px.
+  `;
+  const result = await generateImage(infographicPrompt, 800, 450);
+  return result ?? PLACEHOLDER_IMAGE_URL;
+}
+```
 
-**Zero new libraries.** Redesign `DigestEmail.tsx` using existing `@react-email/components`:
+**Why not a chart library (Chart.js, D3, Recharts)?** Generating a PNG from Chart.js would require a headless browser (Puppeteer) or canvas library (node-canvas), both of which add significant Railway complexity. Gemini handles this in a single API call with zero infra overhead. For newsletter-quality infographics (not interactive, no live data), Gemini output is sufficient.
 
-- Add AI-Sanomat logo image (static asset served via `@fastify/static`)
-- Add client co-branding section with company name and industry tag
-- Add "AI-Sanomat suosittelee" featured section for aisanomat.fi content
-- Add feedback buttons in footer (see item 4)
-- Improve spacing, typography, visual hierarchy
-- Keep single-column 600px width for email client compatibility (mandatory best practice)
+**Confidence:** HIGH for Gemini being able to generate infographic-style images. MEDIUM for text legibility in generated images (AI image models sometimes garble text at smaller sizes — test with actual story content before shipping).
 
-All necessary React Email primitives (`Button`, `Column`, `Row`, `Section`, `Img`, `Link`, `Hr`, `Text`, `Container`) are in `@react-email/components` 1.0.8, already installed.
+---
 
-### 7. Auto-Scheduled Digest Generation
+### 3. Structured HTML Content: Existing React Email Components
 
-**Zero new libraries.** Extends existing `node-cron` scheduler:
+**Zero new libraries.** All required components are in `@react-email/components` ^1.0.8, already installed.
 
-- **New columns on `clients`:** `sendFrequency` ('weekly' | 'biweekly' | 'monthly'), `preferredSendDay` (0-6), `preferredSendHour` (integer), `nextScheduledAt` (timestamp).
-- **Scheduler enhancement:** Add cron job that checks `clients.nextScheduledAt <= NOW()` and triggers draft generation for matching clients.
-- **Admin review gate:** Auto-generation creates digests in "ready" status. Admin reviews and explicitly approves before sending. This matches existing `issueStatusEnum` workflow.
+**What's needed vs what exists:**
+
+| Requirement | React Email Component | Email Client Support |
+|------------|----------------------|---------------------|
+| Story subheadings | `<Heading as="h3">` | Full: Gmail, Apple Mail, Outlook (verified via caniemail.com) |
+| Bold emphasis | `<Text style={{ fontWeight: 'bold' }}>` or `<strong>` via `<Html>` | Full across all major clients |
+| Bullet lists | `<ul><li>` via React standard JSX, styled with inline margin | Partial: Gmail/Outlook support `<ul>` and `<ol>` with quirks (caniemail.com data) |
+| Lead paragraph | `<Text>` with larger font-size | Full: inline style, always works |
+| Highlighted callout | `<Section>` with background-color inline style | Full: table-based email rendering handles background |
+
+**The real change is in data model and Claude output, not the template library.**
+
+Currently `DigestStory.businessImpact` is a single text string. To render structured content, Claude must output structure — and then `DigestEmail.tsx` must render it.
+
+**Required changes:**
+
+1. **Extend `DigestStory` type** (in `api/src/types/digest.ts`):
+
+```typescript
+export interface StorySection {
+  type: 'paragraph' | 'bullet_list' | 'callout';
+  text?: string;        // for paragraph and callout
+  items?: string[];     // for bullet_list
+}
+
+export interface DigestStory {
+  title: string;
+  subheading?: string;          // NEW: optional subheading below title
+  sections: StorySection[];     // NEW: replaces businessImpact string
+  businessImpact: string;       // KEEP for backward compat with existing issues
+  sourceUrl: string;
+  imageUrl?: string;
+}
+```
+
+2. **Update `digestJsonSchema`** with new fields so Claude structured output enforces the shape.
+
+3. **Render in `DigestEmail.tsx`** using existing components:
+
+```tsx
+// Subheading
+{story.subheading && (
+  <Text className="text-[14px] font-semibold text-[#0D9488] m-0 mb-[8px] uppercase tracking-wide">
+    {story.subheading}
+  </Text>
+)}
+
+// Structured sections
+{story.sections.map((section, j) => {
+  if (section.type === 'paragraph') {
+    return <Text key={j} className="text-[16px] leading-relaxed text-[#333333] m-0 mb-[8px] email-text">{section.text}</Text>;
+  }
+  if (section.type === 'bullet_list') {
+    return (
+      <ul key={j} style={{ paddingLeft: '20px', margin: '0 0 8px', color: '#333333' }}>
+        {section.items?.map((item, k) => (
+          <li key={k} style={{ fontSize: '15px', lineHeight: '1.6', marginBottom: '4px' }}>{item}</li>
+        ))}
+      </ul>
+    );
+  }
+  if (section.type === 'callout') {
+    return (
+      <Section key={j} style={{ backgroundColor: '#F0FDFA', borderLeft: '3px solid #0D9488', padding: '12px 16px', margin: '8px 0' }}>
+        <Text className="text-[15px] text-[#0D9488] m-0 font-medium">{section.text}</Text>
+      </Section>
+    );
+  }
+  return null;
+})}
+```
+
+**Email client list rendering note:** Outlook 2016+ and Gmail both support `<ul>/<li>` but Outlook can strip or ignore `list-style-type`. Use `style={{ listStyleType: 'disc' }}` on `<ul>` and ensure `paddingLeft` is set via inline styles (not Tailwind classes) for Outlook compatibility. This is the safe pattern — no need for image-based bullets.
+
+**Confidence:** HIGH for components being available. HIGH for email client support when using inline styles. MEDIUM for Outlook list rendering specifics (Outlook 2019+ is fine; Outlook 2016 has quirks — test with Litmus or email clients locally).
+
+---
+
+### 4. Logo in Email Header: Hosted PNG via Existing @fastify/static
+
+**Zero new libraries.** The logo PNG is already served as a static asset via `@fastify/static` (already installed and configured). The `DigestEmail.tsx` uses `<Img>` from `@react-email/components`, which renders as a standard `<img>` tag.
+
+**Implementation:**
+
+```tsx
+// In DigestEmail.tsx — replace text-only header with logo image
+<Section className="pt-[32px] pb-[16px] px-[24px] text-center">
+  <Img
+    src="https://aisanomat.fi/images/logo.png"
+    alt="AI-Sanomat"
+    width="160"
+    height="40"
+    style={{ display: 'block', margin: '0 auto 8px' }}
+  />
+  <Text className="text-[13px] text-[#666666] m-0 email-muted">
+    {clientName} | {clientIndustry}
+  </Text>
+</Section>
+```
+
+**Format: PNG, not SVG.**
+SVG is not supported in Outlook (any version) and has inconsistent support in Gmail. PNG with transparency is the universal email logo format. Source the logo as a transparent-background PNG at 2x resolution (320x80px file displayed at 160x40px) for retina displays.
+
+**Hosting options (in priority order):**
+
+| Option | Pros | Cons | Recommended? |
+|--------|------|------|-------------|
+| `https://aisanomat.fi/images/logo.png` | Zero infra cost, permanent URL | Depends on aisanomat.fi uptime for logo loads | YES — simplest |
+| Railway API static (`/images/logo.png` via `@fastify/static`) | Already configured | Railway URL changes per deployment slot | NO — URL instability |
+| Dedicated CDN (Cloudflare R2, S3) | Reliable, fast | Added infra complexity | Only if aisanomat.fi is unreliable |
+
+**Use `https://aisanomat.fi/images/logo.png` as the absolute URL.** Email clients cache images aggressively; using the production domain URL is the most reliable approach. If the logo changes, update the file at the same URL.
+
+**Alt text is required.** When images are blocked (Outlook default for external senders), `alt="AI-Sanomat"` ensures brand recognition is maintained. Keep `alt` to brand name only, not a description.
+
+**Confidence:** HIGH — PNG via hosted absolute URL is the industry-standard approach for email logos.
 
 ---
 
@@ -206,149 +256,93 @@ All necessary React Email primitives (`Button`, `Column`, `Row`, `Section`, `Img
 ### New Production Dependencies
 
 ```bash
-npm install -w api twitter-api-v2@^1.29.0 @tavily/core@^0.7.2 openai@^6.25.0
+# From the project root (monorepo workspace)
+npm install -w api open-graph-scraper@^6.11.0
 ```
 
-### Database Extension
+That is the only new dependency for the entire v1.2 milestone.
 
-```sql
--- Run once on Railway PostgreSQL instance
-CREATE EXTENSION IF NOT EXISTS vector;
-```
+### No New Environment Variables
 
-### New Environment Variables
+All needed APIs (Gemini, Claude, Resend) are already configured.
 
-```env
-# X API (pay-per-use account)
-X_BEARER_TOKEN=
+### No Database Schema Changes
 
-# Tavily (from tavily.com dashboard)
-TAVILY_API_KEY=
-
-# OpenAI (for embeddings only -- not for text generation)
-OPENAI_API_KEY=
-```
-
-### No New Dev Dependencies
-
-All existing dev tooling (tsx, drizzle-kit, TypeScript, ESLint) handles the new code.
-
----
-
-## Alternatives Considered
-
-| Recommended | Alternative | Why Not |
-|-------------|-------------|---------|
-| `twitter-api-v2` (official) | TwitterAPI.io, SocialData, SociaVault | Third-party scraping services pose ToS risk for enterprise B2B product |
-| `@tavily/core` | `serper` npm package | Serper returns raw SERP data requiring separate content scraping per URL |
-| `@tavily/core` | Perplexity Search API | Chat-oriented API, harder to get structured results, more expensive |
-| `@tavily/core` | Exa Search | More expensive, focused on similarity search rather than news discovery |
-| OpenAI `text-embedding-3-small` | Voyage AI | Anthropic's recommended partner, but adds another vendor for a simple task |
-| OpenAI `text-embedding-3-small` | Cohere Embed v3 | Good alternative, but OpenAI's pricing is lower and the SDK is simpler |
-| OpenAI `text-embedding-3-small` | transformers.js (local) | CPU/memory overhead on Railway, API is simpler and effectively free at this scale |
-| pgvector (in PostgreSQL) | Pinecone, Qdrant, Weaviate | Separate vector DB is overkill for <1K items/week; pgvector uses existing infra |
-| JWT-signed feedback URLs | SurveyMonkey, Typeform | External tools add friction; inline email buttons have highest conversion |
-| JWT-signed feedback URLs | Resend click tracking | Click tracking is deferred to v2.0 per scope; feedback needs explicit rating, not just click data |
-| node-cron for scheduling | BullMQ + Redis | Adds Redis service on Railway ($5/mo); unnecessary for <50 clients with weekly batches |
+OG image URLs are stored in the existing `story.imageUrl` field (already in `DigestContent` stored as JSON in `issues.generatedContent`). No migration needed.
 
 ---
 
 ## What NOT to Add
 
 | Avoid | Why | Use Instead |
-|-------|-----|---------------------|
-| Separate vector database (Pinecone, Qdrant) | Under 1K items/week; another service to manage on Railway | pgvector in existing PostgreSQL |
-| Puppeteer / Playwright | Heavy browser automation, complex Railway deployment, unnecessary with Tavily | `@tavily/core` handles content extraction |
-| Redis | Premature; no job queue or caching need at current scale | Node.js in-memory for caching, node-cron for scheduling |
-| BullMQ | Over-engineering for weekly batch processing with <50 clients | node-cron + async functions |
-| `@tavily/ai-sdk` | Vercel AI SDK v5/v6 integration wrapper; we don't use Vercel AI SDK | `@tavily/core` directly |
-| `serper` npm package | Would need separate scraping layer to get article content | `@tavily/core` does search + extraction |
-| Click tracking library | Explicitly deferred to v2.0 in PROJECT.md | Resend's built-in open tracking + feedback buttons |
-| Multiple embedding models | text-embedding-3-small is more than sufficient for title/summary dedup | Single model, single vendor |
-| Voyage AI SDK | Adds third AI vendor (after Anthropic and Google) for no clear benefit | OpenAI embeddings are simpler and cheaper |
-| `@anthropic-ai/sdk` for embeddings | Anthropic does not offer embeddings | OpenAI `text-embedding-3-small` |
+|-------|-----|-------------|
+| Puppeteer / Playwright | Headless browser to screenshot pages for images; Railway memory overhead, complex lifecycle | `open-graph-scraper` for OG images + Gemini for fallback |
+| `sharp` (image processing) | Would need to resize/convert OG images; adds native binary dep that complicates Railway builds | Pass OG image URLs directly to `<Img>` — email clients do their own fetching |
+| Chart.js / D3 / Recharts | Server-side chart PNG generation requires node-canvas (native C++ dep) or Puppeteer | Gemini generates infographic-style images with a single API call |
+| `mjml` | Alternative email template system; would require migrating entire DigestEmail.tsx | React Email already does the job |
+| `sanitize-html` / DOMPurify | Only needed if accepting user HTML input; Claude output is structured JSON, not raw HTML | Use Claude structured output schema — no unsanitized HTML enters the template |
+| `jsdom` | DOM parsing in Node.js for OG scraping; `open-graph-scraper` handles this internally | `open-graph-scraper` |
+| Multiple OG extraction libraries | Redundancy for a best-effort feature | Single library with try/catch fallback to Gemini is sufficient |
+| External image proxy service | Would be needed if resizing OG images; unnecessary | Use OG URLs directly |
+| SVG for logo | Not supported in Outlook | PNG with transparent background |
 
 ---
 
-## Version Compatibility Matrix
-
-| New Package | Compatible With | Notes |
-|-------------|-----------------|-------|
-| `twitter-api-v2@^1.29.0` | Node.js 16+, TypeScript 4.5+ | Uses native fetch in Node 18+; project already on Node 22+ |
-| `@tavily/core@^0.7.2` | Node.js >= 18 | ESM compatible, matches project's `"type": "module"` |
-| `openai@^6.25.0` | Node.js >= 18, TypeScript 4.7+ | ESM compatible; only using `client.embeddings.create()`, no streaming needed |
-| `drizzle-orm@^0.45.0` + pgvector | pgvector extension 0.5+, PostgreSQL 12+ | Vector type, cosineDistance, HNSW index support added in drizzle-orm 0.30+; project is already on 0.45 |
-| pgvector extension | PostgreSQL 12+ | Railway supports PG 16/17/18 with pgvector; `CREATE EXTENSION vector` is all that's needed |
-
----
-
-## Integration Map (How New Libraries Touch Existing Code)
+## Integration Map
 
 ### New Files to Create
 
 | File | Purpose | Dependencies |
 |------|---------|-------------|
-| `api/src/integrations/xClient.ts` | X API search + timeline functions | `twitter-api-v2` |
-| `api/src/integrations/tavilyClient.ts` | Web search via Tavily | `@tavily/core` |
-| `api/src/integrations/embeddingClient.ts` | Generate embeddings via OpenAI | `openai` |
-| `api/src/services/deduplicationService.ts` | Semantic dedup logic using embeddings + pgvector | `embeddingClient`, `drizzle-orm` |
+| `api/src/integrations/ogExtractor.ts` | Extract OG image URL from a news article URL | `open-graph-scraper` |
 
 ### Existing Files to Modify
 
 | File | Change | Why |
 |------|--------|-----|
-| `api/src/db/schema.ts` | Add new source types to enum, vector column to newsItems, new tables (issue_feedback), new columns on clients and news_sources | Support new features |
-| `api/src/services/newsCollectorService.ts` | Add X and Tavily source type handlers in the collection loop | New source types |
-| `api/src/scheduler.ts` | Add auto-generation cron job, source health check job | Scheduled generation, health monitoring |
-| `api/src/emails/DigestEmail.tsx` | Add branding, co-branding, featured section, feedback buttons | Premium design + feedback |
-| `api/src/services/emailService.ts` | Generate per-member feedback URLs, pass to template | Feedback tokens |
+| `api/src/types/digest.ts` | Add `subheading?`, `sections: StorySection[]` to `DigestStory`; update `digestJsonSchema` | Enable structured Claude output |
+| `api/src/services/imageService.ts` | Add OG extraction step before Gemini fallback per story | Use source images where available |
+| `api/src/services/newsletterService.ts` | Update `generateDigestImages()` to use OG-first logic; update prompt templates to request structured `sections[]` | Wire up new image strategy |
+| `api/src/emails/DigestEmail.tsx` | Render `sections[]` instead of `businessImpact` string; add `<Img>` for logo header; render subheadings | Email structure improvements |
 
 ### Files That Stay Unchanged
 
 | File | Why |
 |------|-----|
-| `api/src/integrations/claudeClient.ts` | Content generation/validation unchanged |
-| `api/src/integrations/geminiClient.ts` | Image generation unchanged |
+| `api/src/integrations/geminiClient.ts` | Image generation API unchanged; only prompt content changes |
+| `api/src/integrations/claudeClient.ts` | API call structure unchanged; prompt content and JSON schema change |
 | `api/src/integrations/resendClient.ts` | Email sending unchanged |
-| `api/src/integrations/rssCollector.ts` | RSS collection unchanged, just gets more sources |
-| `api/src/routes/webhooks.ts` | Resend webhook handling unchanged |
+| `api/src/db/schema.ts` | No schema changes needed |
+| All source collection integrations | Unrelated to quality improvements |
 
 ---
 
-## Cost Summary (Monthly Estimates at 10 Clients)
+## Version Compatibility Checklist
 
-| Service | Expected Usage | Monthly Cost |
-|---------|---------------|-------------|
-| X API (pay-per-use) | ~200 timeline reads + ~50 searches/week | ~$5-15 |
-| Tavily | ~80 advanced searches/month | Free (1,000 credit tier) |
-| OpenAI Embeddings | ~2K articles x 100 tokens = 200K tokens/month | ~$0.004 (effectively free) |
-| pgvector | Runs in existing PostgreSQL | $0 |
-
-**Total new API costs: ~$5-15/month** (dominated by X API)
+| Package | Version | Node.js Req | ESM | TypeScript | Notes |
+|---------|---------|-------------|-----|------------|-------|
+| `open-graph-scraper` | ^6.11.0 | 18+ | YES | YES (built-in types) | Matches project `"type": "module"`, native Fetch API |
+| `@react-email/components` | ^1.0.8 | — | YES | YES | Already installed; `Heading`, `Text`, `Section`, `Img` all available |
+| `@google/genai` | ^1.43.0 | — | YES | YES | Already installed; no version change needed for infographic prompts |
 
 ---
 
 ## Sources
 
-- [twitter-api-v2 npm](https://www.npmjs.com/package/twitter-api-v2) -- v1.29.0 confirmed, HIGH confidence
-- [twitter-api-v2 GitHub docs](https://github.com/plhery/node-twitter-api-v2/blob/master/doc/v2.md) -- API reference, HIGH confidence
-- [X API pay-per-use announcement](https://devcommunity.x.com/t/announcing-the-x-api-pay-per-use-pricing-pilot/250253) -- February 2026, MEDIUM confidence (pricing details evolving)
-- [X API pricing overview](https://www.wearefounders.uk/the-x-api-price-hike-a-blow-to-indie-hackers/) -- tier breakdown, MEDIUM confidence
-- [@tavily/core npm](https://www.npmjs.com/package/@tavily/core) -- v0.7.2 confirmed, HIGH confidence
-- [Tavily JS quickstart](https://docs.tavily.com/sdk/javascript/quick-start) -- official docs, HIGH confidence
-- [Tavily pricing/credits](https://docs.tavily.com/documentation/api-credits) -- credit model, HIGH confidence
-- [Tavily vs Serper comparison](https://searchmcp.io/blog/tavily-vs-serper-search-api) -- output format differences, MEDIUM confidence
-- [openai npm](https://www.npmjs.com/package/openai) -- v6.25.0 confirmed, HIGH confidence
-- [OpenAI text-embedding-3-small](https://platform.openai.com/docs/models/text-embedding-3-small) -- $0.02/1M tokens, HIGH confidence
-- [Anthropic embeddings page](https://platform.claude.com/docs/en/build-with-claude/embeddings) -- confirms no native embeddings, HIGH confidence
-- [Drizzle ORM pgvector guide](https://orm.drizzle.team/docs/guides/vector-similarity-search) -- schema + query examples, HIGH confidence
-- [Drizzle ORM PostgreSQL extensions](https://orm.drizzle.team/docs/extensions/pg) -- pgvector support, HIGH confidence
-- [Railway pgvector deployment](https://railway.com/deploy/pgvector-latest) -- one-click template, HIGH confidence
-- [Railway pgvector blog](https://blog.railway.com/p/hosting-postgres-with-pgvector) -- hosting details, HIGH confidence
-- [Resend webhooks docs](https://resend.com/docs/webhooks/introduction) -- event types, HIGH confidence
-- [Resend open/click tracking](https://resend.com/blog/open-and-click-tracking) -- tracking mechanism, HIGH confidence
-- [pgvector GitHub](https://github.com/pgvector/pgvector) -- extension docs, HIGH confidence
+- [open-graph-scraper npm](https://www.npmjs.com/package/open-graph-scraper) — v6.11.0 confirmed, HIGH confidence
+- [openGraphScraper GitHub](https://github.com/jshemas/openGraphScraper) — ESM build confirmed, HIGH confidence
+- [React Email Heading component](https://react.email/docs/components/heading) — `as` prop for h1-h6, HIGH confidence
+- [Can I email: `<ul>`, `<ol>`, `<dl>`](https://www.caniemail.com/features/html-lists/) — partial Outlook/Gmail support, HIGH confidence
+- [Can I email: list-style](https://www.caniemail.com/features/css-list-style/) — inline style fallback required for Outlook, HIGH confidence
+- [SVG in email: caniemail.com](https://www.caniemail.com/features/image-svg/) — NOT supported in Outlook, HIGH confidence
+- [A Guide for SVG Support in Email (CSS-Tricks)](https://css-tricks.com/a-guide-on-svg-support-in-email/) — confirms PNG-only for email logos, HIGH confidence
+- [Gemini image generation docs](https://ai.google.dev/gemini-api/docs/image-generation) — infographic and text rendering support confirmed, HIGH confidence
+- [Nano Banana 2 announcement (Google)](https://blog.google/innovation-and-ai/technology/ai/nano-banana-2/) — infographic capability confirmed, MEDIUM confidence
+- [Resend embed inline images](https://resend.com/docs/dashboard/emails/embed-inline-images) — CDN-hosted PNG is recommended approach, HIGH confidence
+- [Email image best practices (Omnisend)](https://www.omnisend.com/blog/email-images/) — absolute URL for hosted logos, MEDIUM confidence
+- [Email image blocking (Litmus)](https://www.litmus.com/blog/the-ultimate-guide-to-email-image-blocking) — alt text required for blocked-image fallback, HIGH confidence
 
 ---
-*Stack research for: AI-Sanomat Yrityksille v1.1 Smart Sourcing & Polish*
-*Researched: 2026-03-03*
+
+*Stack research for: AI-Sanomat Yrityksille v1.2 Newsletter Quality & Design*
+*Researched: 2026-03-04*

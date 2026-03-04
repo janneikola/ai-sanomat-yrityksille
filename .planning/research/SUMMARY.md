@@ -1,18 +1,18 @@
-# Research Summary: AI-Sanomat Yrityksille v1.1 — Smart Sourcing & Polish
+# Research Summary: AI-Sanomat Yrityksille v1.2 — Newsletter Quality & Design
 
-**Synthesized:** 2026-03-03
+**Synthesized:** 2026-03-04
 **Sources:** STACK.md, FEATURES.md, ARCHITECTURE.md, PITFALLS.md
-**Overall Confidence:** MEDIUM-HIGH
+**Overall Confidence:** HIGH
 
 ---
 
 ## Executive Summary
 
-AI-Sanomat Yrityksille v1.1 extends a working v1.0 enterprise newsletter platform (Fastify + Next.js monorepo, PostgreSQL, Claude/Gemini AI generation, Resend delivery) with seven new capabilities: expanded news sourcing via X API and Tavily web search, semantic deduplication to reduce story repetition, auto-scheduled digest generation, source health monitoring, a premium email template redesign, and an email feedback loop. The platform serves Finnish B2B clients at 29–390 EUR/month and competes on content quality and timeliness — the v1.1 features directly address the core promise of delivering industry-specific AI news that clients cannot easily source themselves.
+AI-Sanomat Yrityksille v1.2 is a focused quality milestone that upgrades an already-running enterprise newsletter platform without touching its infrastructure. The three improvements — structured article content, relevant OG-sourced images, and a branded email header — all extend the existing React Email + Fastify + Claude/Gemini stack. Only one new npm dependency is added (`open-graph-scraper`), no new API credentials are needed, and no database schema breaking changes are required. The changes are additive and the fallback chains ensure the newsletter always sends even when new enrichment steps fail.
 
-The recommended approach is additive and conservative: all new features extend the existing architecture rather than replacing any part of it. Three new integration clients (xClient, webSearchClient, embeddingClient) plug into the existing news collection pipeline, four new service modules handle domain logic, and the database gains targeted column additions plus the pgvector extension. The total new infrastructure cost is roughly 5–15 EUR/month (dominated by X API pay-per-use) — minimal for a product at this price point. The primary risk is not technical complexity but operational detail: X API rate limit management, semantic deduplication threshold calibration, and email client compatibility testing are all areas where the "looks done but isn't" failure mode is common.
+The recommended approach is schema-first: extend the Claude JSON output schema to produce `lead`, `bullets`, and `businessImpact` fields, then wire the new shape through the TypeScript types and React Email template. OG image extraction is built as a non-blocking enrichment at news collection time, storing the result in a new `newsItems.ogImageUrl` column and passing it to Claude so it can reference the URL in the generated digest. The AI infographic fallback via Gemini is unchanged in its API surface — only the prompt strategy changes. Logo integration is a single `<Img>` tag addition to `DigestEmail.tsx` pointing to a hosted PNG on `aisanomat.fi`.
 
-The highest-value, lowest-risk features to build first are source health monitoring and auto-scheduling — both reuse existing dependencies entirely and make the product feel like a mature SaaS product. The template redesign and feedback loop should follow as a combined phase since they both touch the email template. Tavily web search is a straightforward API integration with immediate content quality impact. X monitoring and semantic deduplication are the most complex and should come last, once the simpler foundation is stable and real collection data exists to calibrate dedup thresholds.
+The primary risks are operational, not architectural: Gmail's 102KB email clipping limit is a real concern as structured HTML adds bytes, Outlook's Word-based rendering engine breaks CSS-only layouts, and some OG images will be generic placeholders rather than article-specific photos. All three risks have concrete mitigations defined in the research. The correct build order is logo first (independent, zero risk), then structured content (schema-driven, coordinated change across 4 files), then OG image extraction (most operational uncertainty, depends on existing pipeline being stable).
 
 ---
 
@@ -20,106 +20,108 @@ The highest-value, lowest-risk features to build first are source health monitor
 
 ### From STACK.md
 
-New dependencies required for v1.1 features (existing v1.0 stack unchanged):
+Only one new dependency is needed for the entire v1.2 milestone:
 
 | Technology | Version | Purpose | Confidence |
 |------------|---------|---------|------------|
-| `twitter-api-v2` | ^1.29.0 | X API v2 client for influencer timelines and keyword search | HIGH |
-| `@tavily/core` | ^0.7.2 | AI-optimized web search, returns LLM-ready extracted content in one call | HIGH |
-| `openai` | ^6.25.0 | Embeddings API only (text-embedding-3-small at $0.02/1M tokens) | HIGH |
-| pgvector (PostgreSQL extension) | 0.7+ | Vector storage and cosine similarity in existing Railway PostgreSQL | HIGH |
+| `open-graph-scraper` | ^6.11.0 | Extract `og:image` URLs from news article source pages | HIGH |
 
-Key decisions:
-- X API pay-per-use pricing (launched Feb 2026) is the right tier: no $200/month minimum, credits deducted per request, spending caps prevent surprise bills
-- Tavily chosen over Serper because it returns clean extracted content in a single call — Serper returns raw SERP links requiring separate scraping per URL
-- OpenAI for embeddings because Anthropic does not offer an embeddings model; Voyage AI is a valid alternative but adds another vendor
-- pgvector in existing PostgreSQL rather than a dedicated vector DB — dataset is under 1K items/week, a separate service is unnecessary overhead
-- Four features (auto-scheduling, source health monitoring, premium template, email feedback) require ZERO new dependencies
+All other capabilities (structured HTML, logo, AI infographic fallback) use the existing stack with no changes:
 
-New environment variables required: `X_BEARER_TOKEN`, `TAVILY_API_KEY`, `OPENAI_API_KEY`
+| Existing Capability | How v1.2 Uses It |
+|---------------------|-----------------|
+| `@react-email/components` ^1.0.8 | `<Heading>`, `<Text>`, `<Section>`, `<Img>` already installed |
+| `@google/genai` ^1.43.0 (Gemini 2.5 Flash Image) | AI infographic generation via prompt change only |
+| `@anthropic-ai/sdk` ^0.78.0 (Claude Sonnet 4.5) | Structured JSON output via updated schema in `digestJsonSchema` |
+| `@fastify/static` | Logo PNG served from `aisanomat.fi` — no Railway hosting needed |
 
-Monthly API cost estimate at 10 clients: ~5–15 EUR (X API is the dominant cost; Tavily and embeddings are effectively free at this scale)
+Installation: `npm install -w api open-graph-scraper@^6.11.0`. No new environment variables. No new database tables (one new column: `newsItems.ogImageUrl`).
+
+Key technology decisions:
+- **No Puppeteer/Playwright** — OG scraping via `open-graph-scraper` covers all cases; headless browsers add Railway complexity for zero benefit at this scale
+- **No image resizing (sharp/canvas)** — OG image URLs are passed directly to `<Img>`; email clients fetch and render them natively
+- **No chart libraries (Chart.js/D3)** — Gemini generates infographic-style PNG in a single API call; server-side chart rendering requires native C++ canvas dependencies
+- **PNG not SVG for logo** — Outlook blocked inline SVG completely in October 2025; PNG with transparent background is the universal email logo format
 
 ---
 
 ### From FEATURES.md
 
-**Table Stakes (missing these makes product feel incomplete at its price point):**
-- Auto-scheduled digest generation — enterprise clients assume SaaS products run on a schedule; currently requires manual triggering per client
-- Source health monitoring — silent source failures degrade content quality; clients expect consistent delivery
-- Premium newsletter template — at 29–390 EUR/month, the current functional-but-basic template undersells the product
+**Table Stakes (missing these signals an unpolished product at this price point):**
 
-**Differentiators (justify premium pricing):**
-- X/Twitter monitoring — AI thought leaders break news on X before RSS; timeliness advantage
-- Tavily web search — captures breaking news and niche industry content that RSS misses
-- Semantic deduplication — prevents "same story from 3 sources" problem that wastes digest space
-- Email feedback loop — direct quality signal more actionable than open rates (Apple MPP inflates those)
+1. **Structured article content** — Lead sentence + 2–4 bullets + business impact. Every premium B2B newsletter (Morning Brew, TLDR, The Hustle) uses visual hierarchy per story. Single-paragraph AI output signals "raw dump" not "curated intelligence."
+2. **Relevant images** — Editorial OG photos are far more credible than abstract AI art. Using actual article images signals the platform engaged with source material, not just headlines.
+3. **Branded header with real logo** — Text "AI-Sanomat" in a `<Text>` tag is a label, not a brand mark. Premium newsletters have a visual logo. The header is the first element recipients see.
 
-**Anti-features (explicitly avoid for v1.1):**
-- Reddit/HN scraping — legal ambiguity, high noise-to-signal ratio; best content already surfaces via Tavily
-- Fully automated sending — AI hallucination risk; admin review is a feature, not a bottleneck (revisit v2+)
-- Per-client custom email templates — N templates to maintain and test across email clients; use co-branding instead
-- Click tracking — adds link-wrapping complexity and privacy concerns; defer to v2.0
-- Real-time or daily digests — 7x content generation cost, subscriber fatigue; weekly minimum is the product
+**Build order recommendation from FEATURES.md:**
+1. Branded header (LOW complexity, fully independent, immediate visual impact)
+2. Structured article content (MEDIUM complexity, schema-driven, highest content impact)
+3. OG image extraction (MEDIUM complexity, most operational uncertainty, last because it depends on stable image pipeline)
 
-**Feature dependency order:**
-Source health monitoring foundation → new sources (X, Tavily) → semantic dedup → template redesign + feedback → auto-scheduling (independent, can be done in any phase)
+**Anti-features explicitly deferred:**
+- Markdown strings in Claude JSON output (loses type-safety, adds runtime parsing)
+- Inline SVG logo (blocked by Outlook since Oct 2025)
+- Image proxy/resizing service (significant infra overhead for a v1.2 quality improvement)
+- Per-story AI images when OG is available (mixing editorial and AI art in one newsletter looks inconsistent)
+- Rich text editor for business impact (breaks automated generation pipeline)
 
 ---
 
 ### From ARCHITECTURE.md
 
-The v1.1 architecture adds a clean layer of new components without restructuring v1.0:
+Four features, four clean integration points — no restructuring of the existing pipeline:
 
-**New integration clients:**
-- `api/src/integrations/xClient.ts` — X API v2 timeline and search
-- `api/src/integrations/webSearchClient.ts` — Tavily web search
-- `api/src/integrations/embeddingClient.ts` — OpenAI embeddings
+| Feature | Integration Point | Files Changed |
+|---------|-----------------|---------------|
+| OG image extraction | News collection phase — `ogService.ts` called after `newsItems` insert | `newsCollectorService.ts`, `db/schema.ts`, new `ogService.ts`, new migration |
+| Structured content | Digest generation — Claude JSON schema + TypeScript type | `digest.ts` (types + schema), `newsletterService.ts` (prompt context), new `StoryContent.tsx` |
+| AI infographic fallback | Orchestration logic — conditional Gemini generation per story | `newsletterService.ts` (conditional per-story logic only) |
+| Logo in header | Email render — single `<Img>` swap in `DigestEmail.tsx` | `DigestEmail.tsx` header section only |
 
-**New service modules:**
-- `api/src/services/deduplicationService.ts` — semantic dedup logic
-- `api/src/services/sourceHealthService.ts` — source reliability tracking
-- `api/src/services/feedbackService.ts` — email vote handling
-- `api/src/services/scheduleService.ts` — per-client generation schedules
+**Key patterns to follow:**
 
-**Key architectural pattern — database-driven scheduling:**
-Rather than multiple dynamic cron jobs per client (which lose state on Railway deploys), use a single daily cron that queries `clients.next_generation_at <= NOW()`. Schedule state lives in the database, survives deploys, and is visible to admins. This is a non-negotiable architectural decision — dynamic cron registration is a trap.
+**Pattern 1: Non-blocking enrichment at collection time** — OG fetch runs after newsItem insert, errors caught and ignored. The same pattern as existing `logFetchAttempt()` in the collector. Never fetch OG at render time (would block per-member email rendering with network calls).
 
-**Database changes:**
-- `newsSources`: add health tracking columns (lastSuccessAt, lastFailureAt, consecutiveFailures, qualityScore)
-- `newsItems`: add embedding vector column (512 dimensions) + sourceMetadata JSON + isDuplicate flag; HNSW index for fast cosine similarity
-- `clients`: add sendFrequency, sendDayOfWeek, sendHour, searchPrompt, nextGenerationAt
-- `issues`: add feedbackToken column
-- New tables: `sourceHealthLogs`, `feedbackVotes`
-- pgvector extension: `CREATE EXTENSION IF NOT EXISTS vector;`
-- `sourceTypeEnum`: extend to include `x_account`, `x_search`, `web_search` (requires manual SQL `ALTER TYPE` migration, not schema push)
+**Pattern 2: Schema-first structured output** — Define TypeScript interface and JSON schema in `digest.ts` first, then update Claude prompt template via admin panel. Claude's structured output guarantees the JSON shape at inference time — no runtime parsing guards needed. Precedent: `digestJsonSchema`, `validationJsonSchema`, `imagePromptsJsonSchema` all follow this pattern.
 
-**Modified existing files:** newsCollectorService.ts, newsletterService.ts, emailService.ts, DigestEmail.tsx, scheduler.ts, db/schema.ts
+**Pattern 3: Absolute vs relative URL split in `toImageUrl()`** — Gemini images store as relative `/images/{uuid}.png` paths, converted to absolute at render time. OG image URLs are already-absolute remote URLs and must pass through unchanged. The `toImageUrl()` function needs a `startsWith('http')` check added to handle mixed origins.
 
-**Unchanged files:** claudeClient.ts, geminiClient.ts, resendClient.ts, rssCollector.ts, webhooks.ts
+**Full data flow after v1.2:**
+```
+COLLECTION: newsItem inserted → ogService.fetchOgImage() [non-blocking] → newsItems.ogImageUrl
+
+GENERATION: newsItems (with ogImageUrl) → Claude prompt context includes OG URLs →
+  Claude generates DigestContent { intro, stories[{ title, lead, contentBlocks[], imageUrl? }], closing } →
+  Conditional Gemini: only for stories where story.imageUrl is null →
+  Merge: OG stories keep their URL, others get Gemini /images/{uuid}.png →
+  DB: issues.generatedContent (merged JSON)
+
+RENDER: generatedContent parsed → toImageUrl() passes http:// URLs through unchanged →
+  DigestEmail: logo Img + per story: image + title + lead + StoryContent(contentBlocks) + link
+```
 
 ---
 
 ### From PITFALLS.md
 
-Top 5 pitfalls by severity:
+**Top 5 pitfalls by severity:**
 
-**Pitfall 1: X API cost shock (CRITICAL for Phase 5)**
-X API Basic tier ($200/month) allows only 15,000 tweet reads — monitoring 20 accounts daily burns through this in under a week. The next tier is $5,000/month with nothing in between. Prevention: use pay-per-use pricing, implement a hard daily budget cap in code, cache using `since_id`, expose usage in admin dashboard.
+**Pitfall 1 — Gmail clips email at 102KB (CRITICAL, Structured HTML Content phase)**
+React Email compiles JSX to verbose inline-styled HTML. Structured content per article (lead, bullets, callout boxes) can push a 10-article newsletter past Gmail's 102KB limit, hiding the footer, unsubscribe link, and feedback buttons. Prevention: add `Buffer.byteLength(html, 'utf8')` logging before every send; alert at 80KB; truncate article list before truncating content structure.
 
-**Pitfall 2: X API dual rate limit causes silent data loss (CRITICAL for Phase 5)**
-Two separate limit types: per-15-minute request limits (obvious 429 errors) and monthly consumption quotas (silent failure). The app can stop receiving tweets mid-month with no error. Prevention: implement a `monthlyBudgetTracker` in the database from day one; alert at 50% and 75% consumption.
+**Pitfall 2 — Outlook ignores CSS on structural elements (CRITICAL, Structured HTML Content phase)**
+Enterprise clients (Finnish B2B sector) predominantly use Outlook desktop, which uses Word 2007's rendering engine. Flexbox, CSS `max-width` on divs, and default list styles all collapse. Every new structured element must use `<Section>/<Row>/<Column>` (which compile to tables) and `bgcolor` attribute (not CSS `background-color`). Test in Litmus or Email on Acid against Outlook 2016/2019/365 desktop before shipping — browser preview is meaningless for this client.
 
-**Pitfall 3: Semantic dedup threshold miscalibration (HIGH for Phase 4)**
-Too high a threshold and near-duplicates slip through; too low and different stories get removed. AI news articles about the same topic typically score 0.75–0.90 cosine similarity. Prevention: build a calibration dataset of 50+ manually-labeled article pairs before setting any threshold; use a two-tier system (auto-dedup above 0.92, flag for review between 0.80–0.92).
+**Pitfall 3 — OG fetch hangs and blocks pipeline (HIGH, OG Image Extraction phase)**
+Sites behind Cloudflare, paywalls, or slow CDNs can take 10–30 seconds to respond or never respond. 20 articles × hanging fetches = 10+ minutes of pipeline time. Prevention: 3-second `AbortController` timeout per fetch, `Promise.allSettled()` (not `Promise.all()`) for parallel batches, OG fetch cached in DB by article URL so it never runs twice for the same URL.
 
-**Pitfall 4: Email template breaks in Outlook (HIGH for Phase 2)**
-Enterprise clients predominantly use Outlook, which uses Microsoft Word's rendering engine — CSS flexbox, grid, and media queries are ignored. Prevention: use table-based layout via React Email components (which compile to tables), test every change in Litmus or Email on Acid before deploying, provide dark-mode logo variants. Litmus account is a prerequisite, not optional.
+**Pitfall 4 — Generic site-wide OG image treated as valid article image (HIGH, OG Image Extraction phase)**
+JavaScript-rendered sites (Next.js, React SPAs) serve pre-rendered HTML where og:image is the site's default sharing image, not article-specific. The fallback AI infographic never fires because the URL is non-null. Prevention: check og:image URL path for `default`, `logo`, `fallback`, `placeholder`, `og-generic`, `share`; treat these as missing and fall through to AI infographic.
 
-**Pitfall 5: node-cron loses schedule state on Railway deploys (MEDIUM for Phase 1)**
-In-memory cron schedules are destroyed on every deploy. With per-client configurable schedules, a startup bug silently breaks all scheduling with no error. Prevention: use database-driven scheduling (single cron checks DB for due clients), not multiple dynamic cron registrations.
+**Pitfall 5 — Dark logo invisible in dark mode (MEDIUM, Logo Branding phase)**
+Dark icon/text logos disappear on dark email backgrounds (Apple Mail, iOS Mail, Outlook macOS dark mode). Prevention: wrap logo `<Img>` in a table cell with explicit `bgcolor="#FFFFFF"` — creates a white background island that renders correctly in dark mode even for clients that ignore CSS `background-color`. Prepare two logo variants if the primary logo design cannot work on both light and dark.
 
-Additional pitfalls documented: web search cost spiral (cache + shared queries from day one), embedding model lock-in (store model metadata with every vector), source health false alarms from irregular RSS publication cadences (per-source adaptive thresholds).
+Additional pitfalls documented: base64 logo inflates HTML size by 33% toward Gmail clipping threshold (always use hosted URL); Gemini billing must be enabled for image generation (free tier is 0 IPM); Gemini safety filter rejects AI-topic prompts (use visual metaphor prompts, not article subject matter); `<Heading>` component incompatible with Tailwind in React Email (use native `<h2>/<h3>` with inline styles); OG relative URLs break in email clients (resolve against article origin with `new URL()`).
 
 ---
 
@@ -127,88 +129,93 @@ Additional pitfalls documented: web search cost spiral (cache + shared queries f
 
 ### Suggested Phase Structure
 
-**Phase 1: Foundation Automation** (no new dependencies)
+All four features can be delivered in a single milestone with 5 ordered implementation steps. They are not large enough to warrant separate multi-week phases — the complexity is focused on a handful of files.
 
-Scope: Auto-scheduled digest generation, database-driven scheduling architecture, `sourceTypeEnum` extension via manual SQL migration
+---
 
-Rationale: Delivers immediate admin burden reduction. Must be done before new sources are added so the scheduler is designed correctly from the start. The database-driven scheduling architecture cannot be retrofitted cheaply — this is the foundational decision for all future automation. Avoids Pitfall 5.
+**Step 1: DB schema + migration** (prerequisite for everything else)
 
-Delivers: Product generates drafts automatically; admin reviews rather than triggers.
+Scope: Add `ogImageUrl TEXT` column to `newsItems` table. Extend `DigestStory` TypeScript type with `lead: string`, `bullets: string[]` (or `contentBlocks: DigestStoryBlock[]`), update `digestJsonSchema`. Create Drizzle migration.
+
+Rationale: All other steps depend on committed types. Doing this first unblocks parallel work. No user-visible change yet.
+
+Pitfalls to avoid: None at this step — purely mechanical schema and type work.
 
 Research flag: Standard patterns, no additional research needed.
 
 ---
 
-**Phase 2: Premium Email Experience** (no new dependencies)
+**Step 2: Logo in email header** (independent, ship first)
 
-Scope: Template redesign (AI-Sanomat brand frame, client co-branding, dark mode, Outlook compatibility), email feedback loop (JWT-signed links, feedbackVotes table, thank-you page, admin satisfaction reporting)
+Scope: Upload logo PNG (320×80px, transparent background, optimized under 10KB) to `aisanomat.fi/assets/logo/`. Modify `DigestEmail.tsx` header section — replace text-only with `<Img>` in a `bgcolor="#FFFFFF"` table cell. Keep text fallback `alt="AI-Sanomat"`.
 
-Rationale: Template and feedback are tightly coupled (both touch DigestEmail.tsx) and should be a single phase. Litmus or Email on Acid account must be set up BEFORE any template work begins — testing in browser preview is insufficient for enterprise email clients. Avoids Pitfall 4.
+Rationale: Fully independent of all schema changes. Zero risk — one `<Img>` element added. Immediate visual quality improvement that can ship before content structure work begins.
 
-Delivers: Polished client-facing output, first engagement signal beyond open rates, churn prediction data.
+Pitfalls to avoid: Pitfall 5 (dark mode), Pitfall 5b (base64), Pitfall 11 (CDN domain — host on aisanomat.fi, not shared CDN).
 
-Research flag: Needs Litmus/Email on Acid account setup as a prerequisite. Finnish special characters (a, o, a) in company names need testing in Outlook specifically.
-
----
-
-**Phase 3: Tavily Web Search** (new dependency: @tavily/core)
-
-Scope: webSearchClient integration, `web_search` source type, per-client industry search prompts (clients.searchPrompt), search result caching with 24-hour TTL in database, search budget tracking in admin dashboard
-
-Rationale: Highest-value new source with the most straightforward API. Immediate content quality improvement — finds breaking news and niche industry content that RSS misses. Free tier covers all development and early production use. Must include caching and budget tracking from day one to avoid cost spiral with client growth. Avoids Pitfall 6.
-
-Delivers: News from sources not covered by RSS, improved industry-specific relevance for Finnish-language industries.
-
-Research flag: Standard API integration, no additional research needed. Verify current Tavily credit pricing at implementation time.
+Research flag: Standard pattern. Verify logo asset exists at production URL before deploying template change.
 
 ---
 
-**Phase 4: Semantic Deduplication** (new dependencies: openai, pgvector extension)
+**Step 3: OG image extraction** (depends on Step 1)
 
-Scope: pgvector extension enablement on Railway PostgreSQL, embeddingClient for OpenAI text-embedding-3-small, embedding column on newsItems with HNSW index, deduplicationService with two-tier threshold system, calibration dataset from Phases 1–3 data, admin visibility into deduplication decisions
+Scope: Create `api/src/services/ogService.ts` using `open-graph-scraper`. Add `npm install -w api open-graph-scraper@^6.11.0`. Modify `newsCollectorService.ts` to call `ogService.fetchOgImage()` after newsItem insert, non-blocking. Pass `ogImageUrl` in Claude's news context so Claude can set `story.imageUrl` for stories where OG image exists.
 
-Rationale: Semantic dedup requires real collected data to calibrate thresholds — doing this after 2–3 phases of data collection prevents tuning on artificial examples. pgvector must be verified on Railway before schema migration is written. Model metadata must be stored from the first commit. Avoids Pitfalls 3 and 7.
+Rationale: Must run after Step 1 (`ogImageUrl` column). Collect OG data at news ingestion time — never at render time. After this step deploys, OG URLs start accumulating in the DB for newly collected articles.
 
-Delivers: Cleaner news pool for Claude, eliminates "same story three times" problem, higher digest relevance.
+Pitfalls to avoid: Pitfall 1 (timeout), Pitfall 3 (generic images — add URL heuristic check), Pitfall 8 (relative URLs — resolve with `new URL()`), Pitfall 13 (AbortController cleanup in finally block), Pitfall 14 (image-to-text ratio).
 
-Research flag: Finnish language embedding quality for text-embedding-3-small needs manual verification against real Finnish AI news headlines before threshold is finalized. Build 50-item calibration dataset from actual collected news.
-
----
-
-**Phase 5: X/Twitter Monitoring** (new dependency: twitter-api-v2)
-
-Scope: X API pay-per-use account setup with spending cap, xClient for user timeline and keyword search, monthly budget tracker in database (independent of X's own tracking), `since_id` pagination to avoid re-fetching old tweets, admin dashboard showing X API usage vs. monthly budget, per-client influencer account and keyword configurations
-
-Rationale: Highest complexity and highest API cost uncertainty — doing this last means the system is stable and the admin has full visibility when adding this expensive integration. Budget tracking and `since_id` pagination must be in the first commit; they cannot be added later. Avoids Pitfalls 1 and 2.
-
-Delivers: Breaking news from AI thought leaders before it appears in RSS feeds, timeliness advantage for clients.
-
-Research flag: Needs a budget calculation document before any code is written. Verify current X pay-per-use credit costs and spending cap mechanics at implementation time — pricing launched Feb 2026 and may have evolved.
+Research flag: No additional research. `open-graph-scraper` API is well-documented. Verify ESM compatibility (confirmed HIGH).
 
 ---
 
-**Phase 6: Source Health Intelligence** (no new dependencies)
+**Step 4: Structured article content** (depends on Step 1, parallel-safe with Step 3)
 
-Scope: Per-source historical publication frequency tracking, adaptive stale thresholds (`avg_days_between_posts * 3`), HTTP-level vs content-level health separation, admin email alerts for critical failures, traffic-light health UI in admin panel, auto-disable of persistently failing sources with notification
+Scope: Create `api/src/emails/StoryContent.tsx` to render `contentBlocks[]`. Modify `DigestEmail.tsx` to use `StoryContent` per story (backward-compatible: fall back to `businessImpact` string if `contentBlocks` absent). Update `viikkokatsaus_generointi` prompt template in DB via admin panel (no code deploy). Add HTML byte-length logging to email send pipeline.
 
-Rationale: Source health monitoring starts basic in Phase 1 (consecutive failure tracking), but the intelligent frequency-adaptive system needs historical data from Phases 1–5 to calculate meaningful per-source baselines. Without historical data, any threshold is a guess. Avoids Pitfall 8.
+Rationale: All changes are coordinated — schema, type, email render, prompt. Must be done as a single cohesive unit. Backward compatibility is required: old issues in the DB render with existing `businessImpact` field; new issues render `contentBlocks`.
 
-Delivers: Proactive alerting for source failures without false-alarm noise, reliable multi-source collection quality.
+Pitfalls to avoid: Pitfall 1 (Gmail 102KB — add byte logging before adding any structured elements), Pitfall 2 (Outlook — table-based layout only, no CSS flexbox, use `bgcolor` for callout boxes), Pitfall 12 (use native `<h2>/<h3>` with inline styles, not `<Heading>` component with Tailwind).
 
-Research flag: Standard monitoring patterns, no additional research needed.
+Research flag: Set up Litmus or Email on Acid before writing any structured content component. Testing in browser preview is not sufficient for Outlook verification.
+
+---
+
+**Step 5: AI infographic fallback wiring** (depends on Steps 3 and 4)
+
+Scope: Modify `newsletterService.generateClientDigest()` to filter `imagePrompts.sectionPrompts` to only stories where `story.imageUrl` is null, pass only those to Gemini, then merge OG URLs and Gemini results back into the stories array. Update `toImageUrl()` in `emailService.ts` to pass through `http://`-prefixed URLs unchanged. Update Gemini infographic prompts to describe visual style (chart icons, teal palette), not article subject matter.
+
+Rationale: Integration step that wires OG data (Step 3) and story image field (Step 4) into the conditional Gemini generation logic. Cannot be fully tested until both upstream steps are stable.
+
+Pitfalls to avoid: Pitfall 6 (Gemini billing — verify image generation quota enabled before testing), Pitfall 7 (safety filter — use visual metaphor prompts), Pattern 3 (`toImageUrl()` absolute URL pass-through).
+
+Research flag: Verify Gemini billing is enabled for image generation before implementing. Test infographic prompt against 10–15 real article summaries from the news corpus before shipping.
+
+---
+
+### Summary Build Order
+
+```
+Step 1: DB schema + TypeScript types  (prerequisite)
+Step 2: Logo in header                (independent, ship first)
+Step 3: OG image extraction           (depends on Step 1)
+Step 4: Structured article content    (depends on Step 1, parallel with Step 3)
+Step 5: AI infographic fallback       (depends on Steps 3 + 4)
+```
+
+Steps 3 and 4 can be built in parallel if two developers are available, or sequentially in either order by one developer. Step 5 is the integration validation step.
 
 ---
 
 ### Research Flags Summary
 
-| Phase | Needs Research | Reason |
-|-------|---------------|--------|
-| Phase 1 | No | Standard cron + database patterns |
-| Phase 2 | Partial | Litmus/Email on Acid account setup; Finnish character testing in Outlook |
-| Phase 3 | No | Tavily API well-documented; verify pricing at implementation |
-| Phase 4 | Yes | Finnish embedding quality verification; calibration dataset required |
-| Phase 5 | Yes | X API pay-per-use pricing verification; budget calculation document required |
-| Phase 6 | No | Standard monitoring patterns |
+| Step | Needs Research | Reason |
+|------|---------------|--------|
+| Step 1 | No | Standard Drizzle schema + TypeScript type changes |
+| Step 2 | No | Standard email image pattern; verify logo asset exists at URL |
+| Step 3 | No | `open-graph-scraper` API well-documented; patterns are clear |
+| Step 4 | Partial | Litmus/Email on Acid account required as prerequisite for Outlook testing |
+| Step 5 | Partial | Verify Gemini billing enabled; test prompts against real article content |
 
 ---
 
@@ -216,71 +223,69 @@ Research flag: Standard monitoring patterns, no additional research needed.
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All new packages verified via npm and official docs with exact versions. pgvector verified on Railway. Cost estimates are credible. |
-| Features | MEDIUM | Well-documented APIs (Tavily, Resend, React Email) are HIGH confidence. X API cost and reliability are MEDIUM — pay-per-use pricing launched Feb 2026 and details are still evolving. Finnish embedding quality is unverified. |
-| Architecture | HIGH | Existing codebase well-understood. New component boundaries are clean and conservative. Database changes are targeted. Database-driven scheduling is the correct call for Railway deployments. |
-| Pitfalls | MEDIUM-HIGH | X API pitfalls are well-documented from community experience. Email client compatibility is well-researched (Litmus data). Semantic dedup threshold ranges are theoretical until tested against real Finnish AI news articles. |
+| Stack | HIGH | Only one new dependency (`open-graph-scraper`). All other capabilities use existing installed libraries. ESM compatibility confirmed. No new env vars, no new DB tables. |
+| Features | HIGH | React Email component availability verified. Email client compatibility verified via caniemail.com (March 2026). SVG/Outlook blocking verified. OG reliability is MEDIUM — scraping fragility is known and the fallback chain handles it. |
+| Architecture | HIGH | Existing codebase directly inspected (HIGH confidence source). Integration points are clearly identified, change surface is minimal, backward compatibility is explicit. |
+| Pitfalls | HIGH | Gmail 102KB clipping documented via bug trackers. Outlook rendering via Email on Acid. Gemini safety filter via official Google AI forum. `open-graph-scraper` behavior via npm/GitHub. Most pitfalls have multiple independent sources. |
 
-### Gaps to Address During Planning
+### Gaps to Address During Implementation
 
-1. **X API pay-per-use pricing details** — Pricing launched February 2026; verify exact credit costs and spending cap mechanics at implementation time. The recommendation of pay-per-use over Basic tier is sound but pricing may have evolved.
+1. **Litmus or Email on Acid account** — Required before any structured content component is written. Without it, Outlook desktop testing is impossible. Budget approximately 100 EUR/month or arrange a trial account before Step 4 begins.
 
-2. **Finnish language embedding quality** — text-embedding-3-small claims "good multilingual support" but Finnish-specific quality for short AI news headlines is unverified. Build a manual calibration test during Phase 4 before setting the dedup threshold.
+2. **Gemini image generation billing** — Verify the production Google Cloud project has billing enabled for image generation endpoints before Step 5 begins. Free tier is 0 IPM for image generation (confirmed by multiple sources). Add startup health check that calls Gemini image endpoint with a minimal test request and logs clearly if quota is unavailable.
 
-3. **Railway pgvector availability** — Verify the current Railway PostgreSQL instance has pgvector available (or confirm it can be enabled with `CREATE EXTENSION`) before Phase 4 schema work begins.
+3. **Logo asset creation** — The logo PNG (320×80px, transparent background, under 10KB optimized) must exist at `https://aisanomat.fi/assets/logo/ai-sanomat-logo.png` before Step 2 deploys. This is a design/asset task, not a code task — coordinate with whoever owns the aisanomat.fi site.
 
-4. **Apify vs Official X API decision** — FEATURES.md initially suggested Apify (~15 EUR/month) but STACK.md recommends official pay-per-use API for enterprise defensibility. For a B2B enterprise product, official API is the correct choice. Document and align this decision before Phase 5.
+4. **WebP OG image email compatibility** — Modern CMS platforms increasingly use WebP for OG images. Gmail supports WebP; Outlook does not. For v1.2, accept WebP and let Outlook users see broken images rather than adding image conversion infrastructure. Note this explicitly in the implementation and revisit in v2.0 with an image proxy solution.
 
-5. **Litmus or Email on Acid subscription** — Required as a prerequisite for Phase 2. Budget approximately 100 EUR/month or find a one-time testing alternative before template work begins.
+5. **`toImageUrl()` absolute URL pass-through** — This function currently prefixes all paths with `${baseUrl}/api`. OG image URLs (starting with `https://`) must bypass this transformation. This is a small but critical fix — if missed, every OG image URL in the rendered email will be malformed.
 
 ---
 
 ## Deferred to v2.0
 
 Per FEATURES.md anti-features research:
-- Fully automated sending without admin approval
-- Per-client custom email templates
-- Click tracking (link wrapping infrastructure)
-- Daily digest frequency option
-- Reddit and Hacker News scraping
-- Auto-approve for consistently high-quality clients (revisit after feedback data accumulates)
-- Advanced source quality scoring using digest selection ratios (needs months of feedback data)
-- Resend native open/click tracking integration
+- Image proxy/resizing service for consistent OG image dimensions and WebP conversion
+- Dark-mode logo swap via CSS media query (Apple Mail only — Outlook ignores it; the `bgcolor` white cell hack covers the critical case)
+- Per-story Gemini images when OG is available (visual inconsistency; OG + AI in same newsletter looks mixed)
+- Click tracking on article links (link-wrapping infrastructure, privacy concerns)
+- Rich text editor for businessImpact field (breaks automated generation pipeline)
 
 ---
 
 ## Sources (Aggregated)
 
-### HIGH Confidence
-- twitter-api-v2 npm, GitHub docs (verified v1.29.0)
-- @tavily/core npm, official Tavily docs (verified v0.7.2, pricing, Node.js SDK)
-- openai npm (verified v6.25.0, text-embedding-3-small pricing)
-- Anthropic embeddings docs (confirms no native embeddings model)
-- Drizzle ORM pgvector guide (schema + cosineDistance + HNSW index examples)
-- Railway pgvector deployment templates (one-click availability confirmed)
-- React Email component docs (existing stack)
-- Resend webhooks and open/click tracking docs
-- node-cron npm docs
-- Railway cron jobs official docs (UTC-only, 5-min minimum confirmed as unsuitable for Finland-timezone scheduling)
-- X API Rate Limits official docs
-- X Pay-As-You-Go announcement (TechCrunch, Oct 2025)
-- Litmus dark mode for email ultimate guide
-- OpenAI embedding pricing (official docs)
+### HIGH Confidence (official docs, caniemail.com, direct codebase inspection)
 
-### MEDIUM Confidence
-- X API pay-per-use pricing details (multiple third-party sources; pricing still evolving post-Feb 2026)
-- Apify Twitter Scraper pricing (single blog post, may have changed)
-- Email design best practices 2026 (Brevo, Designmodo industry guides)
-- Tavily vs Serper comparison (third-party analysis, not official)
-- Semantic dedup threshold ranges (NVIDIA NeMo docs, cosine similarity guides)
-- Finnish embedding quality claims (no Finnish-specific benchmarks found)
+- [open-graph-scraper npm](https://www.npmjs.com/package/open-graph-scraper) — v6.11.0 confirmed, ESM build verified
+- [React Email component docs](https://react.email/docs/components) — Heading, Text, Section, Img availability confirmed
+- [Can I email: `<ul>`, `<ol>`, `<dl>`](https://www.caniemail.com/features/html-lists/) — verified March 2026
+- [Can I email: list-style](https://www.caniemail.com/features/css-list-style/) — inline style fallback required for Outlook
+- [SVG in email: caniemail.com](https://www.caniemail.com/features/image-svg/) — NOT supported in Outlook
+- [Outlook blocks SVG in emails](https://lettermint.co/knowledge-base/deliverability/outlook-blocks-svg-images-in-emails) — Oct 2025 rollout confirmed
+- [caniemail.com: Base64 image](https://www.caniemail.com/features/image-base64/) — Gmail blocks base64
+- [Gmail Clipping at 102KB — email-bugs](https://github.com/hteumeuleu/email-bugs/issues/41) — documented and confirmed
+- [Gmail Clipping — SpamResource](https://www.spamresource.com/2022/01/what-is-gmail-clipping-and-what-to-do.html)
+- [Outlook HTML rendering — Email on Acid](https://www.emailonacid.com/blog/article/email-development/how-to-code-emails-for-outlook/)
+- [Gemini IMAGE_SAFETY false positives — Google AI Developers Forum](https://discuss.ai.google.dev/t/nano-banana-pro-suddenly-blocking-non-nsfw-ecommerce-underwear-images-with-image-safety-error/113109)
+- [Gemini API rate limits — official docs](https://ai.google.dev/gemini-api/docs/rate-limits)
+- [React Email Dark Mode — GitHub #591](https://github.com/resend/react-email/discussions/591)
+- [Claude Structured Outputs docs](https://docs.claude.com/en/docs/build-with-claude/structured-outputs)
+- Codebase: `/Users/janne/coding/ai-sanomat-yrityksille/api/src/` (direct inspection)
 
-### LOW Confidence
-- Apify per-tweet pricing ($0.40–0.50/1000) — single blog post source
-- Local embeddings.js Finnish support — untested
+### MEDIUM Confidence (industry guides, single-source, or unverified)
+
+- [Email Header Design 2026 — Mailtrap](https://mailtrap.io/blog/email-header-design/) — header patterns
+- [Email newsletter design best practices 2026 — Brevo](https://www.brevo.com/blog/email-design-best-practices/)
+- [OG image optimal dimensions — Cloudinary](https://cloudinary.com/glossary/og-image) — 1200×630px standard
+- [Gemini free tier 0 IPM — AIFreeAPI](https://www.aifreeapi.com/en/posts/gemini-api-rate-limit) — corroborated by multiple sources
+- [Morning Brew newsletter structure analysis](https://www.newsletterexamples.co/p/want-to-design-a-morning-brew-style-email-here-s-a-cheat-sheet)
+- [Image-to-text ratio — Email on Acid](https://www.emailonacid.com/blog/article/email-deliverability/does-text-to-image-ratio-affect-deliverability/)
+- [React Email Headings with Tailwind — community discussion](https://www.tempmail.us.com/en/react/why-headings-don-t-work-with-tailwind-in-react-email)
+- WebP email client compatibility — Outlook known not to support WebP (training knowledge, not verified against caniemail.com — flag for verification)
 
 ---
 
 *Summary synthesized from: STACK.md, FEATURES.md, ARCHITECTURE.md, PITFALLS.md*
-*Project: AI-Sanomat Yrityksille v1.1 — Smart Sourcing & Polish*
-*Synthesized: 2026-03-03*
+*Project: AI-Sanomat Yrityksille v1.2 — Newsletter Quality & Design*
+*Synthesized: 2026-03-04*
