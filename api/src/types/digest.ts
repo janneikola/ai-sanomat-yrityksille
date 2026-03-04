@@ -2,10 +2,25 @@
 
 // --- TypeScript-tyypit ---
 
+// Structured content blocks (Phase 12 will generate these)
+export interface LeadBlock {
+  type: 'lead';
+  text: string;
+}
+
+export interface BulletsBlock {
+  type: 'bullets';
+  items: string[];
+}
+
+export type ContentBlock = LeadBlock | BulletsBlock;
+
 export interface DigestStory {
   title: string;
-  businessImpact: string;
+  businessImpact: string;       // KEEP -- backward compat for old digests
   sourceUrl: string;
+  lead?: string;                 // NEW optional -- Phase 12
+  contentBlocks?: ContentBlock[]; // NEW optional -- Phase 12
 }
 
 export interface DigestContent {
@@ -53,6 +68,21 @@ export const digestJsonSchema = {
           title: { type: 'string' as const },
           businessImpact: { type: 'string' as const },
           sourceUrl: { type: 'string' as const },
+          lead: { type: 'string' as const, description: 'Lead sentence summarizing the story core message' },
+          contentBlocks: {
+            type: 'array' as const,
+            description: 'Structured content blocks for rich formatting',
+            items: {
+              type: 'object' as const,
+              properties: {
+                type: { type: 'string' as const, enum: ['lead', 'bullets'] },
+                text: { type: 'string' as const },
+                items: { type: 'array' as const, items: { type: 'string' as const } },
+              },
+              required: ['type'] as const,
+              additionalProperties: false,
+            },
+          },
         },
         required: ['title', 'businessImpact', 'sourceUrl'] as const,
         additionalProperties: false,

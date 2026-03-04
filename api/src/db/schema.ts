@@ -101,6 +101,7 @@ export const newsItems = pgTable('news_items', {
   // Semanttinen deduplikointi (Phase 8) - pgvector not available on Railway
   isDuplicate: boolean('is_duplicate').notNull().default(false),
   canonicalItemId: integer('canonical_item_id'), // self-reference, no FK to avoid cascade complexity
+  ogImageUrl: text('og_image_url'),  // Phase 11 will populate this
 });
 
 // Viikkokatsaukset
