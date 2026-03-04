@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Newsletter Quality & Design
 status: unknown
-last_updated: "2026-03-04T12:04:53Z"
+last_updated: "2026-03-04T12:09:33.018Z"
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 9
+  total_phases: 6
+  completed_phases: 6
+  total_plans: 10
   completed_plans: 10
 ---
 
