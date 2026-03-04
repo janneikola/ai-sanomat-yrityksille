@@ -64,6 +64,15 @@ export async function renderDigestEmail(
   const html = await render(DigestEmail(emailProps));
   const text = await render(DigestEmail(emailProps), { plainText: true });
 
+  // Log email HTML size and warn if approaching Gmail's 102KB clip threshold
+  const htmlBytes = Buffer.byteLength(html, 'utf-8');
+  console.log(`[email] HTML size: ${htmlBytes} bytes (${(htmlBytes / 1024).toFixed(1)} KB)`);
+  if (htmlBytes > 80 * 1024) {
+    console.warn(
+      `[email] WARNING: Email HTML ${(htmlBytes / 1024).toFixed(1)} KB exceeds 80KB threshold — Gmail clips at 102KB`
+    );
+  }
+
   return { html, text };
 }
 

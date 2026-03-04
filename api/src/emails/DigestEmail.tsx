@@ -11,6 +11,7 @@ import {
   Img,
   Hr,
   Tailwind,
+  Heading,
 } from '@react-email/components';
 import { pixelBasedPreset } from '@react-email/components';
 import type { DigestStory } from '../types/digest.js';
@@ -149,6 +150,7 @@ export function DigestEmail({
             {/* STORIES */}
             {digest.stories.map((story, i) => (
               <Section key={i} className="px-[24px] py-[16px]">
+                {/* Story image */}
                 {story.imageUrl && (
                   <Img
                     src={story.imageUrl}
@@ -164,18 +166,76 @@ export function DigestEmail({
                     }}
                   />
                 )}
-                <Text className="text-[20px] font-bold text-[#111111] m-0 mb-[8px] email-heading">
+
+                {/* Story title -- semantic h3 for hierarchy */}
+                <Heading as="h3" style={{
+                  fontSize: '20px',
+                  fontWeight: 'bold',
+                  color: '#111111',
+                  margin: '0',
+                  marginBottom: '8px',
+                }} className="email-heading">
                   {story.title}
-                </Text>
-                <Text className="text-[16px] leading-relaxed text-[#333333] m-0 mb-[8px] email-text">
-                  {story.businessImpact}
-                </Text>
+                </Heading>
+
+                {/* Structured content OR businessImpact fallback */}
+                {story.lead ? (
+                  <>
+                    {/* Lead sentence -- bold/emphasized opening */}
+                    <Text style={{
+                      fontSize: '16px',
+                      lineHeight: '1.6',
+                      fontWeight: 600,
+                      color: '#222222',
+                      margin: '0',
+                      marginBottom: '8px',
+                    }} className="email-text">
+                      {story.lead}
+                    </Text>
+
+                    {/* Content blocks (bullets) */}
+                    {story.contentBlocks?.map((block, j) => {
+                      if (block.type === 'bullets') {
+                        return (
+                          <div key={j}>
+                            <ul style={{
+                              paddingLeft: '20px',
+                              margin: '8px 0 12px 0',
+                              listStyleType: 'disc',
+                            }}>
+                              {block.items.map((item, k) => (
+                                <li key={k} style={{
+                                  fontSize: '15px',
+                                  lineHeight: '1.5',
+                                  color: '#333333',
+                                  marginBottom: '4px',
+                                }}>
+                                  {item}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })}
+                  </>
+                ) : (
+                  /* Backward-compatible fallback for old digests without structured content */
+                  <Text className="text-[16px] leading-relaxed text-[#333333] m-0 mb-[8px] email-text">
+                    {story.businessImpact}
+                  </Text>
+                )}
+
+                {/* Source link */}
                 <Link
                   href={story.sourceUrl}
                   className="text-[#0D9488] text-[16px] no-underline email-link"
                 >
                   Lue lisaa &rarr;
                 </Link>
+
+                {/* Divider between stories */}
                 {i < digest.stories.length - 1 && (
                   <Hr
                     style={{ borderTop: '1px solid #EEEEEE', margin: '16px 0 0' }}
