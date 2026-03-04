@@ -52,3 +52,34 @@
 - INT-02: Duplicate items not filtered during digest generation
 
 **Last phase:** 9 (X/Twitter Monitoring)
+
+## v1.2 — Newsletter Quality & Design (Complete)
+
+**Completed:** 2026-03-04
+**Phases:** 10–13 (4 plans total)
+**Requirements:** 10/10 satisfied
+
+**What shipped:**
+- Foundation & Branding: ogImageUrl DB column, ContentBlock types, AI-Sanomat logo in email header with dark mode white island protection
+- OG Image Extraction: open-graph-scraper integration, non-blocking fire-and-forget fetch, generic URL filtering
+- Structured Article Content: Lead sentences, bullet points, visual hierarchy via updated prompt template + email rendering, backward-compatible fallback
+- AI Infographic Fallback: Three-tier image system (OG > Gemini > clean no-image), conditional Gemini generation for cost optimization
+
+**Key decisions:**
+- Logo rendered above text heading with #FAFAFA white island for dark mode
+- story.lead as structured-vs-fallback discriminator
+- Inline styles on ul/li for Outlook Word engine compatibility
+- Buffer.byteLength for accurate Finnish multi-byte size measurement
+- PLACEHOLDER_IMAGE_URL eliminated; undefined used for clean no-image rendering
+- Gemini prompts only generated for stories without OG images
+
+**Stats:**
+- 16 files changed, +686 / -49 lines
+- 16,946 total LOC (TypeScript)
+- 9 feature commits, ~9 min total execution time
+
+**Carry-over from v1.1 (still open):**
+- INT-01: Health dot key mismatch in X monitoring page
+- INT-02: Duplicate items not filtered during digest generation
+
+**Last phase:** 13 (AI Infographic Fallback)

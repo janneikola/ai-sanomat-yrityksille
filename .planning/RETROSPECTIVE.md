@@ -82,6 +82,46 @@
 
 ---
 
+## Milestone: v1.2 — Newsletter Quality & Design
+
+**Shipped:** 2026-03-04
+**Phases:** 4 | **Plans:** 4
+
+### What Was Built
+- AI-Sanomat logo branding in email header with dark mode white island protection
+- OG image extraction from source articles via open-graph-scraper with generic URL filtering
+- Structured newsletter content: lead sentences, bullet points, visual hierarchy with backward-compatible fallback
+- Three-tier image fallback: OG > Gemini AI infographic > clean no-image rendering
+- Email HTML size monitoring with 80KB warning threshold
+
+### What Worked
+- Foundation phase (10) laid groundwork that made phases 11-13 very fast to implement
+- Pure function extraction pattern (isGenericImageUrl, toImageUrl) enabled quick TDD
+- Fire-and-forget async pattern for OG fetch kept it non-blocking without complexity
+- Backward-compatible type evolution (optional fields) prevented any breaking changes
+
+### What Was Inefficient
+- Pre-existing deduplicationService TypeScript errors appeared in every phase but were never addressed (out of scope)
+- Logo PNG asset still needs manual placement — could have automated or included a placeholder
+
+### Patterns Established
+- Dark mode island: wrap email images in forced light background container
+- Structured content fallback: story.lead as discriminator for rendering path
+- Three-tier image resolution: OG > AI-generated > undefined (clean omission)
+- Email size monitoring: Buffer.byteLength before every send
+
+### Key Lessons
+1. Foundation phases that extend types/schema make all subsequent phases fast (phases 11-13 were 2-3 min each)
+2. Eliminating unused constants (PLACEHOLDER_IMAGE_URL) is better than maintaining fallback behavior nobody wants
+3. Inline styles are mandatory for Outlook email compatibility — Tailwind classes alone don't work for lists
+
+### Cost Observations
+- Model mix: quality profile (opus for planning, sonnet for execution)
+- Total execution: ~9 min across 4 plans
+- Notable: Fastest milestone yet — foundation phase investment paid off in rapid subsequent phases
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -90,6 +130,7 @@
 |-----------|--------|-------|----------|------------|
 | v1.0 | 4 | 8 | ~10min | Initial setup, establishing patterns |
 | v1.1 | 5 | 8 | ~6min | Faster with established patterns, graceful degradation standard |
+| v1.2 | 4 | 4 | ~2min | Foundation phase investment, fastest execution |
 
 ### Top Lessons (Verified Across Milestones)
 
@@ -97,3 +138,4 @@
 2. External API integration needs graceful fallback AND budget tracking from day one
 3. Individual phase verification does not catch cross-phase integration issues — need milestone-level audit
 4. First phase is always slowest; subsequent phases benefit from established patterns
+5. Foundation phases that extend DB schema + types make all subsequent feature phases very fast (confirmed v1.0, v1.2)

@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A Node.js application that automates AI-curated weekly newsletters for enterprise clients. Collects AI news from 5 source types (RSS, Beehiiv, X/Twitter, Tavily web search, aisanomat.fi blog), generates industry-tailored Finnish-language digests using Claude API, validates facts, generates images with Gemini, detects cross-source duplicates via semantic embeddings, and delivers premium branded emails via Resend with reader feedback tracking. Includes admin panel (content management, client management, scheduling, source health monitoring, deduplication review, X budget tracking) and company portal (team management via magic links).
+A Node.js application that automates AI-curated weekly newsletters for enterprise clients. Collects AI news from 5 source types (RSS, Beehiiv, X/Twitter, Tavily web search, aisanomat.fi blog), generates industry-tailored Finnish-language digests using Claude API with structured content (lead sentences, bullet points, visual hierarchy), validates facts, fetches source article OG images with AI-generated infographic fallback via Gemini, detects cross-source duplicates via semantic embeddings, and delivers premium branded emails via Resend with reader feedback tracking. Includes admin panel (content management, client management, scheduling, source health monitoring, deduplication review, X budget tracking) and company portal (team management via magic links).
 
 ## Core Value
 
@@ -29,17 +29,14 @@ The AI-generated weekly digest must be genuinely useful and industry-relevant �
 - ✓ Tavily web search with per-client industry queries — v1.1
 - ✓ Semantic deduplication with OpenAI embeddings and pgvector — v1.1
 - ✓ X/Twitter monitoring: influencer timelines + keyword search + budget tracking — v1.1
+- ✓ AI-Sanomat logo in email header with dark mode protection — v1.2
+- ✓ OG image extraction from source articles with generic URL filtering — v1.2
+- ✓ Structured article content: lead sentence, bullets, visual hierarchy — v1.2
+- ✓ Backward-compatible content rendering (old digests still work) — v1.2
+- ✓ Three-tier image fallback: OG > Gemini AI > clean no-image — v1.2
+- ✓ Email HTML size monitoring with 80KB warning — v1.2
 
 ### Active
-
-## Current Milestone: v1.2 Newsletter Quality & Design
-
-**Goal:** Make the HTML newsletter significantly better — structured content, relevant images, proper branding.
-
-**Target features:**
-- Structured article content with subheadings, lists, bold, highlights (not single text blocks)
-- Relevant images from source OG metadata, with AI infographic fallback
-- AI-Sanomat branded header with real logo icon + text
 
 ### Carry-over
 
@@ -66,12 +63,13 @@ The AI-generated weekly digest must be genuinely useful and industry-relevant �
 
 ## Context
 
-Shipped v1.0 and v1.1 with 15,916 LOC TypeScript across 9 phases.
-Tech stack: Next.js 16, Fastify, Drizzle ORM, PostgreSQL, React Email, Resend, Claude Sonnet 4.6, Gemini Nano Banana 2.
+Shipped v1.0, v1.1, and v1.2 with 16,946 LOC TypeScript across 13 phases.
+Tech stack: Next.js 16, Fastify, Drizzle ORM, PostgreSQL, React Email, Resend, Claude Sonnet 4.6, Gemini Nano Banana 2, open-graph-scraper.
 News sources: RSS, Beehiiv, Tavily, X/Twitter (Apify), aisanomat.fi blog.
+Newsletter quality: structured content (lead + bullets), OG images with Gemini fallback, branded header.
 No pilot client yet — building product first, then selling.
 Two known integration gaps accepted as tech debt (health dot keys, dedup filter).
-Environment setup needed: TAVILY_API_KEY, OPENAI_API_KEY, APIFY_TOKEN, ADMIN_EMAIL, pgvector extension, DNS records.
+Environment setup needed: TAVILY_API_KEY, OPENAI_API_KEY, APIFY_TOKEN, ADMIN_EMAIL, pgvector extension, DNS records, Gemini billing enabled.
 
 ## Constraints
 
@@ -105,6 +103,13 @@ Environment setup needed: TAVILY_API_KEY, OPENAI_API_KEY, APIFY_TOKEN, ADMIN_EMA
 | JWT feedback tokens (90-day) | Multi-purpose token support, no login required | ✓ Good |
 | Tailwind pixelBasedPreset for emails | Email-safe px units, no rem in output | ✓ Good |
 | Per-member email rendering | Unique feedback URLs per recipient | ✓ Good |
+| Logo above text heading | Not replacing text — per locked design decision | ✓ Good |
+| #FAFAFA white island for logo | Avoids aggressive Outlook dark mode inversion | ✓ Good |
+| story.lead as content discriminator | Cleaner than checking contentBlocks array presence | ✓ Good |
+| Buffer.byteLength for email size | Accurate for Finnish multi-byte UTF-8 characters | ✓ Good |
+| Eliminate PLACEHOLDER_IMAGE_URL | Was causing broken image tags (no actual file) | ✓ Good |
+| Conditional Gemini generation | Only for stories without OG images — saves API tokens | ✓ Good |
+| open-graph-scraper for OG images | Reliable library, 4s timeout, fire-and-forget pattern | ✓ Good |
 
 ---
-*Last updated: 2026-03-04 after v1.2 milestone start*
+*Last updated: 2026-03-04 after v1.2 milestone*
