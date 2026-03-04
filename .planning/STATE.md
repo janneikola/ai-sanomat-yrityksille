@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-04)
 
 Phase: All complete (v1.0 + v1.1 shipped)
 Status: Between milestones
-Last activity: 2026-03-04 -- v1.1 milestone archived
+Last activity: 2026-03-04 - Completed quick task 001: Add user management to customer where admin user for the company can add recipients for the newsletter
 
 Progress: [##################] 100% (16/16 total plans across all milestones)
 
@@ -54,6 +54,12 @@ Progress: [##################] 100% (16/16 total plans across all milestones)
 - SPF/DKIM/DMARC DNS records for mail.aisanomat.fi need 2-4 weeks of monitoring before client sends
 - Finnish language embedding quality for text-embedding-3-small is unverified
 - X monitoring uses Apify ($0.40/1K tweets) -- monitor estimated vs actual Apify billing
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 001 | Add user management to customer where admin user for the company can add recipients for the newsletter | 2026-03-04 | c977f51 | [001-add-user-mgmt-newsletter-recipients](./quick/001-add-user-mgmt-newsletter-recipients/) |
 
 ### Decisions
 
