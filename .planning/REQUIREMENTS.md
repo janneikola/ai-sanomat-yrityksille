@@ -9,10 +9,10 @@ Requirements for v1.2 Newsletter Quality & Design. Each maps to roadmap phases.
 
 ### Sisältörakenne (Content Structure)
 
-- [ ] **CONTENT-01**: Uutisartikkeli sisältää lead-lauseen joka tiivistää uutisen ydinviestin
-- [ ] **CONTENT-02**: Uutisartikkeli sisältää 2-4 bullet-pointtia avainpointeista
-- [ ] **CONTENT-03**: Uutisartikkeli käyttää alaotsikointia, boldausta ja korostuksia luettavuuden parantamiseksi
-- [ ] **CONTENT-04**: Vanhat digestit (ilman uutta rakennetta) renderöityvät edelleen oikein
+- [x] **CONTENT-01**: Uutisartikkeli sisältää lead-lauseen joka tiivistää uutisen ydinviestin
+- [x] **CONTENT-02**: Uutisartikkeli sisältää 2-4 bullet-pointtia avainpointeista
+- [x] **CONTENT-03**: Uutisartikkeli käyttää alaotsikointia, boldausta ja korostuksia luettavuuden parantamiseksi
+- [x] **CONTENT-04**: Vanhat digestit (ilman uutta rakennetta) renderöityvät edelleen oikein
 
 ### Kuvat (Images)
 
@@ -50,10 +50,10 @@ Requirements for v1.2 Newsletter Quality & Design. Each maps to roadmap phases.
 | BRAND-02 | Phase 10 | Complete |
 | IMAGE-01 | Phase 11 | Complete |
 | IMAGE-02 | Phase 11 | Complete |
-| CONTENT-01 | Phase 12 | Pending |
-| CONTENT-02 | Phase 12 | Pending |
-| CONTENT-03 | Phase 12 | Pending |
-| CONTENT-04 | Phase 12 | Pending |
+| CONTENT-01 | Phase 12 | Complete |
+| CONTENT-02 | Phase 12 | Complete |
+| CONTENT-03 | Phase 12 | Complete |
+| CONTENT-04 | Phase 12 | Complete |
 | IMAGE-03 | Phase 13 | Pending |
 | IMAGE-04 | Phase 13 | Pending |
 

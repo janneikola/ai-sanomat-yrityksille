@@ -35,7 +35,7 @@
 
 - [x] **Phase 10: Foundation & Branding** - DB schema extension, TypeScript types, and logo in email header
 - [x] **Phase 11: OG Image Extraction** - Fetch og:image from source articles at collection time
-- [ ] **Phase 12: Structured Article Content** - Lead sentence, bullets, and rich formatting in newsletter stories
+- [x] **Phase 12: Structured Article Content** - Lead sentence, bullets, and rich formatting in newsletter stories
 - [ ] **Phase 13: AI Infographic Fallback** - Conditional Gemini generation for stories without OG images
 
 ## Phase Details
@@ -79,10 +79,10 @@ Plans:
   3. Story content uses subheadings, bold text, and visual hierarchy (renders correctly in Outlook desktop and Gmail)
   4. Previously generated digests (stored with old `businessImpact` string shape) render without errors — backward compatibility holds
   5. Email HTML byte length is logged before every send; a warning appears in logs when the email exceeds 80KB
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
-- [ ] 12-01-PLAN.md — Update prompt template, shared Zod schema, DigestEmail structured content rendering, and email size logging
+- [x] 12-01-PLAN.md — Update prompt template, shared Zod schema, DigestEmail structured content rendering, and email size logging
 
 ### Phase 13: AI Infographic Fallback
 **Goal**: Every newsletter story has an image — either an OG photo from the source article or an AI-generated infographic — and stories where both fail show cleanly without an image.
@@ -113,5 +113,5 @@ Plans:
 | 9. X/Twitter Monitoring | v1.1 | 2/2 | Complete | 2026-03-03 |
 | 10. Foundation & Branding | v1.2 | Complete    | 2026-03-04 | 2026-03-04 |
 | 11. OG Image Extraction | v1.2 | Complete    | 2026-03-04 | 2026-03-04 |
-| 12. Structured Article Content | v1.2 | 0/1 | Not started | - |
+| 12. Structured Article Content | v1.2 | 1/1 | Complete | 2026-03-04 |
 | 13. AI Infographic Fallback | v1.2 | 0/1 | Not started | - |

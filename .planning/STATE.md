@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Newsletter Quality & Design
 status: unknown
-last_updated: "2026-03-04T12:09:33.018Z"
+last_updated: "2026-03-04T12:53:00Z"
 progress:
   total_phases: 6
   completed_phases: 6
   total_plans: 10
-  completed_plans: 10
+  completed_plans: 11
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-04)
 
 **Core value:** The AI-generated weekly digest must be genuinely useful and industry-relevant -- content quality is the entire selling point.
-**Current focus:** Phase 11 — OG Image Extraction
+**Current focus:** Phase 12 — Structured Article Content
 
 ## Current Position
 
-Phase: 11 of 13 (OG Image Extraction) -- COMPLETE
+Phase: 12 of 13 (Structured Article Content) -- COMPLETE
 Plan: 1 of 1 in current phase
-Status: Phase 11 complete, ready for Phase 12
-Last activity: 2026-03-04 — Phase 11 Plan 01 executed (ogService + OG fetch wiring)
+Status: Phase 12 complete, ready for Phase 13
+Last activity: 2026-03-04 — Phase 12 Plan 01 executed (structured content + email size logging)
 
-Progress: [█████░░░░░] 50% (2/4 plans complete)
+Progress: [███████░░░] 75% (3/4 plans complete)
 
 ## Milestones
 
@@ -50,6 +50,9 @@ Progress: [█████░░░░░] 50% (2/4 plans complete)
 - logoUrl always constructed by emailService, DigestEmail renders conditionally (Phase 10)
 - isGenericImageUrl extracted as testable pure function to avoid ESM mocking complexity (Phase 11)
 - Used .returning({ id }) instead of rowCount to get inserted row ID for OG fetch (Phase 11)
+- Use story.lead as the structured-vs-fallback discriminator, not contentBlocks presence (Phase 12)
+- Inline styles on ul/li bullet elements for Outlook Word engine compatibility (Phase 12)
+- Buffer.byteLength with utf-8 for accurate Finnish multi-byte character size measurement (Phase 12)
 
 ### Pending Todos
 
@@ -77,5 +80,5 @@ Progress: [█████░░░░░] 50% (2/4 plans complete)
 ## Session Continuity
 
 Last session: 2026-03-04
-Stopped at: Completed 11-01-PLAN.md (OG Image Extraction)
+Stopped at: Completed 12-01-PLAN.md (Structured Article Content)
 Resume file: N/A
