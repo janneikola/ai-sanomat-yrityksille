@@ -9,8 +9,7 @@ async function start() {
   const app = await buildApp();
 
   try {
-    // Railway vaatii :: host-sidontaa (IPv6 kaikki rajapinnat)
-    await app.listen({ port, host: '::' });
+    await app.listen({ port, host: '0.0.0.0' });
     console.log(`API käynnissä portissa ${port}`);
     startScheduler();
 
