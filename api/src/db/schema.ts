@@ -8,6 +8,8 @@ import {
   varchar,
   pgEnum,
   unique,
+  vector,
+  index,
   real,
 } from 'drizzle-orm/pg-core';
 
@@ -99,10 +101,12 @@ export const newsItems = pgTable('news_items', {
   collectedAt: timestamp('collected_at').notNull().defaultNow(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   // Semanttinen deduplikointi (Phase 8)
-  // embedding: vector('embedding', { dimensions: 1536 }), // TEMPORARILY REMOVED - pgvector
+  embedding: vector('embedding', { dimensions: 1536 }),
   isDuplicate: boolean('is_duplicate').notNull().default(false),
   canonicalItemId: integer('canonical_item_id'), // self-reference, no FK to avoid cascade complexity
-});
+}, (table) => [
+  index('news_items_embedding_idx').using('hnsw', table.embedding.op('vector_cosine_ops')),
+]);
 
 // Viikkokatsaukset
 export const issues = pgTable('issues', {
