@@ -2,109 +2,100 @@
 
 ## What This Is
 
-An independent Node.js application that automates AI-curated weekly newsletters for enterprise clients. It collects AI news from multiple sources, generates industry-tailored Finnish-language digests using Claude API, validates facts, generates images with Gemini Nano Banana 2, and delivers via Resend. Includes an admin panel for Janne (content management, client management, preview/approve workflow) and a company portal for enterprise contacts (team management, open rate stats).
+A Node.js application that automates AI-curated weekly newsletters for enterprise clients. Collects AI news from 5 source types (RSS, Beehiiv, X/Twitter, Tavily web search, aisanomat.fi blog), generates industry-tailored Finnish-language digests using Claude API, validates facts, generates images with Gemini, detects cross-source duplicates via semantic embeddings, and delivers premium branded emails via Resend with reader feedback tracking. Includes admin panel (content management, client management, scheduling, source health monitoring, deduplication review, X budget tracking) and company portal (team management via magic links).
 
 ## Core Value
 
 The AI-generated weekly digest must be genuinely useful and industry-relevant — bad content kills trust, and content quality is the entire selling point differentiating this from generic AI newsletters.
 
-## Current Milestone: v1.1 Smart Sourcing & Polish
-
-**Goal:** Transform news collection from basic RSS/Beehiiv into comprehensive multi-source intelligence (X, web search, expanded RSS, aisanomat.fi), add automation (scheduled generation, configurable frequency), redesign newsletter visuals, and add source health monitoring with feedback loops.
-
-**Target features:**
-- Comprehensive AI news sourcing (X influencers + keyword search, Tavily/Serper web search, expanded RSS)
-- Industry-specific search with per-client prompts
-- aisanomat.fi featured section in newsletters
-- Auto-scheduled digest generation with configurable frequency (weekly/bi-weekly/monthly)
-- Premium newsletter design with AI-Sanomat + client co-branding
-- Source health monitoring and quality scoring
-- Semantic deduplication across sources
-- Email feedback loop (thumbs up/down)
-
 ## Requirements
 
 ### Validated
 
-<!-- Shipped and confirmed valuable. v1.0 -->
-
-- ✓ Collect AI news from RSS and Beehiiv API — v1.0 Phase 2
-- ✓ Generate industry-tailored Finnish digests using Claude API — v1.0 Phase 2
-- ✓ Two-pass content pipeline: generation + fact validation — v1.0 Phase 2
-- ✓ Generate newsletter images with Gemini — v1.0 Phase 2
-- ✓ Admin panel: client/source/template CRUD, digest workflow — v1.0 Phases 1+3
-- ✓ Company portal: magic link auth, team management, archive — v1.0 Phase 4
-- ✓ Email delivery via Resend with tracking and bounce handling — v1.0 Phase 3
-- ✓ PostgreSQL database on Railway — v1.0 Phase 1
-- ✓ Admin auth with hardcoded credentials — v1.0 Phase 1
+- ✓ Collect AI news from RSS and Beehiiv API — v1.0
+- ✓ Generate industry-tailored Finnish digests using Claude API — v1.0
+- ✓ Two-pass content pipeline: generation + fact validation — v1.0
+- ✓ Generate newsletter images with Gemini — v1.0
+- ✓ Admin panel: client/source/template CRUD, digest workflow — v1.0
+- ✓ Company portal: magic link auth, team management, archive — v1.0
+- ✓ Email delivery via Resend with tracking and bounce handling — v1.0
+- ✓ PostgreSQL database on Railway — v1.0
+- ✓ Admin auth with hardcoded credentials — v1.0
+- ✓ Auto-scheduled digest generation with per-client frequency — v1.1
+- ✓ Source health monitoring with auto-disable and admin notification — v1.1
+- ✓ Premium email template with AI-Sanomat branding, dark mode, client co-branding — v1.1
+- ✓ aisanomat.fi featured section in newsletters — v1.1
+- ✓ One-click reader feedback (thumbs up/down) with satisfaction dashboard — v1.1
+- ✓ Tavily web search with per-client industry queries — v1.1
+- ✓ Semantic deduplication with OpenAI embeddings and pgvector — v1.1
+- ✓ X/Twitter monitoring: influencer timelines + keyword search + budget tracking — v1.1
 
 ### Active
 
-<!-- Current scope. Building toward these. v1.1 -->
-
-- [ ] X monitoring: curated influencer accounts + keyword searches
-- [ ] Industry-specific web search via Tavily/Serper with per-client prompts
-- [ ] Expanded general AI RSS feed coverage
-- [ ] aisanomat.fi featured section ("AI-Sanomat suosittelee") in newsletters
-- [ ] Auto-scheduled digest generation (drafts created on schedule, admin reviews)
-- [ ] Client-configurable send frequency (weekly / bi-weekly / monthly)
-- [ ] Premium newsletter template redesign (clean, modern, whitespace)
-- [ ] AI-Sanomat brand frame (logo, colors, header/footer)
-- [ ] Client co-branding (company name/industry in newsletter)
-- [ ] Source health monitoring (stale feed detection, quality scoring)
-- [ ] Semantic deduplication across sources (beyond URL matching)
-- [ ] Email feedback loop (thumbs up/down, satisfaction tracking)
+- [ ] Railway deployment (API + DB + frontend)
+- [ ] SPF/DKIM/DMARC DNS records for mail.aisanomat.fi
+- [ ] Fix health dot key mismatch in X monitoring page (INT-01)
+- [ ] Filter isDuplicate items from digest generation (INT-02)
 
 ### Out of Scope
 
-<!-- Explicit boundaries. Includes reasoning to prevent re-adding. -->
-
 - Stripe billing integration — manual invoicing for MVP
-- Multi-language support — Finnish only
-- Mobile app — web-first
-- Beehiiv migration — intentionally separate system, enterprise app is independent
-- A/B testing for email content — premature optimization
+- Multi-language support — Finnish only, competitive moat
+- Mobile app — web-first, email is delivery channel
+- Beehiiv migration — intentionally separate system
+- A/B testing for email content — premature with small client base
 - Team member self-unsubscribe — company contact handles removals
-- Kehotesuunnittelija Pro / kehotepaketit — integrate later from separate system
+- Kehotesuunnittelija Pro — integrate later from separate system
 - Live webinars — manual service, not part of the app
-- Slack/Teams support channel — manual service, not part of the app
-- Quarterly report auto-generation — manual for now
-- Click tracking — deferred, opens + feedback sufficient for v1.1
-- Reddit/HN scraping — complex moderation, defer to v2.0
+- Slack/Teams delivery — email-only; webhook forwarder if 5+ clients request
+- Reddit/HN scraping — legal ambiguity, Tavily surfaces best content
+- Click tracking — opens + feedback sufficient for now
+- Daily digest frequency — subscriber fatigue, weekly minimum
+- Custom email template per client — one brand with co-branding
+- Self-serve company signup — enterprise clients need onboarding
+- Rich text editor — fix prompts instead
 
 ## Context
 
-AI-Sanomat is an established Finnish AI newsletter reaching 1,400+ subscribers via Beehiiv (aisanomat.fi), published weekly since 2023 by Janne Ikola (Verstos Oy). Enterprise packages (AI Pulse at 29€/mo per person, AI Teams at 390€/mo) are already being marketed on the website.
-
-This app is being built because Beehiiv doesn't support: automated email sending via API, industry-specific content tailoring per client, or enterprise client management (teams, contacts, segmentation).
-
-No pilot client yet — building the product first, then selling. Janne will be the primary power user testing and iterating on content quality through the admin panel before onboarding enterprise clients.
-
-Gemini Nano Banana 2 API access is confirmed. Resend account exists but domain (aisanomat.fi) DNS records for sending (SPF/DKIM/DMARC) still need configuration. Railway account is ready.
+Shipped v1.0 and v1.1 with 15,916 LOC TypeScript across 9 phases.
+Tech stack: Next.js 16, Fastify, Drizzle ORM, PostgreSQL, React Email, Resend, Claude Sonnet 4.6, Gemini Nano Banana 2.
+News sources: RSS, Beehiiv, Tavily, X/Twitter (Apify), aisanomat.fi blog.
+No pilot client yet — building product first, then selling.
+Two known integration gaps accepted as tech debt (health dot keys, dedup filter).
+Environment setup needed: TAVILY_API_KEY, OPENAI_API_KEY, APIFY_TOKEN, ADMIN_EMAIL, pgvector extension, DNS records.
 
 ## Constraints
 
-- **Tech stack**: Node.js + Fastify (API), Next.js 15 (single app, role-based views for admin + portal), PostgreSQL (Railway), React Email
-- **AI models**: Claude Sonnet 4.6 (text generation + validation), Gemini Nano Banana 2 (images)
+- **Tech stack**: Node.js + Fastify (API), Next.js 16 (single app, role-based views), PostgreSQL (Railway), React Email
+- **AI models**: Claude Sonnet 4.6 (text), Gemini Nano Banana 2 (images), OpenAI text-embedding-3-small (embeddings)
 - **Email**: Resend with own sending domain (mail.aisanomat.fi)
 - **Deployment**: Railway (API + DB + frontend)
-- **Auth**: Hardcoded admin credentials (MVP), magic links for company contacts via Resend
-- **Frontend**: One Next.js app with role-based routing — admin panel and company portal are different routes, not separate apps
+- **Auth**: Hardcoded admin credentials (MVP), magic links for company contacts
+- **Frontend**: One Next.js app with role-based routing (admin + portal)
 - **Language**: All user-facing content in Finnish
+- **X/Twitter**: Apify Tweet Scraper V2 (pay-per-use, $0.40/1K tweets)
 
 ## Key Decisions
 
-<!-- Decisions that constrain future work. Add throughout project lifecycle. -->
-
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Separate app from Beehiiv | Beehiiv can't do per-client tailoring or API email sending | — Pending |
-| Single Next.js app for admin + portal | Simpler deployment, less infra to manage | — Pending |
-| Hardcoded admin auth for MVP | Only Janne uses admin, no need for full auth system yet | — Pending |
-| Claude Sonnet 4.6 for generation | Cost-effective, quality sufficient for newsletter content | — Pending |
-| Two-pass content pipeline (generate + validate) | Content quality is core value, must catch hallucinations | — Pending |
-| Fastify over Express | Better performance, TypeScript support, schema validation | — Pending |
-| Prompt templates in DB | Admin can iterate on prompts without code changes | — Pending |
+| Separate app from Beehiiv | Beehiiv can't do per-client tailoring or API email sending | ✓ Good |
+| Single Next.js app for admin + portal | Simpler deployment, less infra to manage | ✓ Good |
+| Hardcoded admin auth for MVP | Only Janne uses admin, no need for full auth system yet | ✓ Good |
+| Claude Sonnet 4.6 for generation | Cost-effective, quality sufficient for newsletter content | ✓ Good |
+| Two-pass content pipeline | Content quality is core value, must catch hallucinations | ✓ Good |
+| Fastify over Express | Better performance, TypeScript support, schema validation | ✓ Good |
+| Prompt templates in DB | Admin can iterate on prompts without code changes | ✓ Good |
+| Next.js 16 + Drizzle ORM | Modern stack, good TypeScript DX | ✓ Good |
+| Zod v3 (not v4) | fastify-type-provider compatibility | ✓ Good |
+| DB-driven scheduling | Railway deploys destroy in-memory cron state | ✓ Good |
+| Tavily over Serper | Returns extracted content in one call, no separate scraping | ✓ Good |
+| OpenAI text-embedding-3-small | Anthropic has no embeddings model, cost-effective | ✓ Good |
+| pgvector in existing PostgreSQL | Dataset too small for dedicated vector DB | ✓ Good |
+| Apify pay-per-use X API | $0.40/1K tweets vs $200/month Twitter Basic tier | ✓ Good |
+| JWT feedback tokens (90-day) | Multi-purpose token support, no login required | ✓ Good |
+| Tailwind pixelBasedPreset for emails | Email-safe px units, no rem in output | ✓ Good |
+| Per-member email rendering | Unique feedback URLs per recipient | ✓ Good |
 
 ---
-*Last updated: 2026-03-03 after v1.1 milestone start*
+*Last updated: 2026-03-04 after v1.1 milestone*
