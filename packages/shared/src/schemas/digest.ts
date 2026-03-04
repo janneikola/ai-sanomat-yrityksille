@@ -7,11 +7,18 @@ export const aiPatternFlagSchema = z.object({
   suggestion: z.string(),
 });
 
+const contentBlockSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('lead'), text: z.string() }),
+  z.object({ type: z.literal('bullets'), items: z.array(z.string()) }),
+]);
+
 export const digestStorySchema = z.object({
   title: z.string(),
   businessImpact: z.string(),
   sourceUrl: z.string(),
   imageUrl: z.string().optional(),
+  lead: z.string().optional(),
+  contentBlocks: z.array(contentBlockSchema).optional(),
 });
 
 export const digestContentSchema = z.object({

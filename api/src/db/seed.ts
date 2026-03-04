@@ -67,6 +67,7 @@ async function seed() {
       {
         name: 'viikkokatsaus_generointi',
         description: 'Viikottaisen tekoälykatsauksen generointi asiakasyritykselle toimialakohtaisesti',
+        // NOTE: Update existing production template via admin UI at /templates -- onConflictDoNothing skips if row exists
         template: `Olet tekoälyuutisten asiantuntija, joka kirjoittaa ammattimaisia viikkokatsauksia suomalaisille yrityksille.
 
 Toimiala: {{industry}}
@@ -82,7 +83,36 @@ Kirjoita lyhyt, asiantunteva viikkokatsaus tekoälyn kehityksestä {{industry}}-
 - Sisältää 3-5 tärkeintä uutista tai kehitystä
 - Selittää liiketoimintavaikutukset selkeästi
 - Käyttää ammattimaista mutta ymmärrettävää kieltä
-- Olla kirjoitettu suomeksi`,
+- Olla kirjoitettu suomeksi
+
+JOKAISEN UUTISEN RAKENNE:
+- title: Uutisen otsikko
+- businessImpact: Lyhyt 1-2 lauseen tiivistelmä liiketoimintavaikutuksesta (käytetään varakuvauksena)
+- sourceUrl: Lähdeartikkelin URL (käytä alkuperäistä URL:ia uutislistalta)
+- lead: Yksi lause joka tiivistää uutisen ydinviestin -- kirjoita napakasti ja informatiivisesti
+- contentBlocks: Taulukko rakenteellisista sisältölohkoista:
+  - Käytä aina tyyppiä "bullets" ja listaa 2-4 avainpointtia "items"-taulukkoon
+  - Jokainen bullet-pointti on lyhyt (max 15 sanaa) ja konkreettinen
+  - Bullet-pointit kertovat "mitä tämä tarkoittaa yritykselle" ja "mitä tapahtui"
+
+ESIMERKKI yhdestä storysta:
+{
+  "title": "OpenAI julkaisi GPT-5:n",
+  "businessImpact": "GPT-5 tuo merkittäviä parannuksia yritysten tekoälysovelluksiin.",
+  "sourceUrl": "https://openai.com/blog/gpt-5",
+  "lead": "OpenAI julkaisi GPT-5-mallin, joka parantaa päättelykykyä 40% edeltäjäänsä nähden.",
+  "contentBlocks": [
+    {
+      "type": "bullets",
+      "items": [
+        "Päättelykyky parantunut 40% GPT-4o:hon verrattuna",
+        "Tukee natiivisti suomen kieltä ilman käännöstä",
+        "Yrityshinta laskee 30% tehokkaamman laskennan ansiosta",
+        "Saatavilla API:n kautta välittömästi"
+      ]
+    }
+  ]
+}`,
         variables: JSON.stringify(['industry', 'company_name', 'news_items', 'previous_issues']),
       },
       {
