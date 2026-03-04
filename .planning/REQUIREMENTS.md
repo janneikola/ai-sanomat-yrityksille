@@ -16,8 +16,8 @@ Requirements for v1.2 Newsletter Quality & Design. Each maps to roadmap phases.
 
 ### Kuvat (Images)
 
-- [ ] **IMAGE-01**: Uutisartikkelin kuva haetaan ensisijaisesti lähdeartikkelin OG-metatiedoista
-- [ ] **IMAGE-02**: OG-kuvahaku käyttää timeoutia (3-5s) eikä estä digestin generointia
+- [x] **IMAGE-01**: Uutisartikkelin kuva haetaan ensisijaisesti lähdeartikkelin OG-metatiedoista
+- [x] **IMAGE-02**: OG-kuvahaku käyttää timeoutia (3-5s) eikä estä digestin generointia
 - [ ] **IMAGE-03**: Jos OG-kuvaa ei löydy, generoidaan AI-infograafi joka selittää uutisen sisältöä
 - [ ] **IMAGE-04**: Jos AI-infograafikaan ei onnistu, uutinen näytetään ilman kuvaa
 
@@ -48,8 +48,8 @@ Requirements for v1.2 Newsletter Quality & Design. Each maps to roadmap phases.
 |-------------|-------|--------|
 | BRAND-01 | Phase 10 | Complete |
 | BRAND-02 | Phase 10 | Complete |
-| IMAGE-01 | Phase 11 | Pending |
-| IMAGE-02 | Phase 11 | Pending |
+| IMAGE-01 | Phase 11 | Complete |
+| IMAGE-02 | Phase 11 | Complete |
 | CONTENT-01 | Phase 12 | Pending |
 | CONTENT-02 | Phase 12 | Pending |
 | CONTENT-03 | Phase 12 | Pending |

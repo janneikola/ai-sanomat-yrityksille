@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Newsletter Quality & Design
 status: unknown
-last_updated: "2026-03-04T09:19:09.133Z"
+last_updated: "2026-03-04T12:04:53Z"
 progress:
   total_phases: 5
   completed_phases: 5
   total_plans: 9
-  completed_plans: 9
+  completed_plans: 10
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-04)
 
 **Core value:** The AI-generated weekly digest must be genuinely useful and industry-relevant -- content quality is the entire selling point.
-**Current focus:** Phase 10 — Foundation & Branding
+**Current focus:** Phase 11 — OG Image Extraction
 
 ## Current Position
 
-Phase: 10 of 13 (Foundation & Branding) -- COMPLETE
+Phase: 11 of 13 (OG Image Extraction) -- COMPLETE
 Plan: 1 of 1 in current phase
-Status: Phase 10 complete, ready for Phase 11
-Last activity: 2026-03-04 — Phase 10 Plan 01 executed (schema + types + logo)
+Status: Phase 11 complete, ready for Phase 12
+Last activity: 2026-03-04 — Phase 11 Plan 01 executed (ogService + OG fetch wiring)
 
-Progress: [██░░░░░░░░] 25% (1/4 plans complete)
+Progress: [█████░░░░░] 50% (2/4 plans complete)
 
 ## Milestones
 
@@ -48,6 +48,8 @@ Progress: [██░░░░░░░░] 25% (1/4 plans complete)
 - White island uses #FAFAFA background for dark mode logo protection (Phase 10)
 - contentBlocks and lead are optional in both TS and JSON schema for backward compat (Phase 10)
 - logoUrl always constructed by emailService, DigestEmail renders conditionally (Phase 10)
+- isGenericImageUrl extracted as testable pure function to avoid ESM mocking complexity (Phase 11)
+- Used .returning({ id }) instead of rowCount to get inserted row ID for OG fetch (Phase 11)
 
 ### Pending Todos
 
@@ -75,5 +77,5 @@ Progress: [██░░░░░░░░] 25% (1/4 plans complete)
 ## Session Continuity
 
 Last session: 2026-03-04
-Stopped at: Completed 10-01-PLAN.md (Foundation & Branding)
+Stopped at: Completed 11-01-PLAN.md (OG Image Extraction)
 Resume file: N/A
