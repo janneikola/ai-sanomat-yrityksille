@@ -31,6 +31,7 @@ export interface DigestEmailProps {
   clientIndustry: string;
   digest: DigestEmailDigest;
   heroImageUrl: string | null;
+  logoUrl: string | null;           // Hosted PNG URL for logo
   featuredPosts: FeaturedPost[];
   feedbackUrls?: { up: string; down: string };
   unsubscribeUrl: string;
@@ -42,6 +43,7 @@ export function DigestEmail({
   clientIndustry,
   digest,
   heroImageUrl,
+  logoUrl,
   featuredPosts,
   feedbackUrls,
   unsubscribeUrl,
@@ -78,6 +80,7 @@ export function DigestEmail({
               .email-footer { color: #a3a3a3 !important; }
               .email-divider { border-color: #404040 !important; }
               .email-brand-bar { background-color: #0D9488 !important; }
+              .email-logo-island { background-color: #FAFAFA !important; }
               .email-featured-bg { background-color: #1f2937 !important; }
               .email-link { color: #2dd4bf !important; }
             }
@@ -89,7 +92,31 @@ export function DigestEmail({
 
             {/* BRAND HEADER */}
             <Section className="pt-[32px] pb-[16px] px-[24px] text-center">
-              <Text className="text-[30px] font-bold text-[#111111] m-0 email-heading">
+              {logoUrl && (
+                <table role="presentation" width="100%" style={{ border: '0', borderCollapse: 'collapse' as const }}>
+                  <tbody>
+                    <tr>
+                      <td align="center" style={{ padding: '0' }}>
+                        <div style={{
+                          display: 'inline-block',
+                          backgroundColor: '#FAFAFA',
+                          borderRadius: '12px',
+                          padding: '16px 24px',
+                        }} className="email-logo-island">
+                          <Img
+                            src={logoUrl}
+                            alt="AI-Sanomat"
+                            width="200"
+                            height="50"
+                            style={{ display: 'block', maxWidth: '200px', height: 'auto' }}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              )}
+              <Text className="text-[30px] font-bold text-[#111111] m-0 mt-[12px] email-heading">
                 AI-Sanomat
               </Text>
               <Text className="text-[14px] text-[#666666] m-0 mt-[4px] email-muted">

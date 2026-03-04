@@ -38,6 +38,8 @@ export async function renderDigestEmail(
     ? toImageUrl(issue.heroImageUrl)
     : null;
 
+  const logoUrl = toImageUrl('/images/logo.png');
+
   const storiesWithAbsoluteUrls = digest.stories.map((story) => ({
     ...story,
     imageUrl: story.imageUrl
@@ -53,6 +55,7 @@ export async function renderDigestEmail(
     clientIndustry: client.industry,
     digest: { ...digest, stories: storiesWithAbsoluteUrls },
     heroImageUrl,
+    logoUrl,
     featuredPosts,
     feedbackUrls,
     unsubscribeUrl: '', // Placeholder -- korvataan per-jasen lahettaessa
