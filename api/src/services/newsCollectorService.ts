@@ -13,6 +13,7 @@ import { searchForClient, isDueWithin24Hours } from './webSearchService.js';
 import { processNewEmbeddings } from './deduplicationService.js';
 import { collectXAccounts } from './xCollectorService.js';
 import { searchXForClient } from './xSearchService.js';
+import { fetchAndStoreOgImage } from './ogService.js';
 
 export async function collectAllNews() {
   const sources = await db
@@ -49,7 +50,7 @@ export async function collectAllNews() {
         if (!item.url) continue;
 
         // Hiljainen deduplikointi -- onConflictDoNothing URL:n uniikkirajoitteella
-        const result = await db
+        const rows = await db
           .insert(newsItems)
           .values({
             sourceId: source.id,
@@ -58,10 +59,12 @@ export async function collectAllNews() {
             summary: item.summary,
             publishedAt: item.publishedAt,
           })
-          .onConflictDoNothing();
+          .onConflictDoNothing()
+          .returning({ id: newsItems.id });
 
-        if (result.rowCount && result.rowCount > 0) {
+        if (rows.length > 0) {
           collected++;
+          fetchAndStoreOgImage(rows[0].id, item.url).catch(console.error);
         }
       }
 
