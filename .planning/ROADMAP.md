@@ -64,10 +64,10 @@ Plans:
   2. OG fetch completes within 3-5 seconds per article and never blocks or delays digest generation
   3. Generic site-wide OG images (containing "default", "logo", "fallback", "placeholder" in URL path) are rejected and stored as null
   4. OG fetch failures (timeout, 404, blocked) are caught silently — the article is stored normally without OG URL
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 11-01: Create ogService.ts, install open-graph-scraper, wire into newsCollectorService.ts post-insert
+- [ ] 11-01-PLAN.md — Create ogService.ts, install open-graph-scraper, wire non-blocking OG fetch into newsCollectorService.ts
 
 ### Phase 12: Structured Article Content
 **Goal**: Newsletter stories display with a lead sentence, bullet points, and rich formatting — not single text blocks — and old digests still render correctly.
