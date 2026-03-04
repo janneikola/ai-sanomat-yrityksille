@@ -79,10 +79,10 @@ Plans:
   3. Story content uses subheadings, bold text, and visual hierarchy (renders correctly in Outlook desktop and Gmail)
   4. Previously generated digests (stored with old `businessImpact` string shape) render without errors — backward compatibility holds
   5. Email HTML byte length is logged before every send; a warning appears in logs when the email exceeds 80KB
-**Plans**: TBD
+**Plans:** 1 plan
 
 Plans:
-- [ ] 12-01: Create StoryContent.tsx, update DigestEmail.tsx, update Claude JSON schema and prompt template in DB
+- [ ] 12-01-PLAN.md — Update prompt template, shared Zod schema, DigestEmail structured content rendering, and email size logging
 
 ### Phase 13: AI Infographic Fallback
 **Goal**: Every newsletter story has an image — either an OG photo from the source article or an AI-generated infographic — and stories where both fail show cleanly without an image.
