@@ -1,4 +1,4 @@
-import { eq, desc, gt } from 'drizzle-orm';
+import { eq, desc, gt, inArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { clients, issues, newsItems, promptTemplates } from '../db/schema.js';
 import { generateDigest, validateDigest, generateImagePrompts } from '../integrations/claudeClient.js';
@@ -180,33 +180,86 @@ export async function generateClientDigest(
       })
       .where(eq(issues.id, issue.id));
 
-    // 9. Generoi kuvapromptit
-    const imageSystemPrompt = fillTemplate(imageTemplate.template, {
-      digest_sections: JSON.stringify(digest.stories),
-      industry: client.industry,
-    });
+    // 9. Hae OG-kuvat tietokannasta artikkeli-URL:ien perusteella
+    const storyUrls = digest.stories.map((s) => s.sourceUrl);
+    const ogRows = await db
+      .select({ url: newsItems.url, ogImageUrl: newsItems.ogImageUrl })
+      .from(newsItems)
+      .where(inArray(newsItems.url, storyUrls));
 
-    const imagePrompts = await generateImagePrompts(
-      imageSystemPrompt,
-      'Generoi kuvapromptit'
+    const ogImageMap = new Map(
+      ogRows
+        .filter((r) => r.ogImageUrl !== null)
+        .map((r) => [r.url, r.ogImageUrl!])
     );
 
-    // 10. Generoi kuvat
-    const images = await generateDigestImages(imagePrompts);
+    // 10. Identifioi tarinat jotka tarvitsevat Gemini-kuvan (ei OG-kuvaa)
+    const storiesNeedingImages = digest.stories
+      .map((story, i) => ({ story, index: i }))
+      .filter(({ story }) => !ogImageMap.has(story.sourceUrl));
 
-    // 11. Paivita katsaus kuva-URL:illa ja aseta tilaksi 'ready'
+    // 11. Generoi kuvapromptit ja kuvat VAIN tarinoille ilman OG-kuvaa
+    let geminiImageMap = new Map<number, string>(); // index -> local path
+    let heroUrl: string | undefined;
+
+    if (storiesNeedingImages.length > 0) {
+      // Generoi kuvapromptit vain puuttuville tarinoille
+      const imageSystemPrompt = fillTemplate(imageTemplate.template, {
+        digest_sections: JSON.stringify(storiesNeedingImages.map(({ story }) => story)),
+        industry: client.industry,
+      });
+
+      const imagePrompts = await generateImagePrompts(
+        imageSystemPrompt,
+        'Generoi kuvapromptit'
+      );
+
+      // Generoi hero-kuva
+      const images = await generateDigestImages(imagePrompts);
+      heroUrl = images.heroUrl;
+
+      // Yhdista Gemini-kuvat oikeisiin indekseihin
+      for (let j = 0; j < storiesNeedingImages.length; j++) {
+        const url = images.sectionUrls[j];
+        if (url) {
+          geminiImageMap.set(storiesNeedingImages[j].index, url);
+        }
+      }
+    } else {
+      // Kaikilla tarinoilla on OG-kuva -- ei tarvita Gemini-kuvia
+      // Generoi silti hero-kuva
+      const imageSystemPrompt = fillTemplate(imageTemplate.template, {
+        digest_sections: JSON.stringify(digest.stories),
+        industry: client.industry,
+      });
+
+      const imagePrompts = await generateImagePrompts(
+        imageSystemPrompt,
+        'Generoi kuvapromptit'
+      );
+
+      const images = await generateDigestImages({
+        heroPrompt: imagePrompts.heroPrompt,
+        sectionPrompts: [],
+      });
+      heroUrl = images.heroUrl;
+    }
+
+    // 12. Yhdista: OG-kuva > Gemini-kuva > undefined (ei kuvaa)
     const updatedDigest: DigestContent & { stories: Array<DigestContent['stories'][number] & { imageUrl?: string }> } = {
       ...digest,
       stories: digest.stories.map((story, i) => ({
         ...story,
-        imageUrl: images.sectionUrls[i],
+        imageUrl: ogImageMap.get(story.sourceUrl)   // 1. OG-kuva (absoluuttinen URL)
+          ?? geminiImageMap.get(i)                    // 2. Gemini-kuva (suhteellinen polku)
+          ?? undefined,                              // 3. Ei kuvaa (IMAGE-04)
       })),
     };
 
     await db
       .update(issues)
       .set({
-        heroImageUrl: images.heroUrl,
+        heroImageUrl: heroUrl ?? null,
         generatedContent: JSON.stringify(updatedDigest),
         status: 'ready',
       })
