@@ -46,22 +46,22 @@ Requirements for v1.2 Newsletter Quality & Design. Each maps to roadmap phases.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CONTENT-01 | — | Pending |
-| CONTENT-02 | — | Pending |
-| CONTENT-03 | — | Pending |
-| CONTENT-04 | — | Pending |
-| IMAGE-01 | — | Pending |
-| IMAGE-02 | — | Pending |
-| IMAGE-03 | — | Pending |
-| IMAGE-04 | — | Pending |
-| BRAND-01 | — | Pending |
-| BRAND-02 | — | Pending |
+| BRAND-01 | Phase 10 | Pending |
+| BRAND-02 | Phase 10 | Pending |
+| IMAGE-01 | Phase 11 | Pending |
+| IMAGE-02 | Phase 11 | Pending |
+| CONTENT-01 | Phase 12 | Pending |
+| CONTENT-02 | Phase 12 | Pending |
+| CONTENT-03 | Phase 12 | Pending |
+| CONTENT-04 | Phase 12 | Pending |
+| IMAGE-03 | Phase 13 | Pending |
+| IMAGE-04 | Phase 13 | Pending |
 
 **Coverage:**
 - v1.2 requirements: 10 total
-- Mapped to phases: 0
-- Unmapped: 10 ⚠️
+- Mapped to phases: 10
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-04*
-*Last updated: 2026-03-04 after initial definition*
+*Last updated: 2026-03-04 — traceability mapped to phases 10-13*

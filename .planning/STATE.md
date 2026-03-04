@@ -5,9 +5,9 @@ milestone_name: Newsletter Quality & Design
 status: active
 last_updated: "2026-03-04"
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
-  total_plans: 0
+  total_plans: 4
   completed_plans: 0
 ---
 
@@ -18,41 +18,49 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-04)
 
 **Core value:** The AI-generated weekly digest must be genuinely useful and industry-relevant -- content quality is the entire selling point.
-**Current focus:** v1.2 Newsletter Quality & Design
+**Current focus:** Phase 10 — Foundation & Branding
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Status: Defining requirements
-Last activity: 2026-03-04 — Milestone v1.2 started
+Phase: 10 of 13 (Foundation & Branding)
+Plan: 0 of 1 in current phase
+Status: Ready to plan
+Last activity: 2026-03-04 — v1.2 roadmap created (phases 10-13)
+
+Progress: [░░░░░░░░░░] 0% (0/4 plans complete)
 
 ## Milestones
 
 - ✅ v1.0 Full Platform — Phases 1-4 (shipped 2026-03-03)
 - ✅ v1.1 Smart Sourcing & Polish — Phases 5-9 (shipped 2026-03-04)
-- ◆ v1.2 Newsletter Quality & Design — Phases 10+ (active)
+- v1.2 Newsletter Quality & Design — Phases 10-13 (active)
 
 ## Accumulated Context
+
+### Decisions
+
+- Admin member endpoints reuse portal member route patterns with admin auth (quick-001)
+- Admin sees all members including inactive for full visibility (quick-001)
+- Logo must be hosted PNG on aisanomat.fi — SVG blocked by Outlook since Oct 2025, base64 inflates HTML toward Gmail 102KB limit
+- OG fetch runs non-blocking after newsItem insert, never at render time — same pattern as logFetchAttempt()
+- Structured content is backward-compatible: old digests fall back to businessImpact string field
 
 ### Pending Todos
 
 - Set up DATABASE_URL, JWT_SECRET, ADMIN_PASSWORD in api/.env before running db:push/db:seed
-- Set NEXT_PUBLIC_API_URL=http://localhost:3000 in web/.env.local for local dev
 - Configure mail.aisanomat.fi domain in Resend Dashboard with SPF/DKIM/DMARC DNS records
-- Set ADMIN_EMAIL in api/.env for admin notifications (defaults to admin@aisanomat.fi)
-- Set TAVILY_API_KEY in api/.env for web search
-- Set OPENAI_API_KEY in api/.env for semantic deduplication
-- Run `cd api && npx tsx src/db/enablePgvector.ts && npx drizzle-kit push` to enable pgvector and apply schema
-- Set APIFY_TOKEN in api/.env for X/Twitter collection
+- Set TAVILY_API_KEY, OPENAI_API_KEY, APIFY_TOKEN in api/.env
 - Fix INT-01: Health dot key mismatch in X monitoring page
 - Fix INT-02: Duplicate items not filtered during digest generation
+- Logo PNG asset (320x80px, transparent, under 10KB) must exist at aisanomat.fi/assets/logo/ before Phase 10 deploys
+- Verify Gemini billing enabled for image generation before Phase 13 (free tier is 0 IPM)
+- Litmus or Email on Acid account needed for Outlook desktop testing before Phase 12
 
 ### Blockers/Concerns
 
-- Resend free tier (100 emails/day) may require Pro plan once clients onboard
-- SPF/DKIM/DMARC DNS records for mail.aisanomat.fi need 2-4 weeks of monitoring before client sends
-- Finnish language embedding quality for text-embedding-3-small is unverified
-- X monitoring uses Apify ($0.40/1K tweets) -- monitor estimated vs actual Apify billing
+- [Phase 12] Outlook desktop uses Word 2007 rendering — all structured content must use table-based layout (Section/Row/Column), no CSS flexbox
+- [Phase 12] Gmail clips email at 102KB — structured HTML adds bytes, add byte logging before any new content elements
+- [Phase 13] Gemini safety filter rejects AI-topic prompts — use visual metaphor prompts, not article subject matter
 
 ### Quick Tasks Completed
 
@@ -60,13 +68,8 @@ Last activity: 2026-03-04 — Milestone v1.2 started
 |---|-------------|------|--------|-----------|
 | 001 | Add user management to customer where admin user for the company can add recipients for the newsletter | 2026-03-04 | c977f51 | [001-add-user-mgmt-newsletter-recipients](./quick/001-add-user-mgmt-newsletter-recipients/) |
 
-### Decisions
-
-- Admin member endpoints reuse portal member route patterns with admin auth (quick-001)
-- Admin sees all members including inactive for full visibility (quick-001)
-
 ## Session Continuity
 
 Last session: 2026-03-04
-Stopped at: Completed quick-001 (admin member management)
+Stopped at: v1.2 roadmap created, ready to plan Phase 10
 Resume file: N/A
