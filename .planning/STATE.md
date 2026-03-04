@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Newsletter Quality & Design
-status: unknown
-last_updated: "2026-03-04T12:53:00Z"
+status: complete
+last_updated: "2026-03-04T13:24:41Z"
 progress:
   total_phases: 6
   completed_phases: 6
   total_plans: 10
-  completed_plans: 11
+  completed_plans: 12
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-04)
 
 **Core value:** The AI-generated weekly digest must be genuinely useful and industry-relevant -- content quality is the entire selling point.
-**Current focus:** Phase 12 — Structured Article Content
+**Current focus:** v1.2 milestone complete
 
 ## Current Position
 
-Phase: 12 of 13 (Structured Article Content) -- COMPLETE
+Phase: 13 of 13 (AI Infographic Fallback) -- COMPLETE
 Plan: 1 of 1 in current phase
-Status: Phase 12 complete, ready for Phase 13
-Last activity: 2026-03-04 — Phase 12 Plan 01 executed (structured content + email size logging)
+Status: Phase 13 complete, v1.2 milestone complete
+Last activity: 2026-03-04 — Phase 13 Plan 01 executed (OG image fallback + conditional Gemini generation)
 
-Progress: [███████░░░] 75% (3/4 plans complete)
+Progress: [██████████] 100% (4/4 plans complete)
 
 ## Milestones
 
@@ -53,6 +53,10 @@ Progress: [███████░░░] 75% (3/4 plans complete)
 - Use story.lead as the structured-vs-fallback discriminator, not contentBlocks presence (Phase 12)
 - Inline styles on ul/li bullet elements for Outlook Word engine compatibility (Phase 12)
 - Buffer.byteLength with utf-8 for accurate Finnish multi-byte character size measurement (Phase 12)
+- toImageUrl extracted as module-level export with baseUrl parameter for testability (Phase 13)
+- PLACEHOLDER_IMAGE_URL eliminated entirely; undefined used as fallback for clean rendering (Phase 13)
+- Gemini image prompts generated only for stories without OG images to save Claude API tokens (Phase 13)
+- Hero image always generated via Gemini even when all stories have OG images (Phase 13)
 
 ### Pending Todos
 
@@ -80,5 +84,5 @@ Progress: [███████░░░] 75% (3/4 plans complete)
 ## Session Continuity
 
 Last session: 2026-03-04
-Stopped at: Completed 12-01-PLAN.md (Structured Article Content)
+Stopped at: Completed 13-01-PLAN.md (AI Infographic Fallback) -- v1.2 milestone complete
 Resume file: N/A

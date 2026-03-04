@@ -36,7 +36,7 @@
 - [x] **Phase 10: Foundation & Branding** - DB schema extension, TypeScript types, and logo in email header
 - [x] **Phase 11: OG Image Extraction** - Fetch og:image from source articles at collection time
 - [x] **Phase 12: Structured Article Content** - Lead sentence, bullets, and rich formatting in newsletter stories
-- [ ] **Phase 13: AI Infographic Fallback** - Conditional Gemini generation for stories without OG images
+- [x] **Phase 13: AI Infographic Fallback** - Conditional Gemini generation for stories without OG images
 
 ## Phase Details
 
@@ -93,10 +93,10 @@ Plans:
   2. Stories without an OG image get a Gemini-generated infographic as fallback
   3. Stories where both OG fetch and Gemini generation fail render cleanly with no image element (no broken image tags)
   4. OG image URLs pass through `toImageUrl()` unchanged — remote http:// URLs are not prefixed with the API base URL
-**Plans**: TBD
+**Plans:** 1/1 plans complete
 
 Plans:
-- [ ] 13-01: Update newsletterService.ts conditional Gemini logic, fix toImageUrl() for absolute URLs, update Gemini infographic prompts
+- [x] 13-01-PLAN.md — Fix toImageUrl for absolute URLs, wire OG image lookup and conditional Gemini generation into newsletter pipeline
 
 ## Progress
 
@@ -114,4 +114,4 @@ Plans:
 | 10. Foundation & Branding | v1.2 | Complete    | 2026-03-04 | 2026-03-04 |
 | 11. OG Image Extraction | v1.2 | Complete    | 2026-03-04 | 2026-03-04 |
 | 12. Structured Article Content | v1.2 | 1/1 | Complete | 2026-03-04 |
-| 13. AI Infographic Fallback | v1.2 | 0/1 | Not started | - |
+| 13. AI Infographic Fallback | v1.2 | 1/1 | Complete | 2026-03-04 |
