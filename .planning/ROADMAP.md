@@ -50,10 +50,10 @@
   3. Logo is a hosted PNG URL — no base64 bloat, no SVG blocked by Outlook
   4. `newsItems` table has an `ogImageUrl` column and `DigestStory` TypeScript type has `lead` and `contentBlocks` fields
   5. Existing newsletters and digests in the DB render without errors (no breaking schema change)
-**Plans**: TBD
+**Plans:** 1 plan
 
 Plans:
-- [ ] 10-01: Add ogImageUrl column migration, extend DigestStory types, upload logo PNG, update DigestEmail.tsx header
+- [ ] 10-01-PLAN.md — Extend DB schema + types, add logo to email header with dark mode protection
 
 ### Phase 11: OG Image Extraction
 **Goal**: Newly collected news articles have their source OG images stored in the database, ready to be used in newsletter generation.
@@ -111,7 +111,7 @@ Plans:
 | 7. Web Search Integration | v1.1 | 1/1 | Complete | 2026-03-03 |
 | 8. Semantic Deduplication | v1.1 | 1/1 | Complete | 2026-03-03 |
 | 9. X/Twitter Monitoring | v1.1 | 2/2 | Complete | 2026-03-03 |
-| 10. Foundation & Branding | v1.2 | 0/1 | Not started | - |
+| 10. Foundation & Branding | v1.2 | 0/1 | Planning complete | - |
 | 11. OG Image Extraction | v1.2 | 0/1 | Not started | - |
 | 12. Structured Article Content | v1.2 | 0/1 | Not started | - |
 | 13. AI Infographic Fallback | v1.2 | 0/1 | Not started | - |
