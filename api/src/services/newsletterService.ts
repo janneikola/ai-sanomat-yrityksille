@@ -131,8 +131,7 @@ export async function generateClientDigest(
     issue = { id: existingIssueId };
   } else {
     const now = new Date();
-    const clientRow = await db.select().from(clients).where(eq(clients.id, clientId));
-    const scheduleFreq = clientRow[0]?.scheduleFrequency ?? 'weekly';
+    const scheduleFreq = client.scheduleFrequency ?? 'weekly';
     const [newIssue] = await db
       .insert(issues)
       .values({
