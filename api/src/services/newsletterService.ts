@@ -73,7 +73,8 @@ Anna languageQuality.score valilla 1-10 (10 = taysin luonnollinen suomi).
  */
 export async function generateClientDigest(
   clientId: number,
-  sinceDate?: Date
+  sinceDate?: Date,
+  existingIssueId?: number
 ): Promise<{ issueId: number; status: string }> {
   // 1. Hae asiakas
   const [client] = await db
@@ -123,20 +124,27 @@ export async function generateClientDigest(
     throw new Error('Required prompt templates not found in database');
   }
 
-  // 4. Luo issue-tietue tilassa 'generating'
-  const now = new Date();
-  const clientRow = await db.select().from(clients).where(eq(clients.id, clientId));
-  const scheduleFreq = clientRow[0]?.scheduleFrequency ?? 'weekly';
-  const [issue] = await db
-    .insert(issues)
-    .values({
-      clientId,
-      weekNumber: getWeekNumber(),
-      year: now.getFullYear(),
-      periodNumber: getPeriodNumber(scheduleFreq, now),
-      status: 'generating',
-    })
-    .returning();
+  // 4. Luo issue-tietue tai kayta olemassa olevaa
+  let issue: { id: number };
+  if (existingIssueId) {
+    // Kayta kutsujn jo luomaa issueta
+    issue = { id: existingIssueId };
+  } else {
+    const now = new Date();
+    const clientRow = await db.select().from(clients).where(eq(clients.id, clientId));
+    const scheduleFreq = clientRow[0]?.scheduleFrequency ?? 'weekly';
+    const [newIssue] = await db
+      .insert(issues)
+      .values({
+        clientId,
+        weekNumber: getWeekNumber(),
+        year: now.getFullYear(),
+        periodNumber: getPeriodNumber(scheduleFreq, now),
+        status: 'generating',
+      })
+      .returning();
+    issue = newIssue;
+  }
 
   try {
     // 5. Generoi katsaus

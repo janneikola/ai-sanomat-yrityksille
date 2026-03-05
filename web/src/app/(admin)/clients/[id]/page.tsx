@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Loader2, Send, RefreshCw, CheckCircle, AlertCircle, Calendar, Pause, Play, Users, Trash2, Plus, Upload } from 'lucide-react';
@@ -140,11 +140,48 @@ export default function ClientDetailPage() {
   const [removeTarget, setRemoveTarget] = useState<Member | null>(null);
   const [removeLoading, setRemoveLoading] = useState(false);
 
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Siivoa polling unmountissa
+  useEffect(() => {
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, []);
+
+  const startPolling = useCallback((issueId: number) => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = setInterval(async () => {
+      try {
+        const data = await apiFetch<Digest>(`/api/admin/digests/${issueId}`);
+        setDigest(data);
+        if (data.status !== 'generating' && data.status !== 'validating') {
+          if (pollRef.current) clearInterval(pollRef.current);
+          pollRef.current = null;
+          setGenerating(false);
+          setRegenerating(false);
+          if (data.status === 'ready') {
+            toast.success('Katsaus generoitu');
+          } else if (data.status === 'failed') {
+            toast.error('Generointi epaonnistui');
+          }
+        }
+      } catch {
+        // Yksittainen pollaus-virhe ei ole kriittinen
+      }
+    }, 5000);
+  }, []);
+
   const loadDigest = useCallback(async (issueId?: number) => {
     try {
       if (issueId) {
         const data = await apiFetch<Digest>(`/api/admin/digests/${issueId}`);
         setDigest(data);
+        // Jos tila on generating/validating, aloita pollaus automaattisesti
+        if (data.status === 'generating' || data.status === 'validating') {
+          setGenerating(true);
+          startPolling(data.id);
+        }
       } else {
         const digests = await apiFetch<DigestListItem[]>('/api/admin/digests');
         const clientDigests = digests
@@ -153,6 +190,10 @@ export default function ClientDetailPage() {
         if (clientDigests.length > 0) {
           const data = await apiFetch<Digest>(`/api/admin/digests/${clientDigests[0].id}`);
           setDigest(data);
+          if (data.status === 'generating' || data.status === 'validating') {
+            setGenerating(true);
+            startPolling(data.id);
+          }
         }
       }
     } catch {
@@ -160,7 +201,7 @@ export default function ClientDetailPage() {
     } finally {
       setLoadingDigest(false);
     }
-  }, [clientId]);
+  }, [clientId, startPolling]);
 
   const fetchMembers = useCallback(async () => {
     try {
@@ -205,11 +246,22 @@ export default function ClientDetailPage() {
           body: JSON.stringify({ clientId }),
         }
       );
-      toast.success('Katsaus generoitu');
-      await loadDigest(result.issueId);
+      toast.info('Katsauksen generointi kaynnistetty');
+      setDigest((prev) => prev ? { ...prev, status: 'generating' } : {
+        id: result.issueId,
+        clientId,
+        weekNumber: 0,
+        year: new Date().getFullYear(),
+        status: 'generating',
+        generatedContent: null,
+        validationReport: null,
+        heroImageUrl: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      startPolling(result.issueId);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Generointi epaonnistui');
-    } finally {
       setGenerating(false);
     }
   }
@@ -257,11 +309,11 @@ export default function ClientDetailPage() {
         `/api/admin/digests/${digest.id}/regenerate`,
         { method: 'POST' }
       );
-      toast.success('Katsaus generoitu uudelleen');
-      await loadDigest(result.issueId);
+      toast.info('Uudelleengenerointi kaynnistetty');
+      setDigest((prev) => prev ? { ...prev, status: 'generating' } : null);
+      startPolling(result.issueId);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Uudelleengenerointi epaonnistui');
-    } finally {
       setRegenerating(false);
     }
   }
@@ -488,6 +540,13 @@ export default function ClientDetailPage() {
 
               {/* Action buttons based on status */}
               <div className="flex items-center gap-2">
+                {(digest.status === 'generating' || digest.status === 'validating') && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>{digest.status === 'validating' ? 'Validoidaan...' : 'Generoidaan katsausta...'}</span>
+                  </div>
+                )}
+
                 {digest.status === 'ready' && (
                   <>
                     <Button onClick={handleApproveAndSend} disabled={sending}>

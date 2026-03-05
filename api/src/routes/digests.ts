@@ -6,6 +6,7 @@ import { db } from '../db/index.js';
 import { issues, clients } from '../db/schema.js';
 import { generateClientDigest } from '../services/newsletterService.js';
 import { renderDigestEmail, sendDigestToClient } from '../services/emailService.js';
+import { getISOWeekNumber, getPeriodNumber } from '../services/scheduleService.js';
 
 const digestRoutes: FastifyPluginAsyncZod = async (fastify) => {
   const f = fastify.withTypeProvider<ZodTypeProvider>();
@@ -20,16 +21,47 @@ const digestRoutes: FastifyPluginAsyncZod = async (fastify) => {
         clientId: z.number(),
       }),
       response: {
-        201: z.object({
+        202: z.object({
           issueId: z.number(),
           status: z.string(),
         }),
+        404: z.object({ error: z.string() }),
       },
     },
     handler: async (request, reply) => {
       const { clientId } = request.body;
-      const result = await generateClientDigest(clientId);
-      return reply.code(201).send(result);
+
+      // Hae schedule-tiedot issue-tietuetta varten
+      const [client] = await db
+        .select()
+        .from(clients)
+        .where(eq(clients.id, clientId));
+      if (!client) {
+        return reply.code(404).send({ error: 'Client not found' });
+      }
+
+      const now = new Date();
+      const weekNumber = getISOWeekNumber(now);
+      const periodNumber = getPeriodNumber(client.scheduleFrequency ?? 'weekly', now);
+
+      // Luo issue heti
+      const [issue] = await db
+        .insert(issues)
+        .values({
+          clientId,
+          weekNumber,
+          year: now.getFullYear(),
+          periodNumber,
+          status: 'generating',
+        })
+        .returning();
+
+      // Aja taustalla, ala odota
+      generateClientDigest(clientId, undefined, issue.id).catch((err) => {
+        console.error(`Background digest generation failed for client ${clientId}:`, err);
+      });
+
+      return reply.code(202).send({ issueId: issue.id, status: 'generating' });
     },
   });
 
@@ -229,7 +261,7 @@ const digestRoutes: FastifyPluginAsyncZod = async (fastify) => {
     schema: {
       params: z.object({ id: z.coerce.number() }),
       response: {
-        201: z.object({
+        202: z.object({
           issueId: z.number(),
           status: z.string(),
         }),
@@ -254,8 +286,18 @@ const digestRoutes: FastifyPluginAsyncZod = async (fastify) => {
         });
       }
 
-      const result = await generateClientDigest(issue.clientId);
-      return reply.code(201).send(result);
+      // Aseta tila takaisin generating
+      await db
+        .update(issues)
+        .set({ status: 'generating' })
+        .where(eq(issues.id, issue.id));
+
+      // Aja taustalla, ala odota
+      generateClientDigest(issue.clientId, undefined, issue.id).catch((err) => {
+        console.error(`Background digest regeneration failed for issue ${issue.id}:`, err);
+      });
+
+      return reply.code(202).send({ issueId: issue.id, status: 'generating' });
     },
   });
 };
