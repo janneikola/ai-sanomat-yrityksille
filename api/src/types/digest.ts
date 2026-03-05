@@ -17,10 +17,10 @@ export type ContentBlock = LeadBlock | BulletsBlock;
 
 export interface DigestStory {
   title: string;
-  businessImpact: string;       // KEEP -- backward compat for old digests
+  lead: string;
+  contentBlocks: ContentBlock[];
+  businessImpact: string;       // Varakappale taaksepainyhteensopivuutta varten
   sourceUrl: string;
-  lead?: string;                 // NEW optional -- Phase 12
-  contentBlocks?: ContentBlock[]; // NEW optional -- Phase 12
 }
 
 export interface DigestContent {
@@ -58,37 +58,36 @@ export interface ImagePrompts {
 export const digestJsonSchema = {
   type: 'object' as const,
   properties: {
-    intro: { type: 'string' as const, description: 'Opening paragraph' },
+    intro: { type: 'string' as const, description: 'Opening paragraph, 100-150 words' },
     stories: {
       type: 'array' as const,
-      description: 'Between 3 and 5 news stories',
+      description: '5 to 7 news stories with structured content',
       items: {
         type: 'object' as const,
         properties: {
-          title: { type: 'string' as const },
-          businessImpact: { type: 'string' as const },
-          sourceUrl: { type: 'string' as const },
-          lead: { type: 'string' as const, description: 'Lead sentence summarizing the story core message' },
+          title: { type: 'string' as const, description: 'News headline in Finnish' },
+          lead: { type: 'string' as const, description: 'Bold intro paragraph, 2-3 sentences (40-60 words). Rendered as emphasized text below the title.' },
           contentBlocks: {
             type: 'array' as const,
-            description: 'Structured content blocks for rich formatting',
+            description: 'REQUIRED: At least one bullets block with 4-6 detailed items. Each item is 1-2 full sentences. This is the main body of the story.',
             items: {
               type: 'object' as const,
               properties: {
-                type: { type: 'string' as const, enum: ['lead', 'bullets'] },
-                text: { type: 'string' as const },
-                items: { type: 'array' as const, items: { type: 'string' as const } },
+                type: { type: 'string' as const, enum: ['bullets'] },
+                items: { type: 'array' as const, items: { type: 'string' as const }, description: '4-6 informative bullet points, each 1-2 sentences' },
               },
-              required: ['type'] as const,
+              required: ['type', 'items'] as const,
               additionalProperties: false,
             },
           },
+          businessImpact: { type: 'string' as const, description: 'Fallback text (3-4 sentences) shown only if lead is missing. Still required for backward compatibility.' },
+          sourceUrl: { type: 'string' as const, description: 'Exact URL from the provided news list' },
         },
-        required: ['title', 'businessImpact', 'sourceUrl'] as const,
+        required: ['title', 'lead', 'contentBlocks', 'businessImpact', 'sourceUrl'] as const,
         additionalProperties: false,
       },
     },
-    closing: { type: 'string' as const, description: 'Closing paragraph' },
+    closing: { type: 'string' as const, description: 'Closing paragraph with trends summary and recommendations, 80-120 words' },
   },
   required: ['intro', 'stories', 'closing'] as const,
   additionalProperties: false,
